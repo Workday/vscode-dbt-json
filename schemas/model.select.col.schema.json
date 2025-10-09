@@ -1,0 +1,37 @@
+{
+  "$id": "model.select.col.schema.json",
+  "title": "Schema Model Select Col",
+  "description": "Validate selecting an existing named column",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "exclude_from_group_by": {
+          "$ref": "column.exclude_from_group_by.schema.json"
+        },
+        "expr": { "$ref": "column.expr.schema.json" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "const": "dim" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "const": "fct" }
+      }
+    }
+  ]
+}

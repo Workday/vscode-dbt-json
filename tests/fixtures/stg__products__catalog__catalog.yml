@@ -1,0 +1,84 @@
+version: "2"
+models:
+  - name: stg__products__catalog__catalog
+    group: products
+    description: ""
+    docs:
+      node_color: "#B6AB33"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - staging
+    columns:
+      - name: description
+        data_type: varchar
+        description: Product description
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: is_beverage
+        data_type: varchar
+        description: Boolean flag for beverage products
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: is_jaffle
+        data_type: varchar
+        description: Boolean flag for jaffle products
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: price_cents
+        data_type: varchar
+        description: Product price in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: price_dollars
+        data_type: varchar
+        description: Product price in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: product_name
+        data_type: varchar
+        description: Product name, trimmed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: product_sku
+        data_type: varchar
+        description: Product SKU identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: product_type
+        data_type: varchar
+        description: Product category (jaffle, beverage)
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog

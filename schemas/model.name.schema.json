@@ -1,0 +1,7 @@
+{
+  "$id": "model.name.schema.json",
+  "title": "Schema Model Name",
+  "description": "Validate model name",
+  "type": "string",
+  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+}

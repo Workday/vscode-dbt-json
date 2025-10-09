@@ -1,0 +1,173 @@
+version: "2"
+models:
+  - name: mart__sales__reporting__revenue
+    group: sales
+    description: ""
+    docs:
+      node_color: "#059669"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - lightdash-explore
+        - mart
+    columns:
+      - name: customer_id
+        data_type: varchar
+        description: Customer identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Customer Id
+      - name: customer_name
+        data_type: varchar
+        description: Customer name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Customer Name
+      - name: is_weekend_order
+        data_type: varchar
+        description: Boolean flag for weekend orders
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Is Weekend Order
+      - name: order_date
+        data_type: varchar
+        description: Order date
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Order Date
+      - name: order_id
+        data_type: varchar
+        description: Unique order identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Order Id
+      - name: order_month
+        data_type: varchar
+        description: Order month
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Order Month
+      - name: order_quarter
+        data_type: varchar
+        description: Order quarter
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Order Quarter
+      - name: order_year
+        data_type: varchar
+        description: Order year
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Order Year
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            type: number
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: revenue_tier
+        data_type: varchar
+        description: Revenue tier classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Revenue Tier
+      - name: store_id
+        data_type: varchar
+        description: Store identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Store Id
+      - name: store_name
+        data_type: varchar
+        description: Store location name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Store Name
+      - name: subtotal_dollars
+        data_type: varchar
+        description: Order subtotal in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Subtotal Dollars
+            hidden: true
+      - name: tax_dollars
+        data_type: varchar
+        description: Tax amount in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Tax Dollars
+            hidden: true
+      - name: total_dollars
+        data_type: varchar
+        description: Total order amount in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__sales__reporting__revenue
+          dimension:
+            type: string
+            label: Total Dollars
+            hidden: true

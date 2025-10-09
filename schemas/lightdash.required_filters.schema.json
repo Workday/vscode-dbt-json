@@ -1,0 +1,12 @@
+{
+  "$id": "lightdash.required_filters.schema.json",
+  "title": "Schema Lightdash Required Filters",
+  "description": "Schema for lightdash required filters",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "patternProperties": {
+      "^([A-z]|[0-9]|_|-)+$": { "type": "string" }
+    }
+  }
+}

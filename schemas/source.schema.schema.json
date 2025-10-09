@@ -1,0 +1,7 @@
+{
+  "$id": "source.schema.schema.json",
+  "title": "Schema Source Schema",
+  "description": "Schema where this source is located",
+  "type": "string",
+  "pattern": "^([a-z]|[0-9]|_)+$"
+}

@@ -1,0 +1,23 @@
+{
+  "$id": "column.data_type.schema.json",
+  "title": "Schema Column Data Type",
+  "description": "Validate data_type scehma for columns",
+  "type": "string",
+  "enum": [
+    "bigint",
+    "boolean",
+    "date",
+    "datetime",
+    "double",
+    "integer",
+    "number",
+    "row(date)",
+    "row(varchar)",
+    "string",
+    "timestamp",
+    "timestamp(0)",
+    "timestamp(3)",
+    "timestamp(6)",
+    "varchar"
+  ]
+}

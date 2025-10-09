@@ -1,0 +1,6 @@
+{
+  "$id": "model.database.schema.json",
+  "title": "Schema Model Database",
+  "description": "Database override for where the model will be materialized",
+  "type": "string"
+}

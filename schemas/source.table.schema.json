@@ -1,0 +1,38 @@
+{
+  "$id": "source.table.schema.json",
+  "title": "Schema Source Table",
+  "description": "Table configuration for this source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["columns", "name"],
+  "properties": {
+    "name": {
+      "description": "The name of the table",
+      "type": "string"
+    },
+    "description": {
+      "description": "A description for the table",
+      "type": "string"
+    },
+    "meta": { "$ref": "source.meta.schema.json" },
+    "columns": {
+      "description": "An array of columns which exist on the table",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data_type", "name"],
+        "properties": {
+          "data_type": {
+            "description": "The column data type from Trino, we don't validate this specifically in the framework schema as many combinations are possible",
+            "type": "string"
+          },
+          "description": { "$ref": "column.description.schema.json" },
+          "lightdash": { "$ref": "column.lightdash.schema.json" },
+          "name": { "$ref": "column.name.schema.json" },
+          "type": { "$ref": "column.type.schema.json" }
+        }
+      }
+    }
+  }
+}

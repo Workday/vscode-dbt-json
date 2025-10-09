@@ -1,0 +1,7 @@
+{
+  "$id": "model.partitions.schema.json",
+  "title": "Schema Model Partitions",
+  "description": "Override the default partitioneds configuration for this model",
+  "type": "array",
+  "items": { "$ref": "column.name.schema.json" }
+}

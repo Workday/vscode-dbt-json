@@ -1,0 +1,98 @@
+{
+    "type": "mart_select_model",
+    "group": "sales",
+    "topic": "reporting",
+    "name": "revenue",
+    "tags": [
+        "lightdash-explore"
+    ],
+    "from": {
+        "model": "int__sales__orders__enriched"
+    },
+    "select": [
+        {
+            "name": "order_id",
+            "expr": "order_id",
+            "type": "dim",
+            "description": "Unique order identifier"
+        },
+        {
+            "name": "customer_id",
+            "expr": "customer_id",
+            "type": "dim",
+            "description": "Customer identifier"
+        },
+        {
+            "name": "customer_name",
+            "expr": "customer_name",
+            "type": "dim",
+            "description": "Customer name"
+        },
+        {
+            "name": "store_id",
+            "expr": "store_id",
+            "type": "dim",
+            "description": "Store identifier"
+        },
+        {
+            "name": "store_name",
+            "expr": "store_name",
+            "type": "dim",
+            "description": "Store location name"
+        },
+        {
+            "name": "order_date",
+            "expr": "order_date",
+            "type": "dim",
+            "description": "Order date"
+        },
+        {
+            "name": "order_year",
+            "expr": "EXTRACT(YEAR FROM order_date)",
+            "type": "dim",
+            "description": "Order year"
+        },
+        {
+            "name": "order_month",
+            "expr": "EXTRACT(MONTH FROM order_date)",
+            "type": "dim",
+            "description": "Order month"
+        },
+        {
+            "name": "order_quarter",
+            "expr": "EXTRACT(QUARTER FROM order_date)",
+            "type": "dim",
+            "description": "Order quarter"
+        },
+        {
+            "name": "subtotal_dollars",
+            "expr": "CAST(subtotal_cents AS DECIMAL(10,2)) / 100.0",
+            "type": "fct",
+            "description": "Order subtotal in dollars"
+        },
+        {
+            "name": "tax_dollars",
+            "expr": "CAST(tax_paid_cents AS DECIMAL(10,2)) / 100.0",
+            "type": "fct",
+            "description": "Tax amount in dollars"
+        },
+        {
+            "name": "total_dollars",
+            "expr": "order_total_dollars",
+            "type": "fct",
+            "description": "Total order amount in dollars"
+        },
+        {
+            "name": "revenue_tier",
+            "expr": "CASE WHEN order_total_dollars >= 15.00 THEN 'High' WHEN order_total_dollars >= 8.00 THEN 'Medium' ELSE 'Low' END",
+            "type": "dim",
+            "description": "Revenue tier classification"
+        },
+        {
+            "name": "is_weekend_order",
+            "expr": "day_of_week(order_date) IN (6, 7)",
+            "type": "dim",
+            "description": "Boolean flag for weekend orders"
+        }
+    ]
+}

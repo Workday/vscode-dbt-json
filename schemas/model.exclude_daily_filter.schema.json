@@ -1,0 +1,5 @@
+{
+  "$id": "model.exclude_daily_filter.schema.json",
+  "description": "Exclude Daily Filter",
+  "type": "boolean"
+}

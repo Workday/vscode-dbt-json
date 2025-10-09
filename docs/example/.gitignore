@@ -1,0 +1,15 @@
+.venv
+venv
+.env
+env
+
+.dj
+.vscode
+
+target/
+dbt_packages/
+logs/
+profiles.yml
+.user.yml
+
+.DS_Store

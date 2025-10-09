@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Build outputs
+dist/
+web/dist/
+
+# VS Code extension package
+*.vsix
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+__pycache__
+.venv
+venv
+
+# DJ extenstion
+.dj
+
+# DBT
+target/
+dbt_packages/
+logs/
+*/**/.user.yml
+.eslintcache

@@ -1,0 +1,5 @@
+{
+  "$id": "model.include_full_month.schema.json",
+  "description": "Includes the full month when running any given event date",
+  "type": "boolean"
+}

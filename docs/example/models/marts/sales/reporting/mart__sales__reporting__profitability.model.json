@@ -1,0 +1,82 @@
+{
+    "type": "mart_select_model",
+    "group": "sales",
+    "topic": "reporting",
+    "name": "profitability",
+    "tags": [
+        "lightdash-explore"
+    ],
+    "from": {
+        "model": "int__sales__orders__enriched"
+    },
+    "select": [
+        {
+            "name": "store_id",
+            "expr": "store_id",
+            "type": "dim",
+            "description": "Store identifier"
+        },
+        {
+            "name": "store_name",
+            "expr": "store_name",
+            "type": "dim",
+            "description": "Store location name"
+        },
+        {
+            "name": "order_date",
+            "expr": "order_date",
+            "type": "dim",
+            "description": "Order date"
+        },
+        {
+            "name": "order_year_month",
+            "expr": "DATE_TRUNC('month', order_date)",
+            "type": "dim",
+            "description": "Order year-month"
+        },
+        {
+            "name": "total_revenue_dollars",
+            "expr": "SUM(order_total_dollars)",
+            "type": "fct",
+            "description": "Total revenue in dollars"
+        },
+        {
+            "name": "total_tax_collected_dollars",
+            "expr": "SUM(CAST(tax_paid_cents AS DECIMAL(10,2)) / 100.0)",
+            "type": "fct",
+            "description": "Total tax collected in dollars"
+        },
+        {
+            "name": "order_count",
+            "expr": "COUNT(*)",
+            "type": "fct",
+            "description": "Number of orders"
+        },
+        {
+            "name": "avg_order_value_dollars",
+            "expr": "AVG(order_total_dollars)",
+            "type": "fct",
+            "description": "Average order value in dollars"
+        },
+        {
+            "name": "revenue_per_day",
+            "expr": "SUM(order_total_dollars)",
+            "type": "fct",
+            "description": "Daily revenue per store"
+        }
+    ],
+    "group_by": [
+        {
+            "expr": "store_id"
+        },
+        {
+            "expr": "store_name"
+        },
+        {
+            "expr": "order_date"
+        },
+        {
+            "expr": "DATE_TRUNC('month', order_date)"
+        }
+    ]
+}

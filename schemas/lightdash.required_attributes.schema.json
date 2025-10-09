@@ -1,0 +1,14 @@
+{
+  "$id": "lightdash.required_attributes.schema.json",
+  "title": "Schema Lightdash Required Attributes",
+  "description": "Schema for lightdash required attributes",
+  "type": "object",
+  "patternProperties": {
+    "^([A-z]|[0-9]|_|-)+$": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    }
+  }
+}

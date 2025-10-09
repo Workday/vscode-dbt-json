@@ -1,0 +1,40 @@
+{
+  "$id": "model.select.source.schema.json",
+  "title": "Schema Model Select Source",
+  "description": "Schema when selecting columns from a source",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "source": { "$ref": "source.ref.schema.json" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "enum": ["dim", "fct"] }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "type"],
+      "properties": {
+        "exclude": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "column.name.schema.json" }
+        },
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "column.name.schema.json" }
+        },
+        "source": { "$ref": "source.ref.schema.json" },
+        "type": { "enum": ["all_from_source"] }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "$id": "model.from.join.column.schema.json",
+  "title": "Schema Model From Join Column",
+  "description": "Validates the join argument when joining to a column",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["column", "fields"],
+  "properties": {
+    "type": { "const": "cross_join_unnest" },
+    "column": { "$ref": "column.expr.schema.json" },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "column.expr.schema.json" }
+    }
+  }
+}

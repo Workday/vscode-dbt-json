@@ -1,0 +1,18 @@
+{
+  "$id": "model.from.type.source.schema.json",
+  "title": "Schema Model From Type Source",
+  "description": "Validate model from source and table",
+  "type": "object",
+  "required": ["source", "table"],
+  "additionalProperties": false,
+  "properties": {
+    "source": {
+      "description": "The source reference",
+      "type": "string"
+    },
+    "table": {
+      "description": "The table reference",
+      "type": "string"
+    }
+  }
+}

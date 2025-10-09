@@ -1,0 +1,39 @@
+{
+  "$id": "source.table_function.schema.json",
+  "title": "Schema Source Table Function",
+  "description": "Configuration for using a table function to query this source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["arg", "database", "dialect", "name", "schema"],
+  "properties": {
+    "arg": {
+      "description": "The table function argument name",
+      "type": "string",
+      "pattern": "^([a-z]|[0-9]|_)+$"
+    },
+    "database": {
+      "description": "The database (catalog) of the table function",
+      "type": "string",
+      "pattern": "^([a-z]|[0-9]|_)+$"
+    },
+    "dialect": {
+      "description": "The schema of the table function",
+      "enum": ["bigquery"]
+    },
+    "from": {
+      "description": "The ref for the source table we are selecting from inside the table function",
+      "type": "string",
+      "pattern": "^([a-z]|[0-9]|_|\\.)+$"
+    },
+    "name": {
+      "description": "The name of the table function",
+      "type": "string",
+      "pattern": "^([a-z]|[0-9]|_)+$"
+    },
+    "schema": {
+      "description": "The schema of the table function",
+      "type": "string",
+      "pattern": "^([a-z]|[0-9]|_)+$"
+    }
+  }
+}

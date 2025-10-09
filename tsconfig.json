@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "out",
+    "paths": {
+      "admin": ["./src/admin"],
+      "@services/*": ["./src/services/*"],
+      "@shared": ["./src/shared"],
+      "@shared/*": ["./src/shared/*"]
+    },
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["node_modules", ".vscode-test"],
+  "include": ["src"]
+}

@@ -1,0 +1,19 @@
+{
+  "$id": "model.schema.json",
+  "title": "Schema Model",
+  "description": "Validates schema for models",
+  "allowTrailingCommas": true,
+  "anyOf": [
+    { "$ref": "model.type.stg_select_source.schema.json" },
+    { "$ref": "model.type.stg_select_model.schema.json" },
+    { "$ref": "model.type.stg_union_sources.schema.json" },
+    { "$ref": "model.type.int_select_model.schema.json" },
+    { "$ref": "model.type.int_join_column.schema.json" },
+    { "$ref": "model.type.int_join_models.schema.json" },
+    { "$ref": "model.type.int_lookback_model.schema.json" },
+    { "$ref": "model.type.int_rollup_model.schema.json" },
+    { "$ref": "model.type.int_union_models.schema.json" },
+    { "$ref": "model.type.mart_select_model.schema.json" },
+    { "$ref": "model.type.mart_join_models.schema.json" }
+  ]
+}

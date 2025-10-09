@@ -1,0 +1,18 @@
+{
+  "$id": "source.select.schema.json",
+  "title": "Schema Source Select",
+  "description": "Options when selecting columns from another source",
+  "anyOf": [
+    { "$ref": "column.name.schema.json" },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "data_type": { "type": "string" },
+        "expr": { "type": "string" },
+        "name": { "$ref": "column.name.schema.json" }
+      }
+    }
+  ]
+}

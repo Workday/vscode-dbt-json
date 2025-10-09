@@ -1,0 +1,137 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "dependsOn": [
+        "npm: dev:web",
+        "npm: watch:esbuild",
+        "npm: watch:test",
+        "npm: watch:tsc",
+        "npm: watch:web-build",
+        "npm: watch:web-tsc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:esbuild",
+      "group": "build",
+      "problemMatcher": "$esbuild-watch",
+      "isBackground": true,
+      "label": "npm: watch:esbuild",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:tsc",
+      "group": "build",
+      "problemMatcher": "$tsc-watch",
+      "isBackground": true,
+      "label": "npm: watch:tsc",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:web-build",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dj",
+        "pattern": {
+          "regexp": "^.*\\[([A-Z]+)\\].*$",
+          "severity": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^build started\\.\\.\\.",
+          "endsPattern": "^built in [0-9]*ms"
+        }
+      },
+      "label": "npm: watch:web-build",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:web-tsc",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch",
+      "label": "npm: watch:web-tsc",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:test",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dj",
+        "pattern": [
+          {
+            "regexp": "^(?:\\s*)FAIL(?:\\s*)(.+)",
+            "kind": "file",
+            "file": 1
+          },
+          {
+            "regexp": "^(?:\\s*)●(?:\\s*)(.+)$",
+            "message": 1
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Determining test suites",
+          "endsPattern": "^Watch Usage"
+        }
+      },
+      "label": "npm: watch:test",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "dev:web",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dj",
+        "pattern": {
+          "regexp": "^.*\\[([A-Z]+)\\].*$",
+          "severity": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^>\\svite",
+          "endsPattern": "^\\s*VITE\\s*v[0-9]+\\.[0-9]+\\.[0-9]+\\s*ready"
+        }
+      },
+      "label": "npm: dev:web",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
+      }
+    }
+  ]
+}

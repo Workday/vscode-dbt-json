@@ -1,0 +1,20 @@
+{
+  "$id": "model.tags.schema.json",
+  "title": "Schema Model Tags",
+  "description": "Validate model tags",
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "type": "string", "pattern": "^([A-z]|[0-9]|_|-)+$" },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tag"],
+        "properties": {
+          "tag": { "type": "string", "pattern": "^([A-z]|[0-9]|_|-)+$" },
+          "type": { "enum": ["exclude", "inherit", "local"] }
+        }
+      }
+    ]
+  }
+}

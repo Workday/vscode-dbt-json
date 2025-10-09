@@ -1,0 +1,8 @@
+{
+  "$id": "source.portal_partition_columns.schema.json",
+  "title": "Schema Source Portal Partition Columns",
+  "description": "Overrides the default portal partition columns for any model directly downstream of this source",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "column.name.schema.json" }
+}

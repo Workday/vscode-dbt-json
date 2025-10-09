@@ -1,0 +1,23 @@
+{
+  "$id": "model.from.schema.json",
+  "title": "Schema Model From",
+  "description": "SQL FROM with Model and Source Refs",
+  "anyOf": [
+    {
+      "additionalProperties": false,
+      "type": "object",
+      "required": ["model"],
+      "properties": {
+        "model": {
+          "description": "The model reference",
+          "type": "string"
+        },
+        "name": {
+          "description": "Optional name for model to reference in joins",
+          "type": "string"
+        }
+      }
+    },
+    { "$ref": "model.from.type.source.schema.json" }
+  ]
+}

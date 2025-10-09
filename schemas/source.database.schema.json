@@ -1,0 +1,7 @@
+{
+  "$id": "source.database.schema.json",
+  "title": "Schema Source Database",
+  "description": "Database (Catalog) where the source is located",
+  "type": "string",
+  "pattern": "^([a-z]|[0-9]|_)+$"
+}

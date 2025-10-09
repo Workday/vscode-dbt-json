@@ -1,0 +1,39 @@
+{
+  "$id": "model.where.schema.json",
+  "title": "Schema Model Where",
+  "description": "SQL WHERE",
+  "anyOf": [
+    { "$ref": "column.expr.schema.json" },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "and": {
+          "type": "array",
+          "description": "Conditions to be combined by AND",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expr": { "$ref": "column.expr.schema.json" },
+              "group": { "$ref": "model.where.schema.json" }
+            }
+          }
+        },
+        "or": {
+          "type": "array",
+          "description": "Conditions to be combined by OR",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expr": { "$ref": "column.expr.schema.json" },
+              "group": { "$ref": "model.where.schema.json" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

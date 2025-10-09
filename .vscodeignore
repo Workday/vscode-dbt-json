@@ -1,0 +1,45 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+# Note: Do not exclude entire dist — the extension runs from compiled output
+dist/**/shared/**
+dist/**/test/**
+dist/**/__tests__/**
+
+# Development files
+fixtures/
+scripts/
+src/
+web/
+docs/
+.dj/
+tests/
+
+# Development configs
+.eslintrc.json
+.gitignore
+.prettierrc
+.prettierignore
+
+Dockerfile
+esbuild.js
+jest.config.ts
+tsconfig.json
+
+# Source maps
+**/*.map
+
+# VS Code extension package
+**/*.vsix
+
+# IDE
+.vscode/
+
+# Python
+.venv
+venv
+
+# OS files
+.DS_Store
+Thumbs.db

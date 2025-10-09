@@ -1,0 +1,81 @@
+version: "2"
+models:
+  - name: mart__products__reporting__menu_analytics
+    group: products
+    description: ""
+    docs:
+      node_color: "#059669"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - mart
+    columns:
+      - name: item_id
+        data_type: varchar
+        description: Order item identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+          dimension:
+            type: string
+            label: Item Id
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            type: number
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: product_sku
+        data_type: varchar
+        description: Product SKU identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+          dimension:
+            type: string
+            label: Product Sku
+      - name: product_type
+        data_type: varchar
+        description: Product category
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+          dimension:
+            type: string
+            label: Product Type
+      - name: total_items_sold
+        data_type: varchar
+        description: Total quantity sold
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+          dimension:
+            type: string
+            label: Total Items Sold
+            hidden: true
+      - name: total_orders
+        data_type: varchar
+        description: Number of orders containing this product
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+          dimension:
+            type: string
+            label: Total Orders
+            hidden: true

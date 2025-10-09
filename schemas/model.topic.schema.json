@@ -1,0 +1,7 @@
+{
+  "$id": "model.topic.schema.json",
+  "title": "Schema Model Topic",
+  "description": "Validate model topic",
+  "type": "string",
+  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+}

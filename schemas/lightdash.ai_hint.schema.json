@@ -1,0 +1,12 @@
+{
+  "$id": "lightdash.ai_hint.schema.json",
+  "title": "Schema Lightdash AI Hint",
+  "description": "Schema for lightdash AI hints",
+  "anyOf": [
+    { "type": "string" },
+    {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  ]
+}

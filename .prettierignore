@@ -1,0 +1,13 @@
+__pycache__
+
+.aws-sam
+.creds
+.test
+
+build
+coverage
+dist
+logs
+node_modules
+out
+venv

@@ -1,0 +1,6 @@
+{
+  "$id": "model.exclude_date_filter.schema.json",
+  "title": "Schema Model Exclude Date Filter",
+  "description": "Will prevent the automatic date filters from getting added",
+  "type": "boolean"
+}

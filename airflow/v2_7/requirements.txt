@@ -1,0 +1,8 @@
+apache-airflow[google,trino]==2.7.2
+apache-airflow-providers-trino==5.3.1
+boto3==1.36.1
+dbt-core==1.7.0
+dbt-trino==1.7.1
+kubernetes==32.0.1
+pandas==2.2.3
+trino==0.327.0

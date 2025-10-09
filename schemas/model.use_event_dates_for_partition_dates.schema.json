@@ -1,0 +1,5 @@
+{
+  "$id": "model.use_event_dates_for_partition_dates.schema.json",
+  "description": "Use the events dates variable for the partition dates, skipping the dbt_source_dates table mapping",
+  "type": "boolean"
+}

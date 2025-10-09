@@ -1,0 +1,86 @@
+{
+  "$id": "lightdash.dimension.schema.json",
+  "title": "Schema Lightdash Dimension",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ai_hint": { "$ref": "lightdash.ai_hint.schema.json" },
+    "group_label": {
+      "description": "The group label that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "groups": { "type": "array", "items": { "type": "string" } },
+    "hidden": {
+      "description": "The hidden status that will be applied to the column in lightdash",
+      "type": "boolean"
+    },
+    "label": {
+      "description": "The label that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "required_attributes": {
+      "$ref": "lightdash.required_attributes.schema.json"
+    },
+    "round": { "type": "integer", "minimum": 0 },
+    "format": {
+      "enum": ["eur", "gbp", "id", "km", "mi", "percent", "usd"]
+    },
+    "sql": {
+      "description": "SQL statement to determine the dimension",
+      "type": "string"
+    },
+    "time_intervals": {
+      "description": "The time intervals for the lightdash dimension",
+      "anyOf": [
+        { "const": "OFF" },
+        {
+          "type": "array",
+          "items": {
+            "enum": [
+              "DAY",
+              "DAY_OF_WEEK_INDEX",
+              "DAY_OF_WEEK_NAME",
+              "DAY_OF_MONTH_NUM",
+              "DAY_OF_YEAR_NUM",
+              "HOUR",
+              "MONTH",
+              "MONTH_NAME",
+              "MONTH_NUM",
+              "QUARTER",
+              "QUARTER_NAME",
+              "QUARTER_NUM",
+              "RAW",
+              "WEEK",
+              "WEEK_NUM",
+              "YEAR",
+              "YEAR_NUM"
+            ],
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "type": {
+      "enum": ["boolean", "date", "number", "string", "timestamp"]
+    },
+    "urls": {
+      "type": "array",
+      "description": "The URLs for the lightdash dimension",
+      "items": {
+        "type": "object",
+        "required": ["label", "url"],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "description": "The label for the URL",
+            "type": "string"
+          },
+          "url": {
+            "description": "The URL to link to",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$id": "column.lightdash.schema.json",
+  "title": "Schema Column Lightdash",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "dimension": { "$ref": "lightdash.dimension.schema.json" },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          {
+            "enum": [
+              "avg",
+              "count",
+              "distinctcount",
+              "max",
+              "min",
+              "p50",
+              "p90",
+              "p95",
+              "p98",
+              "sum"
+            ]
+          },
+          { "$ref": "lightdash.metric.schema.json" }
+        ]
+      }
+    },
+    "metrics_merge": { "$ref": "lightdash.metric_merge.schema.json" }
+  }
+}

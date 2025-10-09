@@ -1,0 +1,22 @@
+{
+  "$id": "model.lightdash.schema.json",
+  "title": "Schema Model Lightdash",
+  "description": "Validates schema for setting lightdash properties at the model level",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "table": { "$ref": "lightdash.table.schema.json" },
+    "metrics": {
+      "type": "array",
+      "items": { "$ref": "lightdash.metric.schema.json" }
+    },
+    "metrics_exclude": {
+      "type": "array",
+      "items": { "$ref": "lightdash.metric.name.schema.json" }
+    },
+    "metrics_include": {
+      "type": "array",
+      "items": { "$ref": "lightdash.metric.name.schema.json" }
+    }
+  }
+}

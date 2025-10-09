@@ -1,0 +1,18 @@
+{
+  "$id": "source.parent.schema.json",
+  "title": "Schema Source Parent",
+  "description": "A parent source that the etl will first query to update this table",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from", "select"],
+  "properties": {
+    "from": { "type": "string", "pattern": "^([a-z]|[0-9]|_|\\.)+$" },
+    "partition_date": { "$ref": "source.partition_date.schema.json" },
+    "select": {
+      "type": "array",
+      "items": { "$ref": "source.select.schema.json" }
+    },
+    "table_function": { "$ref": "source.table_function.schema.json" },
+    "where": { "$ref": "source.where.schema.json" }
+  }
+}

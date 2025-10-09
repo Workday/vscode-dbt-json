@@ -1,0 +1,14 @@
+{
+  "$id": "source.where.schema.json",
+  "title": "Schema Source Where",
+  "description": "Applys a static \"where\" clause any time this source is queried",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["expr"],
+  "properties": {
+    "expr": {
+      "$ref": "column.expr.schema.json",
+      "description": "The where clause expression"
+    }
+  }
+}

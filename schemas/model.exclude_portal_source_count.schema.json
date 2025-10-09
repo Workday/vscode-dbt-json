@@ -1,0 +1,6 @@
+{
+  "$id": "model.exclude_portal_source_count.schema.json",
+  "title": "Schema Model Exclude Portal Source Count",
+  "description": "Will prevent the automatic portal source count column from getting added",
+  "type": "boolean"
+}

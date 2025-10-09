@@ -1,0 +1,6 @@
+{
+  "$id": "column.description.schema.json",
+  "title": "Schema Column Description",
+  "description": "Description for the selected column",
+  "type": "string"
+}

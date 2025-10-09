@@ -1,0 +1,112 @@
+version: "2"
+models:
+  - name: int__supply_chain__supplies__cost_analysis
+    group: supply_chain
+    description: ""
+    docs:
+      node_color: "#DAA520"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - intermediate
+        - json
+    columns:
+      - name: cost_cents
+        data_type: varchar
+        description: Supply cost in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: cost_dollars
+        data_type: varchar
+        description: Supply cost in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: cost_tier
+        data_type: varchar
+        description: Supply cost tier classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+      - name: is_perishable
+        data_type: varchar
+        description: Boolean flag for perishable supplies
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: product_name
+        data_type: varchar
+        description: Product name that uses this supply
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+      - name: product_price_dollars
+        data_type: varchar
+        description: Product selling price in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+      - name: product_sku
+        data_type: varchar
+        description: Associated product SKU
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: product_type
+        data_type: varchar
+        description: Product category (jaffle, beverage)
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+      - name: supply_category
+        data_type: varchar
+        description: Supply category classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: supply_id
+        data_type: varchar
+        description: Unique identifier for each supply item
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: supply_name
+        data_type: varchar
+        description: Supply item name, trimmed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
+      - name: supply_to_price_ratio
+        data_type: varchar
+        description: Supply cost as percentage of product price
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis

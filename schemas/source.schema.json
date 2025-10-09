@@ -1,0 +1,22 @@
+{
+  "$id": "source.schema.json",
+  "title": "Schema Source",
+  "description": "Validates schema for sources",
+  "allowTrailingCommas": true,
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["database", "schema", "tables"],
+  "properties": {
+    "database": { "$ref": "source.database.schema.json" },
+    "description": { "$ref": "source.description.schema.json" },
+    "freshness": { "$ref": "source.freshness.schema.json" },
+    "loaded_at_field": { "$ref": "source.loaded_at_field.schema.json" },
+    "meta": { "$ref": "source.meta.schema.json" },
+    "schema": { "$ref": "source.schema.schema.json" },
+    "tables": {
+      "type": "array",
+      "description": "Tables to include from this schema",
+      "items": { "$ref": "source.table.schema.json" }
+    }
+  }
+}

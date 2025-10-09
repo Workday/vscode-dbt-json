@@ -1,0 +1,7 @@
+{
+  "$id": "model.limit.schema.json",
+  "title": "Schema Model Limit",
+  "description": "Validate model limit",
+  "type": "integer",
+  "minimum": 1
+}

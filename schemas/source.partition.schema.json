@@ -1,0 +1,52 @@
+{
+  "$id": "source.partition.schema.json",
+  "title": "Schema Source Partition",
+  "description": "Configuration for partitions to use when querying this source",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expr", "type"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "dialect": { "$ref": "column.data_type.schema.json" },
+        "expr": {
+          "$ref": "column.expr.schema.json",
+          "description": "The expression to use to determine the partition date, be careful not to cast here as that will prevent partition pruning"
+        },
+        "interval": {
+          "description": "The interval used for partitioning, this will be used to determine the partition date range",
+          "enum": ["day", "month"]
+        },
+        "type": {
+          "description": "The type of partition to use (event_dates will build a list for comparison to the project event dates variable)",
+          "const": "event_dates"
+        },
+        "use_range": {
+          "description": "Whether or not to use a range for the partition date filter instead of a list",
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expr", "type"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "expr": {
+          "$ref": "column.expr.schema.json",
+          "description": "The expression to use to determine the partition date, be careful not to cast here as that will prevent partition pruning"
+        },
+        "type": {
+          "description": "The type of partition to use (event_dates will build a list for comparison to the project event dates variable)",
+          "enum": ["eq", "gt", "gte", "lt", "lte", "neq"]
+        },
+        "value": {
+          "description": "The value to compare the partition field to",
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

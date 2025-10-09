@@ -1,0 +1,6 @@
+{
+  "$id": "model.description.schema.json",
+  "title": "Schema Model Description",
+  "description": "Description for the model that will appear as a hover tooltip in Lightdash",
+  "type": "string"
+}

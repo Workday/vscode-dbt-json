@@ -1,0 +1,7 @@
+{
+  "$id": "model.offset.schema.json",
+  "title": "Schema Model Offset",
+  "description": "Validate model offset",
+  "type": "integer",
+  "minimum": 1
+}

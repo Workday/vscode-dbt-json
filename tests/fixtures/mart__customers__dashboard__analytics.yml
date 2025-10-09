@@ -1,0 +1,89 @@
+version: "2"
+models:
+  - name: mart__customers__dashboard__analytics
+    group: customers
+    description: ""
+    docs:
+      node_color: "#059669"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - mart
+    columns:
+      - name: customer_id
+        data_type: varchar
+        description: Unique customer identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: Customer Id
+      - name: customer_name
+        data_type: varchar
+        description: Customer full name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: Customer Name
+      - name: customer_segment
+        data_type: varchar
+        description: Customer segment classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: Customer Segment
+      - name: first_name
+        data_type: varchar
+        description: Customer first name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: First Name
+      - name: has_last_name
+        data_type: varchar
+        description: Whether customer provided a last name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: Has Last Name
+      - name: last_name
+        data_type: varchar
+        description: Customer last name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__customers__dashboard__analytics
+          dimension:
+            type: string
+            label: Last Name
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            type: number
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count

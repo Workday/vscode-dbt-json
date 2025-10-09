@@ -1,0 +1,47 @@
+{
+    "type": "mart_select_model",
+    "group": "customers",
+    "topic": "dashboard",
+    "name": "analytics",
+    "from": {
+        "model": "int__customers__profiles__summary"
+    },
+    "select": [
+        {
+            "name": "customer_id",
+            "expr": "customer_id",
+            "type": "dim",
+            "description": "Unique customer identifier"
+        },
+        {
+            "name": "customer_name",
+            "expr": "customer_name",
+            "type": "dim",
+            "description": "Customer full name"
+        },
+        {
+            "name": "first_name",
+            "expr": "first_name",
+            "type": "dim",
+            "description": "Customer first name"
+        },
+        {
+            "name": "last_name",
+            "expr": "last_name",
+            "type": "dim",
+            "description": "Customer last name"
+        },
+        {
+            "name": "customer_segment",
+            "expr": "CASE WHEN CAST(customer_id AS INTEGER) <= 10 THEN 'VIP' WHEN CAST(customer_id AS INTEGER) <= 50 THEN 'Regular' ELSE 'New' END",
+            "type": "dim",
+            "description": "Customer segment classification"
+        },
+        {
+            "name": "has_last_name",
+            "expr": "last_name IS NOT NULL",
+            "type": "dim",
+            "description": "Whether customer provided a last name"
+        }
+    ]
+}

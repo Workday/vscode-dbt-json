@@ -1,0 +1,63 @@
+version: "2"
+models:
+  - name: int__products__analytics__product_popularity
+    group: products
+    description: ""
+    docs:
+      node_color: "#DAA520"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - intermediate
+        - json
+    columns:
+      - name: item_id
+        data_type: varchar
+        description: Order item identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__products__analytics__product_popularity
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: product_sku
+        data_type: varchar
+        description: Product SKU identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__products__analytics__product_popularity
+      - name: product_type
+        data_type: varchar
+        description: Product category
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__products__analytics__product_popularity
+      - name: total_items_sold
+        data_type: varchar
+        description: Total quantity of this product sold
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__products__analytics__product_popularity
+      - name: total_orders
+        data_type: varchar
+        description: Number of unique orders containing this product
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__products__analytics__product_popularity

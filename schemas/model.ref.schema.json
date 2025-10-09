@@ -1,0 +1,7 @@
+{
+  "$id": "model.ref.schema.json",
+  "title": "Schema Model Ref",
+  "description": "Validate model ids",
+  "type": "string",
+  "minLength": 1
+}

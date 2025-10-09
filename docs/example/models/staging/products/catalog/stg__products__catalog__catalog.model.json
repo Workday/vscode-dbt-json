@@ -1,0 +1,60 @@
+{
+    "type": "stg_select_source",
+    "group": "products",
+    "topic": "catalog",
+    "name": "catalog",
+    "materialized": "ephemeral",
+    "from": {
+        "source": "memory__jaffle_shop_dev_seeds.raw_products"
+    },
+    "select": [
+        {
+            "name": "product_sku",
+            "expr": "sku",
+            "type": "dim",
+            "description": "Product SKU identifier"
+        },
+        {
+            "name": "product_name",
+            "expr": "TRIM(name)",
+            "type": "dim",
+            "description": "Product name, trimmed"
+        },
+        {
+            "name": "product_type",
+            "expr": "TRIM(type)",
+            "type": "dim",
+            "description": "Product category (jaffle, beverage)"
+        },
+        {
+            "name": "price_cents",
+            "expr": "price",
+            "type": "fct",
+            "description": "Product price in cents"
+        },
+        {
+            "name": "price_dollars",
+            "expr": "CAST(price AS DECIMAL(10,2)) / 100.0",
+            "type": "fct",
+            "description": "Product price in dollars"
+        },
+        {
+            "name": "description",
+            "expr": "TRIM(description)",
+            "type": "dim",
+            "description": "Product description"
+        },
+        {
+            "name": "is_jaffle",
+            "expr": "LOWER(TRIM(type)) = 'jaffle'",
+            "type": "dim",
+            "description": "Boolean flag for jaffle products"
+        },
+        {
+            "name": "is_beverage",
+            "expr": "LOWER(TRIM(type)) = 'beverage'",
+            "type": "dim",
+            "description": "Boolean flag for beverage products"
+        }
+    ]
+}

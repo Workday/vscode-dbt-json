@@ -1,0 +1,6 @@
+{
+  "$id": "model.exclude_portal_partition_columns.schema.json",
+  "title": "Schema Model Exclude Portal Partition Columns",
+  "description": "Will prevent the automatic portal partition date columns from getting added",
+  "type": "boolean"
+}

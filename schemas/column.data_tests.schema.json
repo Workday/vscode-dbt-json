@@ -1,0 +1,63 @@
+{
+  "$id": "column.data_tests.schema.json",
+  "title": "Schema Column Data Tests",
+  "description": "Validate column data_tests",
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "enum": ["not_null", "unique"] },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unique"],
+        "properties": {
+          "unique": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["config"],
+            "properties": {
+              "config": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["where"],
+                "properties": { "where": { "$ref": "column.expr.schema.json" } }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["accepted_values"],
+        "properties": {
+          "accepted_values": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["values"],
+            "properties": {
+              "quote": { "type": "boolean" },
+              "values": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["relationships"],
+        "properties": {
+          "relationships": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "to"],
+            "properties": {
+              "field": { "$ref": "column.name.schema.json" },
+              "to": { "type": "string" }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

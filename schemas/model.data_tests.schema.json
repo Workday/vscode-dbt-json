@@ -1,0 +1,24 @@
+{
+  "$id": "model.data_tests.schema.json",
+  "title": "Schema Model Data Tests",
+  "description": "Validate model data_tests",
+  "type": "array",
+  "items": {
+    "anyOf": [
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["column_name", "type"],
+        "properties": {
+          "type": {
+            "const": "unique"
+          },
+          "column_name": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    ]
+  }
+}

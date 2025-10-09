@@ -1,0 +1,81 @@
+{
+    "type": "mart_join_models",
+    "group": "analytics",
+    "topic": "dashboard",
+    "name": "comprehensive_analytics",
+    "tags": [
+        "lightdash-explore"
+    ],
+    "from": {
+        "model": "mart__products__reporting__menu_analytics",
+        "join": [
+            {
+                "model": "mart__products__reporting__cost_efficiency",
+                "type": "left",
+                "on": {
+                    "and": [
+                        {
+                            "expr": "mart__products__reporting__menu_analytics.product_sku = mart__products__reporting__cost_efficiency.product_sku"
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "select": [
+        {
+            "name": "product_sku",
+            "expr": "mart__products__reporting__menu_analytics.product_sku",
+            "type": "dim",
+            "description": "Product SKU identifier"
+        },
+        {
+            "name": "product_type",
+            "expr": "mart__products__reporting__menu_analytics.product_type",
+            "type": "dim",
+            "description": "Product category (jaffle/beverage)"
+        },
+        {
+            "name": "total_orders",
+            "expr": "mart__products__reporting__menu_analytics.total_orders",
+            "type": "fct",
+            "description": "Number of orders containing this product"
+        },
+        {
+            "name": "total_items_sold",
+            "expr": "mart__products__reporting__menu_analytics.total_items_sold",
+            "type": "fct",
+            "description": "Total quantity sold"
+        },
+        {
+            "name": "supply_cost_dollars",
+            "expr": "mart__products__reporting__cost_efficiency.supply_cost_dollars",
+            "type": "fct",
+            "description": "Individual supply cost in dollars"
+        },
+        {
+            "name": "cost_efficiency_category",
+            "expr": "mart__products__reporting__cost_efficiency.cost_efficiency_category",
+            "type": "dim",
+            "description": "Cost efficiency classification"
+        },
+        {
+            "name": "perishable_risk_level",
+            "expr": "mart__products__reporting__cost_efficiency.perishable_risk_level",
+            "type": "dim",
+            "description": "Risk level based on perishable supplies"
+        },
+        {
+            "name": "business_impact_score",
+            "expr": "CASE WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Highly Efficient' THEN 100 WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Efficient' THEN 85 WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Moderate' THEN 70 ELSE 50 END",
+            "type": "fct",
+            "description": "Business impact score based on cost efficiency (0-100)"
+        },
+        {
+            "name": "strategic_recommendation",
+            "expr": "CASE WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Highly Efficient' THEN 'Promote & Expand' WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Efficient' THEN 'Monitor Performance' WHEN mart__products__reporting__cost_efficiency.cost_efficiency_category = 'Moderate' THEN 'Optimize Costs' ELSE 'Review Strategy' END",
+            "type": "dim",
+            "description": "Strategic business recommendation"
+        }
+    ]
+}

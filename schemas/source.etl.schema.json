@@ -1,0 +1,62 @@
+{
+  "$id": "source.etl.schema.json",
+  "title": "Schema Source Etl",
+  "description": "Source ETL settings",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "backfill_start"],
+      "properties": {
+        "active": {
+          "description": "Whether or not this source should be checked when the ETL runs",
+          "type": "boolean"
+        },
+        "backfill_start": {
+          "description": "The date from which to start backfilling all downstream models",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "type": "string"
+        },
+        "cursor_expr": {
+          "description": "An expression to be used as a query cursor for determining which event dates have changed since last time the etl was run",
+          "type": "string"
+        },
+        "lookback_days": {
+          "description": "The number of days to lookback when querying the source",
+          "type": "integer"
+        },
+        "sql_event_date_updated_timestamps": {
+          "description": "SQL statement which will determine if certain source event dates should be included event if their event_count didn't change, the query should return two columns, event_date and updated_timestamp",
+          "type": "string"
+        },
+        "sql_retry": {
+          "description": "SQL statement which will be run before a retry if the first attempt to query the source dates fails",
+          "type": "string"
+        },
+        "type": {
+          "default": "The type of ETL trigger used for models downstream of this source (default is event_count)",
+          "const": "event_count"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active"],
+      "properties": {
+        "active": {
+          "description": "Whether or not this source should be checked when the ETL runs",
+          "type": "boolean"
+        },
+        "sql_retry": {
+          "description": "SQL statement which will be run before a retry if the first attempt to query the source dates fails",
+          "type": "string"
+        },
+        "type": {
+          "default": "The type of ETL trigger used for models downstream of this source (default is event_count)",
+          "const": "run_schedule"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$id": "lightdash.metric.schema.json",
+  "title": "Schema Lightdash Metric",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "type"],
+  "properties": {
+    "ai_hint": { "$ref": "lightdash.ai_hint.schema.json" },
+    "group_label": {
+      "description": "The group label that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "groups": { "type": "array", "items": { "type": "string" } },
+    "hidden": {
+      "description": "The hidden status that will be applied to the column in lightdash",
+      "type": "boolean"
+    },
+    "compact": {
+      "description": "The compact status that will be applied to the column in lightdash",
+      "enum": ["thousands", "millions", "billions", "trillions"]
+    },
+    "description": {
+      "description": "The description that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "label": {
+      "description": "The label that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "name": { "$ref": "lightdash.metric.name.schema.json" },
+    "round": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "format": {
+      "enum": ["eur", "gbp", "id", "km", "mi", "percent", "usd"]
+    },
+    "sql": {
+      "description": "The custom sql expression to generate the metric",
+      "type": "string"
+    },
+    "type": {
+      "description": "The type of metric",
+      "enum": [
+        "average",
+        "boolean",
+        "count",
+        "count_distinct",
+        "date",
+        "max",
+        "median",
+        "min",
+        "number",
+        "percentile",
+        "string",
+        "sum"
+      ]
+    }
+  }
+}

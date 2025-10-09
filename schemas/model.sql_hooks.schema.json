@@ -1,0 +1,38 @@
+{
+  "$id": "model.sql_hooks.schema.json",
+  "description": "SQL statements to run before or after models",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "post": {
+      "description": "Statement(s) to run after model",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "pre": {
+      "description": "Statement(s) to run before model",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  }
+}

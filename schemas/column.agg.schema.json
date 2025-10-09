@@ -1,0 +1,7 @@
+{
+  "$id": "column.agg.schema.json",
+  "title": "Schema Column Agg",
+  "description": "Automatically creates new aggregation columns, \"hll\" is HyperLogLog (used to approximate count distinct), and \"tdigest\" is T-Digest (used to approximate percentiles)",
+  "type": "string",
+  "enum": ["count", "hll", "max", "min", "sum", "tdigest"]
+}

@@ -1,0 +1,284 @@
+{
+  "name": "portal-dbt",
+  "author": "Workday",
+  "displayName": "DJ (dbt-json) Framework",
+  "description": "An extension for managing dbt projects using Workday's dbt-json (DJ) framework",
+  "icon": "assets/images/icon.png",
+  "license": "Apache-2.0",
+  "publisher": "workday",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/workday/vscode-portal-dbt.git"
+  },
+  "version": "0.1.0",
+  "workspaces": [
+    "web"
+  ],
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Data Science",
+    "Other"
+  ],
+  "keywords": [
+    "dbt",
+    "data",
+    "analytics",
+    "sql",
+    "json",
+    "trino",
+    "lightdash",
+    "modeling",
+    "elt",
+    "data engineering",
+    "business intelligence",
+    "data transformation"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/dbt_project.yml"
+  ],
+  "main": "./dist/extension/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dj.command.columnOrigin",
+        "title": "DJ: Find Column Origin"
+      },
+      {
+        "command": "dj.command.jsonSync",
+        "icon": "$(sync)",
+        "title": "DJ: Regenerate SQL and YML"
+      },
+      {
+        "command": "dj.command.lightdashPreview",
+        "icon": "$(lightbulb-sparkle)",
+        "title": "DJ: Start Lightdash Preview"
+      },
+      {
+        "command": "dj.command.modelInspectConfig",
+        "title": "DJ: Inspect Current Model Config"
+      },
+      {
+        "command": "dj.command.modelNavigate",
+        "title": "DJ: Navigate to Model"
+      },
+      {
+        "command": "dj.command.modelCompile",
+        "title": "Compile Model",
+        "icon": "./assets/images/icon.svg"
+      },
+      {
+        "command": "dj.command.modelRun",
+        "title": "DJ: Run Model"
+      },
+      {
+        "command": "dj.command.modelRunLineage",
+        "title": "DJ: Run Model Lineage"
+      },
+      {
+        "command": "dj.command.projectClean",
+        "title": "DJ: Clean Project"
+      },
+      {
+        "command": "dj.command.deferRun",
+        "icon": "$(run-all-coverage)",
+        "title": "DJ: Defer Run"
+      },
+      {
+        "command": "dj.command.sourceOrigin",
+        "title": "DJ: Find Source Origin"
+      },
+      {
+        "command": "dj.command.testTrinoConnection",
+        "title": "DJ: Test Trino Connection"
+      }
+    ],
+    "configuration": {
+      "title": "DJ (dbt-json framework)",
+      "type": "object",
+      "properties": {
+        "dj.airflowGenerateDags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable writing Airflow DAG files provided by the extension."
+        },
+        "dj.airflowTargetVersion": {
+          "type": "string",
+          "enum": [
+            "2.7",
+            "2.8",
+            "2.9",
+            "2.10"
+          ],
+          "default": "2.7",
+          "description": "Target Airflow version to use when generating the DAG."
+        },
+        "dj.airflowDagsPath": {
+          "type": "string",
+          "description": "Folder where the extension writes Airflow DAGs or the default of 'dags/_ext_'.",
+          "default": "dags/_ext_"
+        },
+        "dj.dbtProjectNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "The list of valid dbt project names to be recognized by the extension. If empty, all projects will be allowed. This setting helps filter which dbt projects the extension should process.",
+          "scope": "resource"
+        },
+        "dj.dbtMacroPath": {
+          "type": "string",
+          "description": "Folder where the extension writes macros, relative to the macro-paths in dbt_project.yml or the default of 'macros'.",
+          "default": "_ext_"
+        },
+        "dj.pythonVenvPath": {
+          "type": "string",
+          "description": "Path to the local Python virtual environment."
+        },
+        "dj.trinoPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Trino CLI executable. If not set, will try to find 'trino-cli' in PATH."
+        },
+        "dj.lightdashProjectPath": {
+          "type": "string",
+          "description": "Custom path to the dbt project directory for Lightdash preview (relative to workspace root). If not set, will auto-detect from available dbt projects."
+        },
+        "dj.lightdashProfilesPath": {
+          "type": "string",
+          "description": "Custom path to the dbt profiles directory for Lightdash preview (relative to workspace root). If not set, will use the project directory or workspace root."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "editor.formatOnSave": true,
+      "files.associations": {
+        "*.yaml": "jinja-yaml",
+        "*.yml": "jinja-yaml",
+        "*.sql": "jinja-sql",
+        "*.json": "jsonc"
+      },
+      "json.format.enable": true,
+      "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+      }
+    },
+    "keybindings": [
+      {
+        "key": "cmd+shift+c",
+        "command": "dj.command.modelCompile",
+        "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "cmd+shift+j",
+        "command": "dj.command.frameworkJumpJson",
+        "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "cmd+shift+m",
+        "command": "dj.command.frameworkJumpModel",
+        "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "cmd+shift+y",
+        "command": "dj.command.frameworkJumpYaml",
+        "when": "resourceFilename =~ /[.]((model)[.](json)|(source)[.](json)|sql|yml)$/"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "dj.command.modelCompile",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        }
+      ]
+    },
+    "views": {
+      "dj": [
+        {
+          "id": "dj.view.projectNavigator",
+          "name": "Project Navigator",
+          "icon": "$(list-tree)"
+        },
+        {
+          "id": "dj.view.selectedResource",
+          "name": "Selected Resource",
+          "icon": "$(list-selection)"
+        },
+        {
+          "id": "dj.view.queryEngine",
+          "name": "Query Engine",
+          "icon": "$(database)"
+        },
+        {
+          "id": "dj.view.modelActions",
+          "name": "Actions",
+          "icon": "$(play)"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dj",
+          "title": "DJ (dbt-json) Framework",
+          "icon": "assets/images/icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p . --outDir dist/extension",
+    "compile:web": "npm run build --prefix ./web",
+    "dev": "npm-run-all -p dev:* ",
+    "dev:extension": "npm run watch",
+    "dev:web": "npm run dev --prefix ./web",
+    "lint": "eslint src --ext ts --cache --cache-location .eslintcache",
+    "fixtures:update": "npx ts-node tests/update-fixtures.ts",
+    "package": "vsce package",
+    "schema": "npx rimraf src/shared/schema/types && cd schemas && npx json2ts -i '*.schema.json' -o ../src/shared/schema/types --strictIndexSignatures && cd ../",
+    "test": "npx jest",
+    "vscode:prepublish": "npx rimraf dist && npm run compile:web && npm run compile && npm run lint && node esbuild.mjs --production",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.mjs --watch",
+    "watch:web": "npm run watch --prefix ./web",
+    "watch:web-build": "npm run watch:build --prefix ./web",
+    "watch:web-tsc": "npm run watch:tsc --prefix ./web",
+    "watch:test": "npx jest --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "dompurify": "^3.2.6",
+    "glob": "^11.0.3",
+    "html-react-parser": "^5.2.5",
+    "jsonc-parser": "^3.3.1",
+    "lodash": "^4.17.21",
+    "sql-formatter": "^15.3.1",
+    "uuid": "^10.0.0",
+    "yaml": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "20.x",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.87.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.25.9",
+    "eslint": "^9.37.0",
+    "jest": "^29.7.0",
+    "json-schema-to-typescript": "^15.0.0",
+    "npm-run-all2": "^7.0.2",
+    "prettier": "3.2.5",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.2"
+  }
+}

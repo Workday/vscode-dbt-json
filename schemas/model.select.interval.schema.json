@@ -1,0 +1,16 @@
+{
+  "$id": "model.select.interval.schema.json",
+  "title": "Schema Model Select Interval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["interval", "name"],
+  "properties": {
+    "description": { "$ref": "column.description.schema.json" },
+    "interval": { "enum": ["day", "hour", "month", "year"] },
+    "lightdash": { "$ref": "column.lightdash.schema.json" },
+    "model": { "$ref": "model.ref.schema.json" },
+    "name": { "const": "datetime" },
+    "data_tests": { "$ref": "column.data_tests.schema.json" },
+    "type": { "const": "dim" }
+  }
+}

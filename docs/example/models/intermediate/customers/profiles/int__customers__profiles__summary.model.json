@@ -1,0 +1,86 @@
+{
+    "type": "int_join_models",
+    "group": "customers",
+    "topic": "profiles",
+    "name": "summary",
+    "from": {
+        "model": "stg__customers__profiles__clean",
+        "join": [
+            {
+                "model": "stg__sales__orders__standardized",
+                "type": "left",
+                "on": {
+                    "and": [
+                        {
+                            "expr": "stg__customers__profiles__clean.customer_id = stg__sales__orders__standardized.customer_id"
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "select": [
+        {
+            "name": "customer_id",
+            "expr": "stg__customers__profiles__clean.customer_id",
+            "type": "dim",
+            "description": "Unique customer identifier"
+        },
+        {
+            "name": "customer_name",
+            "expr": "stg__customers__profiles__clean.customer_name",
+            "type": "dim",
+            "description": "Customer full name"
+        },
+        {
+            "name": "first_name",
+            "expr": "stg__customers__profiles__clean.first_name",
+            "type": "dim",
+            "description": "Customer first name"
+        },
+        {
+            "name": "last_name",
+            "expr": "stg__customers__profiles__clean.last_name",
+            "type": "dim",
+            "description": "Customer last name"
+        },
+        {
+            "name": "customer_segment",
+            "expr": "CASE WHEN COUNT(stg__sales__orders__standardized.order_id) >= 10 THEN 'VIP' WHEN COUNT(stg__sales__orders__standardized.order_id) >= 3 THEN 'Regular' ELSE 'New' END",
+            "type": "dim",
+            "description": "Customer segment classification based on order count"
+        },
+        {
+            "name": "has_last_name",
+            "expr": "stg__customers__profiles__clean.last_name IS NOT NULL",
+            "type": "dim",
+            "description": "Whether customer provided a last name"
+        },
+        {
+            "name": "portal_source_count",
+            "expr": "1",
+            "type": "fct",
+            "description": "Portal source count (constant value)"
+        },
+        {
+            "name": "total_orders",
+            "expr": "COUNT(stg__sales__orders__standardized.order_id)",
+            "type": "fct",
+            "description": "Total number of orders placed by customer"
+        }
+    ],
+    "group_by": [
+        {
+            "expr": "stg__customers__profiles__clean.customer_id"
+        },
+        {
+            "expr": "stg__customers__profiles__clean.customer_name"
+        },
+        {
+            "expr": "stg__customers__profiles__clean.first_name"
+        },
+        {
+            "expr": "stg__customers__profiles__clean.last_name"
+        }
+    ]
+}

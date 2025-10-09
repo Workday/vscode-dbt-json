@@ -1,0 +1,6 @@
+{
+  "$id": "column.expr.schema.json",
+  "title": "Schema Column Expr",
+  "description": "SQL expression to be used when selecting the column (name will be the alias",
+  "type": "string"
+}

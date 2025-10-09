@@ -1,0 +1,8 @@
+{
+  "$id": "column.aggs.schema.json",
+  "title": "Schema Column Aggs",
+  "description": "The aggregate functions to apply to the fact, this will generate a new column per agg specified, and automatically the agg type to the column name, e.g. column_count, column_sum. \"hll\" is HyperLogLog (used to approximate count distinct), and \"tdigest\" is T-Digest (used to approximate percentiles)",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "column.agg.schema.json" }
+}

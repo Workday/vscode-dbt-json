@@ -1,0 +1,6 @@
+{
+  "$id": "column.exclude_from_group_by.schema.json",
+  "title": "Schema Column Exclude From Group By",
+  "description": "Exclude this dimension from group by when we are aggregating",
+  "type": "boolean"
+}

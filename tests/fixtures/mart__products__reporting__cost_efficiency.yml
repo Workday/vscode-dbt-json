@@ -1,0 +1,122 @@
+version: "2"
+models:
+  - name: mart__products__reporting__cost_efficiency
+    group: products
+    description: ""
+    docs:
+      node_color: "#059669"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - mart
+    columns:
+      - name: cost_efficiency_category
+        data_type: varchar
+        description: Cost efficiency classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Cost Efficiency Category
+      - name: cost_to_price_ratio
+        data_type: varchar
+        description: Individual supply cost as ratio of selling price
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Cost To Price Ratio
+            hidden: true
+      - name: is_perishable_supply
+        data_type: varchar
+        description: Whether this supply is perishable
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Is Perishable Supply
+      - name: perishable_risk_level
+        data_type: varchar
+        description: Risk level based on perishable supplies
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Perishable Risk Level
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            type: number
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: product_name
+        data_type: varchar
+        description: Product name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Product Name
+      - name: product_price_dollars
+        data_type: varchar
+        description: Product selling price
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Product Price Dollars
+            hidden: true
+      - name: product_sku
+        data_type: varchar
+        description: Product SKU identifier
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Product Sku
+      - name: product_type
+        data_type: varchar
+        description: Product category
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Product Type
+      - name: supply_cost_dollars
+        data_type: varchar
+        description: Individual supply cost in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Supply Cost Dollars
+            hidden: true

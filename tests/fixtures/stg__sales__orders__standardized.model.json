@@ -1,0 +1,60 @@
+{
+    "type": "stg_select_source",
+    "group": "sales",
+    "topic": "orders",
+    "name": "standardized",
+    "materialized": "ephemeral",
+    "from": {
+        "source": "memory__jaffle_shop_dev_seeds.raw_orders"
+    },
+    "select": [
+        {
+            "name": "order_id",
+            "expr": "id",
+            "type": "dim",
+            "description": "Unique identifier for each order"
+        },
+        {
+            "name": "customer_id",
+            "expr": "customer",
+            "type": "dim",
+            "description": "Foreign key to customer"
+        },
+        {
+            "name": "store_id",
+            "expr": "store_id",
+            "type": "dim",
+            "description": "Foreign key to store"
+        },
+        {
+            "name": "ordered_at",
+            "expr": "CAST(ordered_at AS TIMESTAMP)",
+            "type": "dim",
+            "description": "Timestamp when order was placed"
+        },
+        {
+            "name": "order_date",
+            "expr": "DATE(CAST(ordered_at AS TIMESTAMP))",
+            "type": "dim",
+            "description": "Date when order was placed"
+        },
+        {
+            "name": "subtotal_cents",
+            "expr": "subtotal",
+            "type": "fct",
+            "description": "Order subtotal in cents"
+        },
+        {
+            "name": "tax_paid_cents",
+            "expr": "tax_paid",
+            "type": "fct",
+            "description": "Tax amount paid in cents"
+        },
+        {
+            "name": "order_total_cents",
+            "expr": "order_total",
+            "type": "fct",
+            "description": "Total order amount in cents"
+        }
+    ]
+}

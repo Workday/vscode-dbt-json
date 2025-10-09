@@ -1,0 +1,6 @@
+{
+  "$id": "source.loaded_at_field.schema.json",
+  "title": "Schema Loaded At Field",
+  "description": "A column name (or expression) that returns a timestamp indicating freshness",
+  "type": "string"
+}

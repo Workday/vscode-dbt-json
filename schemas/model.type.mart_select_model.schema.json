@@ -1,0 +1,43 @@
+{
+  "$id": "model.type.mart_select_model.schema.json",
+  "title": "Schema Model Type Mart Select Model",
+  "description": "Validates schema for models selecting from models",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from", "group", "name", "select", "topic", "type"],
+  "properties": {
+    "type": { "const": "mart_select_model" },
+    "group": { "$ref": "model.group.schema.json" },
+    "topic": { "$ref": "model.topic.schema.json" },
+    "name": { "$ref": "model.name.schema.json" },
+    "description": { "$ref": "model.description.schema.json" },
+    "lightdash": { "$ref": "model.lightdash.schema.json" },
+    "tags": { "$ref": "model.tags.schema.json" },
+    "group_by": { "$ref": "model.group_by.schema.json" },
+    "exclude_portal_partition_columns": {
+      "$ref": "model.exclude_portal_partition_columns.schema.json"
+    },
+    "exclude_portal_source_count": {
+      "$ref": "model.exclude_portal_source_count.schema.json"
+    },
+    "select": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "$ref": "column.name.schema.json" },
+          { "$ref": "model.select.col.schema.json" },
+          { "$ref": "model.select.expr.schema.json" },
+          { "$ref": "model.select.interval.schema.json" },
+          { "$ref": "model.select.model.schema.json" }
+        ]
+      }
+    },
+    "from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model"],
+      "properties": { "model": { "$ref": "model.ref.schema.json" } }
+    }
+  }
+}

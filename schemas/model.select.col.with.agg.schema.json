@@ -1,0 +1,23 @@
+{
+  "$id": "model.select.col.with.agg.schema.json",
+  "title": "Schema Model Select Col With Agg",
+  "description": "Validate selecting an existing named column and creating an agg",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "agg": { "$ref": "column.agg.schema.json" },
+        "aggs": { "$ref": "column.aggs.schema.json" },
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "override_suffix_agg": { "type": "boolean" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "const": "fct" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "$id": "lightdash.metric.name.schema.json",
+  "title": "Schema Lightdash Metric Name",
+  "description": "Validate Lightdash metric name",
+  "type": "string",
+  "pattern": "^([a-z]|[0-9]|_)+$"
+}

@@ -1,0 +1,23 @@
+{
+  "$id": "lightdash.group_details.json",
+  "title": "Schema Lightdash Group Details",
+  "description": "Schema for lightdash group details",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^([A-z]|[0-9]|_|-)+$": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "description": "The label of the group",
+          "type": "string"
+        },
+        "description": {
+          "description": "The description of the group",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

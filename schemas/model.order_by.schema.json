@@ -1,0 +1,20 @@
+{
+  "$id": "model.order_by.schema.json",
+  "title": "Schema Model Order By",
+  "description": "Validate model order by",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "anyOf": [
+      { "$ref": "column.name.schema.json" },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "column.name.schema.json" },
+          "type": { "enum": ["asc", "desc"] }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "$id": "model.format.schema.json",
+  "title": "Schema Model Format",
+  "description": "Open table format for the model",
+  "enum": ["delta_lake", "hive", "iceberg"]
+}

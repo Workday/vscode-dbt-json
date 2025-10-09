@@ -1,0 +1,60 @@
+{
+  "$id": "model.select.model.schema.json",
+  "title": "Schema Model Select Model",
+  "description": "Schema when selecting columns from another model",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "name"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "exclude_from_group_by": { "type": "boolean" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "model": { "$ref": "model.ref.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "override_prefix": { "$ref": "column.name.schema.json" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "const": "dim" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "name", "type"],
+      "properties": {
+        "data_type": { "$ref": "column.data_type.schema.json" },
+        "description": { "$ref": "column.description.schema.json" },
+        "lightdash": { "$ref": "column.lightdash.schema.json" },
+        "model": { "$ref": "model.ref.schema.json" },
+        "name": { "$ref": "column.name.schema.json" },
+        "override_prefix": { "$ref": "column.name.schema.json" },
+        "data_tests": { "$ref": "column.data_tests.schema.json" },
+        "type": { "const": "fct" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "type"],
+      "properties": {
+        "type": {
+          "enum": ["all_from_model", "dims_from_model", "fcts_from_model"]
+        },
+        "exclude": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "column.name.schema.json" }
+        },
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "column.name.schema.json" }
+        },
+        "model": { "$ref": "model.ref.schema.json" },
+        "override_prefix": { "$ref": "column.name.schema.json" }
+      }
+    }
+  ]
+}

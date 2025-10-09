@@ -1,0 +1,6 @@
+{
+  "$id": "source.description.schema.json",
+  "title": "Schema Source Description",
+  "description": "A description for the source",
+  "type": "string"
+}

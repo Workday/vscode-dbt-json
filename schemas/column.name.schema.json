@@ -1,0 +1,7 @@
+{
+  "$id": "column.name.schema.json",
+  "title": "Schema Column Name",
+  "description": "Validate column name",
+  "type": "string",
+  "pattern": "^([a-z]|[0-9]|_)+$"
+}

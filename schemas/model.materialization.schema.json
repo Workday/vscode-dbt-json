@@ -1,0 +1,35 @@
+{
+  "$id": "model.materialization.schema.json",
+  "title": "Schema Model Materialization",
+  "description": "Materialization Configuration",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "ephemeral" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "incremental" },
+        "database": {
+          "$ref": "model.database.schema.json"
+        },
+        "format": {
+          "$ref": "model.format.schema.json"
+        },
+        "partitions": {
+          "$ref": "model.partitions.schema.json"
+        },
+        "strategy": {
+          "$ref": "model.incremental_strategy.schema.json"
+        }
+      }
+    }
+  ]
+}

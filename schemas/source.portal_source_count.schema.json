@@ -1,0 +1,17 @@
+{
+  "$id": "source.portal_source_count.schema.json",
+  "title": "Schema Source Portal Source Count",
+  "description": "Overrides any default settings for the portal_source_count column",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "exclude": {
+      "description": "Explicitly exclude a portal_source_count column for this source",
+      "type": "boolean"
+    },
+    "metric_label": {
+      "description": "Custom label for the portal source count metric",
+      "type": "string"
+    }
+  }
+}

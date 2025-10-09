@@ -1,0 +1,19 @@
+{
+  "$id": "source.event_datetime.schema.json",
+  "title": "Schema Source Event Datetime",
+  "description": "Configuration for determining the event date when querying this source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["expr"],
+  "properties": {
+    "data_type": { "$ref": "column.data_type.schema.json" },
+    "expr": {
+      "$ref": "column.expr.schema.json",
+      "description": "The expression to use to extract the event datetime"
+    },
+    "use_range": {
+      "description": "Whether or not to use a range for the event date filter instead of a list",
+      "type": "boolean"
+    }
+  }
+}

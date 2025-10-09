@@ -1,0 +1,7 @@
+{
+  "$id": "model.materialized.schema.json",
+  "title": "Schema Model Materialized",
+  "description": "Type of materialization",
+  "type": "string",
+  "enum": ["ephemeral", "incremental"]
+}

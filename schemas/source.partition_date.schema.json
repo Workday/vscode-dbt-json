@@ -1,0 +1,31 @@
+{
+  "$id": "source.partition_date.schema.json",
+  "title": "Schema Source Partition Date",
+  "description": "Configuration for determining the partition date when querying this source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["expr"],
+  "properties": {
+    "compile_dates": {
+      "description": "Whether or not to fetch the patition dates at compile time instead of runtime, this is true by default as it can significantly improve partitioning performance",
+      "type": "boolean"
+    },
+    "data_type": { "$ref": "column.data_type.schema.json" },
+    "expr": {
+      "$ref": "column.expr.schema.json",
+      "description": "The expression to use to determine the partition date, be careful not to cast here as that will prevent partition pruning"
+    },
+    "interval": {
+      "description": "The interval used for partitioning, this will be used to determine the partition date range",
+      "enum": ["day", "month"]
+    },
+    "use_event_dates": {
+      "description": "Whether or not to use the event dates as the partition dates",
+      "type": "boolean"
+    },
+    "use_range": {
+      "description": "Whether or not to use a range for the partition date filter instead of a list",
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,84 @@
+version: "2"
+models:
+  - name: stg__sales__orders__standardized
+    group: sales
+    description: ""
+    docs:
+      node_color: "#B6AB33"
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - json
+        - staging
+    columns:
+      - name: customer_id
+        data_type: varchar
+        description: Foreign key to customer
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_date
+        data_type: varchar
+        description: Date when order was placed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_id
+        data_type: varchar
+        description: Unique identifier for each order
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_total_cents
+        data_type: varchar
+        description: Total order amount in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: ordered_at
+        data_type: varchar
+        description: Timestamp when order was placed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: store_id
+        data_type: varchar
+        description: Foreign key to store
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: subtotal_cents
+        data_type: varchar
+        description: Order subtotal in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: tax_paid_cents
+        data_type: varchar
+        description: Tax amount paid in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized

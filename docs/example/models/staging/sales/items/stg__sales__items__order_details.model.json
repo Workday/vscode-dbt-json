@@ -1,0 +1,48 @@
+{
+    "type": "stg_select_source",
+    "group": "sales",
+    "topic": "items",
+    "name": "order_details",
+    "materialized": "ephemeral",
+    "from": {
+        "source": "memory__jaffle_shop_dev_seeds.raw_items"
+    },
+    "select": [
+        {
+            "name": "item_id",
+            "expr": "id",
+            "type": "dim",
+            "description": "Unique identifier for each order item"
+        },
+        {
+            "name": "order_id",
+            "expr": "order_id",
+            "type": "dim",
+            "description": "Foreign key to orders table"
+        },
+        {
+            "name": "product_sku",
+            "expr": "sku",
+            "type": "dim",
+            "description": "Product SKU identifier"
+        },
+        {
+            "name": "product_type",
+            "expr": "CASE WHEN sku LIKE 'JAF-%' THEN 'jaffle' WHEN sku LIKE 'BEV-%' THEN 'beverage' ELSE 'unknown' END",
+            "type": "dim",
+            "description": "Product type derived from SKU pattern"
+        },
+        {
+            "name": "is_jaffle_item",
+            "expr": "sku LIKE 'JAF-%'",
+            "type": "dim",
+            "description": "Boolean flag for jaffle items"
+        },
+        {
+            "name": "is_beverage_item",
+            "expr": "sku LIKE 'BEV-%'",
+            "type": "dim",
+            "description": "Boolean flag for beverage items"
+        }
+    ]
+}

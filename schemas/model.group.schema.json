@@ -1,0 +1,7 @@
+{
+  "$id": "model.group.schema.json",
+  "title": "Schema Model Group",
+  "description": "Validate group reference",
+  "type": "string",
+  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+}

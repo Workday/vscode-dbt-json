@@ -1,0 +1,23 @@
+{
+  "$id": "source.meta.schema.json",
+  "title": "Schema Source Meta",
+  "description": "Validates schema for source meta (either on the schema or table level)",
+  "allowTrailingCommas": true,
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "etl": { "$ref": "source.etl.schema.json" },
+    "event_datetime": { "$ref": "source.event_datetime.schema.json" },
+    "partition_date": { "$ref": "source.partition_date.schema.json" },
+    "partitions": {
+      "type": "array",
+      "items": { "$ref": "source.partition.schema.json" }
+    },
+    "portal_partition_columns": {
+      "$ref": "source.portal_partition_columns.schema.json"
+    },
+    "portal_source_count": { "$ref": "source.portal_source_count.schema.json" },
+    "table_function": { "$ref": "source.table_function.schema.json" },
+    "where": { "$ref": "source.where.schema.json" }
+  }
+}

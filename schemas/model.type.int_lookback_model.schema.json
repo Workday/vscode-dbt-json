@@ -1,0 +1,75 @@
+{
+  "$id": "model.type.int_lookback_model.schema.json",
+  "title": "Schema Model Type Int Lookback Model",
+  "description": "Used for creating aggregated over a trailing time period",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from", "group", "name", "select", "topic", "type"],
+  "properties": {
+    "type": { "const": "int_lookback_model" },
+    "group": { "$ref": "model.group.schema.json" },
+    "topic": { "$ref": "model.topic.schema.json" },
+    "name": { "$ref": "model.name.schema.json" },
+    "description": { "$ref": "model.description.schema.json" },
+    "lightdash": { "$ref": "model.lightdash.schema.json" },
+    "tags": { "$ref": "model.tags.schema.json" },
+    "data_tests": { "$ref": "model.data_tests.schema.json" },
+    "materialization": { "$ref": "model.materialization.schema.json" },
+    "materialized": { "$ref": "model.materialized.schema.json" },
+    "incremental_strategy": {
+      "$ref": "model.incremental_strategy.schema.json"
+    },
+    "sql_hooks": { "$ref": "model.sql_hooks.schema.json" },
+    "partitioned_by": { "$ref": "model.partitioned_by.schema.json" },
+    "exclude_daily_filter": {
+      "$ref": "model.exclude_daily_filter.schema.json"
+    },
+    "exclude_date_filter": { "$ref": "model.exclude_date_filter.schema.json" },
+    "exclude_portal_partition_columns": {
+      "$ref": "model.exclude_portal_partition_columns.schema.json"
+    },
+    "exclude_portal_source_count": {
+      "$ref": "model.exclude_portal_source_count.schema.json"
+    },
+    "select": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "$ref": "column.name.schema.json" },
+          { "$ref": "model.select.col.schema.json" },
+          { "$ref": "model.select.col.with.agg.schema.json" },
+          { "$ref": "model.select.expr.schema.json" },
+          { "$ref": "model.select.expr.with.agg.schema.json" },
+          { "$ref": "model.select.model.schema.json" },
+          { "$ref": "model.select.model.with.agg.schema.json" }
+        ]
+      }
+    },
+    "from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "lookback"],
+      "properties": {
+        "model": { "$ref": "model.ref.schema.json" },
+        "lookback": {
+          "type": "object",
+          "required": ["days"],
+          "additionalProperties": false,
+          "properties": {
+            "days": {
+              "description": "The number of days to look back",
+              "type": "integer",
+              "minimum": 1
+            },
+            "exclude_event_date": {
+              "description": "Exclude the event date from the lookback period (defaults to false)",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "group_by": { "$ref": "model.group_by.schema.json" }
+  }
+}

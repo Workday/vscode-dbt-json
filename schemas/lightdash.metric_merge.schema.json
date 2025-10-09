@@ -1,0 +1,33 @@
+{
+  "$id": "lightdash.metric_merge.schema.json",
+  "title": "Schema Lightdash Metric Merge",
+  "description": "Values that can be merged in to override values on a metric",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "compact": {
+      "description": "The compact status that will be applied to the column in lightdash",
+      "enum": ["thousands", "millions", "billions", "trillions"]
+    },
+    "format": {
+      "enum": ["eur", "gbp", "id", "km", "mi", "percent", "usd"]
+    },
+    "group_label": {
+      "description": "The group label that will be applied to the column in lightdash",
+      "type": "string"
+    },
+    "groups": { "type": "array", "items": { "type": "string" } },
+    "hidden": {
+      "description": "The hidden status that will be applied to the column in lightdash",
+      "type": "boolean"
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sql": {
+      "description": "The custom sql expression to generate the metric",
+      "type": "string"
+    }
+  }
+}

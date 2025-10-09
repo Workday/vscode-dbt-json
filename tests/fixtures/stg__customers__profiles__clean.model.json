@@ -1,0 +1,36 @@
+{
+    "type": "stg_select_source",
+    "group": "customers",
+    "topic": "profiles",
+    "name": "clean",
+    "materialized": "ephemeral",
+    "from": {
+        "source": "memory__jaffle_shop_dev_seeds.raw_customers"
+    },
+    "select": [
+        {
+            "name": "customer_id",
+            "expr": "id",
+            "type": "dim",
+            "description": "Unique identifier for each customer"
+        },
+        {
+            "name": "customer_name",
+            "expr": "TRIM(name)",
+            "type": "dim",
+            "description": "Customer full name, trimmed of whitespace"
+        },
+        {
+            "name": "first_name",
+            "expr": "SPLIT_PART(TRIM(name), ' ', 1)",
+            "type": "dim",
+            "description": "Customer first name"
+        },
+        {
+            "name": "last_name",
+            "expr": "CASE WHEN CARDINALITY(SPLIT(TRIM(name), ' ')) > 1 THEN SPLIT_PART(TRIM(name), ' ', -1) ELSE NULL END",
+            "type": "dim",
+            "description": "Customer last name"
+        }
+    ]
+}

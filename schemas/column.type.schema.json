@@ -1,0 +1,6 @@
+{
+  "$id": "column.type.schema.json",
+  "title": "Schema Column Type",
+  "description": "Validate column type",
+  "enum": ["dim", "fct"]
+}

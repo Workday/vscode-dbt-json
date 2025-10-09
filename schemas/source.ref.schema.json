@@ -1,0 +1,6 @@
+{
+  "$id": "source.ref.schema.json",
+  "title": "Schema Ref Source Id",
+  "description": "Validate source ids",
+  "type": "string"
+}
