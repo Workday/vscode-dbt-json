@@ -20,7 +20,7 @@ DJ is a VS Code extension that revolutionizes dbt development through a structur
 
 <!-- Using GitHub raw URL to show image in both GitHub and VS Code extension marketplace -->
 
-![DBT Stack Min](https://github.com/Workday/vscode-dbt-json/blob/image_fix/assets/images/dj_stack.png?raw=true)
+![DBT Stack](https://github.com/Workday/vscode-dbt-json/blob/main/assets/images/dj_stack.png?raw=true)
 
 
 _DJ integrates seamlessly with your modern data stack - from VS Code to dbt, Trino, and Lightdash._
