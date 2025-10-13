@@ -27,7 +27,7 @@ WITH
 			id AS supply_id,
 			TRIM(name) AS supply_name
 		FROM
-			{{ source('memory__jaffle_shop_dev_seeds','raw_supplies') }}
+			{{ source('development__jaffle_shop_dev_seeds','raw_supplies') }}
 	)
 SELECT
 	*

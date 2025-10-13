@@ -23,10 +23,10 @@ WITH
 				ELSE 'Low Risk'
 			END AS perishable_risk_level,
 			portal_source_count,
-			product_name AS product_name,
-			product_price_dollars AS product_price_dollars,
-			product_sku AS product_sku,
-			product_type AS product_type,
+			product_name,
+			product_price_dollars,
+			product_sku,
+			product_type,
 			cost_dollars AS supply_cost_dollars
 		FROM
 			{{ ref('int__supply_chain__supplies__cost_analysis') }}

@@ -17,11 +17,11 @@ models:
     columns:
       - name: item_id
         data_type: varchar
-        description: Order item identifier
+        description: Unique identifier for each order item
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+            id: model.jaffle_shop.stg__sales__items__order_details
           dimension:
             type: string
             label: Item Id
@@ -44,38 +44,38 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+            id: model.jaffle_shop.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Sku
       - name: product_type
         data_type: varchar
-        description: Product category
+        description: Product type derived from SKU pattern
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+            id: model.jaffle_shop.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Type
       - name: total_items_sold
         data_type: varchar
-        description: Total quantity sold
+        description: Total quantity of this product sold
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+            id: model.jaffle_shop.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Items Sold
             hidden: true
       - name: total_orders
         data_type: varchar
-        description: Number of orders containing this product
+        description: Number of unique orders containing this product
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__products__reporting__menu_analytics
+            id: model.jaffle_shop.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Orders

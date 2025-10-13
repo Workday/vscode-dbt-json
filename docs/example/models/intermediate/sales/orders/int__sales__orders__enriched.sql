@@ -7,9 +7,9 @@
 WITH
 	int__sales__orders__enriched AS (
 		SELECT
-			stg__customers__profiles__clean.first_name AS customer_first_name,
+			stg__customers__profiles__clean.customer_first_name,
 			stg__sales__orders__standardized.customer_id,
-			stg__customers__profiles__clean.customer_name AS customer_name,
+			stg__customers__profiles__clean.customer_name,
 			stg__sales__orders__standardized.order_date,
 			stg__sales__orders__standardized.order_id,
 			stg__sales__orders__standardized.order_total_cents,
@@ -19,8 +19,8 @@ WITH
 			stg__sales__orders__standardized.ordered_at,
 			stg__sales__orders__standardized.portal_source_count,
 			stg__sales__orders__standardized.store_id,
-			stg__sales__stores__locations.store_name AS store_name,
-			stg__sales__stores__locations.tax_rate AS store_tax_rate,
+			stg__sales__stores__locations.store_name,
+			stg__sales__stores__locations.store_tax_rate,
 			stg__sales__orders__standardized.subtotal_cents,
 			stg__sales__orders__standardized.tax_paid_cents
 		FROM

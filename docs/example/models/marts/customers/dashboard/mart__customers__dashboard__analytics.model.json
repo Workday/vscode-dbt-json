@@ -11,46 +11,22 @@
     },
     "select": [
         {
-            "name": "customer_id",
-            "expr": "customer_id",
-            "type": "dim",
-            "description": "Unique customer identifier"
-        },
-        {
-            "name": "customer_name",
-            "expr": "customer_name",
-            "type": "dim",
-            "description": "Customer full name"
-        },
-        {
-            "name": "first_name",
-            "expr": "first_name",
-            "type": "dim",
-            "description": "Customer first name"
-        },
-        {
-            "name": "last_name",
-            "expr": "last_name",
-            "type": "dim",
-            "description": "Customer last name"
-        },
-        {
-            "name": "total_orders",
-            "expr": "total_orders",
-            "type": "fct",
-            "description": "Total number of orders placed by customer"
+            "type": "all_from_model",
+            "model": "int__customers__profiles__summary",
+            "include": [
+                "customer_id",
+                "customer_name",
+                "customer_first_name",
+                "customer_last_name",
+                "has_last_name",
+                "total_orders"
+            ]
         },
         {
             "name": "customer_segment",
             "expr": "CASE WHEN total_orders >= 10 THEN 'VIP' WHEN total_orders >= 3 THEN 'Regular' ELSE 'New' END",
             "type": "dim",
             "description": "Customer segment classification based on order count"
-        },
-        {
-            "name": "has_last_name",
-            "expr": "last_name IS NOT NULL",
-            "type": "dim",
-            "description": "Whether customer provided a last name"
         }
     ]
 }

@@ -39,11 +39,11 @@ models:
             hidden: true
       - name: order_date
         data_type: varchar
-        description: Order date
+        description: Date when order was placed
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__profitability
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Order Date
@@ -83,11 +83,11 @@ models:
             hidden: true
       - name: store_id
         data_type: varchar
-        description: Store identifier
+        description: Foreign key to store
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__profitability
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Store Id
@@ -97,7 +97,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__profitability
+            id: model.jaffle_shop.stg__sales__stores__locations
           dimension:
             type: string
             label: Store Name

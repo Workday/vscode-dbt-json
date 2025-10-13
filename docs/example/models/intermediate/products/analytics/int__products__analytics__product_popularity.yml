@@ -16,11 +16,11 @@ models:
     columns:
       - name: item_id
         data_type: varchar
-        description: Order item identifier
+        description: Unique identifier for each order item
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__products__analytics__product_popularity
+            id: model.jaffle_shop.stg__sales__items__order_details
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -39,14 +39,14 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__products__analytics__product_popularity
+            id: model.jaffle_shop.stg__sales__items__order_details
       - name: product_type
         data_type: varchar
-        description: Product category
+        description: Product type derived from SKU pattern
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__products__analytics__product_popularity
+            id: model.jaffle_shop.stg__sales__items__order_details
       - name: total_items_sold
         data_type: varchar
         description: Total quantity of this product sold

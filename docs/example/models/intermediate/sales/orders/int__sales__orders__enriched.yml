@@ -20,7 +20,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__sales__orders__enriched
+            id: model.jaffle_shop.stg__customers__profiles__clean
       - name: customer_id
         data_type: varchar
         description: Foreign key to customer
@@ -30,11 +30,11 @@ models:
             id: model.jaffle_shop.stg__sales__orders__standardized
       - name: customer_name
         data_type: varchar
-        description: Customer full name
+        description: Customer full name, trimmed of whitespace
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__sales__orders__enriched
+            id: model.jaffle_shop.stg__customers__profiles__clean
       - name: order_date
         data_type: varchar
         description: Date when order was placed
@@ -95,14 +95,14 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__sales__orders__enriched
+            id: model.jaffle_shop.stg__sales__stores__locations
       - name: store_tax_rate
         data_type: varchar
-        description: Store tax rate
+        description: Local tax rate for the store
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.int__sales__orders__enriched
+            id: model.jaffle_shop.stg__sales__stores__locations
       - name: subtotal_cents
         data_type: varchar
         description: Order subtotal in cents

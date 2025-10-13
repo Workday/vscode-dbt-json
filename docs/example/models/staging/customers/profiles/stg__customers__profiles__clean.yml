@@ -14,6 +14,13 @@ models:
         - json
         - staging
     columns:
+      - name: customer_first_name
+        data_type: varchar
+        description: Customer first name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
       - name: customer_id
         data_type: varchar
         description: Unique identifier for each customer
@@ -21,23 +28,16 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop.stg__customers__profiles__clean
+      - name: customer_last_name
+        data_type: varchar
+        description: Customer last name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
       - name: customer_name
         data_type: varchar
         description: Customer full name, trimmed of whitespace
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
-      - name: first_name
-        data_type: varchar
-        description: Customer first name
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
-      - name: last_name
-        data_type: varchar
-        description: Customer last name
         meta:
           type: dim
           origin:

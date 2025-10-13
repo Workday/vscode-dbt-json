@@ -14,20 +14,6 @@ models:
         - json
         - staging
     columns:
-      - name: opened_at
-        data_type: varchar
-        description: Timestamp when store opened
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.stg__sales__stores__locations
-      - name: opened_date
-        data_type: varchar
-        description: Date when store opened
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.stg__sales__stores__locations
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -54,14 +40,28 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop.stg__sales__stores__locations
-      - name: tax_rate
+      - name: store_opened_at
+        data_type: varchar
+        description: Timestamp when store opened
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__stores__locations
+      - name: store_opened_date
+        data_type: varchar
+        description: Date when store opened
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__stores__locations
+      - name: store_tax_rate
         data_type: varchar
         description: Local tax rate for the store
         meta:
           type: fct
           origin:
             id: model.jaffle_shop.stg__sales__stores__locations
-      - name: tax_rate_percent
+      - name: store_tax_rate_percent
         data_type: varchar
         description: Tax rate as percentage
         meta:

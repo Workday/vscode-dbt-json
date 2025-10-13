@@ -11,9 +11,7 @@
                 "type": "left",
                 "on": {
                     "and": [
-                        {
-                            "expr": "stg__supply_chain__supplies__inventory.product_sku = stg__products__catalog__catalog.product_sku"
-                        }
+                        "product_sku"
                     ]
                 }
             }
@@ -25,32 +23,23 @@
             "type": "all_from_model"
         },
         {
-            "name": "product_name",
-            "expr": "stg__products__catalog__catalog.product_name",
-            "type": "dim",
-            "description": "Product name that uses this supply"
-        },
-        {
-            "name": "product_type",
-            "expr": "stg__products__catalog__catalog.product_type",
-            "type": "dim",
-            "description": "Product category (jaffle, beverage)"
-        },
-        {
-            "name": "product_price_dollars",
-            "expr": "stg__products__catalog__catalog.price_dollars",
-            "type": "fct",
-            "description": "Product selling price in dollars"
+            "model": "stg__products__catalog__catalog",
+            "type": "all_from_model",
+            "include": [
+                "product_name",
+                "product_type",
+                "product_price_dollars"
+            ]
         },
         {
             "name": "supply_to_price_ratio",
-            "expr": "CASE WHEN stg__products__catalog__catalog.price_dollars > 0 THEN (CAST(stg__supply_chain__supplies__inventory.cost_cents AS DECIMAL(10,2)) / 100.0) / stg__products__catalog__catalog.price_dollars ELSE NULL END",
+            "expr": "{{ supply_to_price_ratio() }}",
             "type": "fct",
             "description": "Supply cost as percentage of product price"
         },
         {
             "name": "cost_tier",
-            "expr": "CASE WHEN stg__supply_chain__supplies__inventory.cost_dollars >= 0.40 THEN 'High Cost' WHEN stg__supply_chain__supplies__inventory.cost_dollars >= 0.20 THEN 'Medium Cost' ELSE 'Low Cost' END",
+            "expr": "{{ cost_tier() }}",
             "type": "dim",
             "description": "Supply cost tier classification"
         }

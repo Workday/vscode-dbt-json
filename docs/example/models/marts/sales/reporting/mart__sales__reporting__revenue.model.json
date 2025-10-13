@@ -11,40 +11,16 @@
     },
     "select": [
         {
-            "name": "order_id",
-            "expr": "order_id",
-            "type": "dim",
-            "description": "Unique order identifier"
-        },
-        {
-            "name": "customer_id",
-            "expr": "customer_id",
-            "type": "dim",
-            "description": "Customer identifier"
-        },
-        {
-            "name": "customer_name",
-            "expr": "customer_name",
-            "type": "dim",
-            "description": "Customer name"
-        },
-        {
-            "name": "store_id",
-            "expr": "store_id",
-            "type": "dim",
-            "description": "Store identifier"
-        },
-        {
-            "name": "store_name",
-            "expr": "store_name",
-            "type": "dim",
-            "description": "Store location name"
-        },
-        {
-            "name": "order_date",
-            "expr": "order_date",
-            "type": "dim",
-            "description": "Order date"
+            "type": "all_from_model",
+            "model": "int__sales__orders__enriched",
+            "include": [
+                "order_id",
+                "customer_id",
+                "customer_name",
+                "store_id",
+                "store_name",
+                "order_date"
+            ]
         },
         {
             "name": "order_year",

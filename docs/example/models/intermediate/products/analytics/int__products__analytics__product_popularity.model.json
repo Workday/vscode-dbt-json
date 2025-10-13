@@ -8,16 +8,13 @@
     },
     "select": [
         {
-            "name": "product_sku",
-            "expr": "product_sku",
-            "type": "dim",
-            "description": "Product SKU identifier"
-        },
-        {
-            "name": "product_type",
-            "expr": "product_type",
-            "type": "dim",
-            "description": "Product category"
+            "type": "dims_from_model",
+            "model": "stg__sales__items__order_details",
+            "include": [
+                "product_sku",
+                "product_type",
+                "item_id"
+            ]
         },
         {
             "name": "total_orders",
@@ -30,23 +27,6 @@
             "expr": "COUNT(*)",
             "type": "fct",
             "description": "Total quantity of this product sold"
-        },
-        {
-            "name": "item_id",
-            "expr": "item_id",
-            "type": "dim",
-            "description": "Order item identifier"
-        }
-    ],
-    "group_by": [
-        {
-            "expr": "product_sku"
-        },
-        {
-            "expr": "product_type"
-        },
-        {
-            "expr": "item_id"
         }
     ]
 }

@@ -11,9 +11,7 @@
                 "type": "left",
                 "on": {
                     "and": [
-                        {
-                            "expr": "stg__customers__profiles__clean.customer_id = stg__sales__orders__standardized.customer_id"
-                        }
+                        "customer_id"
                     ]
                 }
             }
@@ -21,66 +19,28 @@
     },
     "select": [
         {
-            "name": "customer_id",
-            "expr": "stg__customers__profiles__clean.customer_id",
-            "type": "dim",
-            "description": "Unique customer identifier"
-        },
-        {
-            "name": "customer_name",
-            "expr": "stg__customers__profiles__clean.customer_name",
-            "type": "dim",
-            "description": "Customer full name"
-        },
-        {
-            "name": "first_name",
-            "expr": "stg__customers__profiles__clean.first_name",
-            "type": "dim",
-            "description": "Customer first name"
-        },
-        {
-            "name": "last_name",
-            "expr": "stg__customers__profiles__clean.last_name",
-            "type": "dim",
-            "description": "Customer last name"
+            "type": "dims_from_model",
+            "model": "stg__customers__profiles__clean"
         },
         {
             "name": "customer_segment",
-            "expr": "CASE WHEN COUNT(stg__sales__orders__standardized.order_id) >= 10 THEN 'VIP' WHEN COUNT(stg__sales__orders__standardized.order_id) >= 3 THEN 'Regular' ELSE 'New' END",
+            "expr": "{{ customer_segment() }}",
             "type": "dim",
-            "description": "Customer segment classification based on order count"
+            "description": "Customer segment classification based on order count",
+            "exclude_from_group_by": true
         },
         {
             "name": "has_last_name",
-            "expr": "stg__customers__profiles__clean.last_name IS NOT NULL",
+            "expr": "stg__customers__profiles__clean.customer_last_name IS NOT NULL",
             "type": "dim",
-            "description": "Whether customer provided a last name"
-        },
-        {
-            "name": "portal_source_count",
-            "expr": "1",
-            "type": "fct",
-            "description": "Portal source count (constant value)"
+            "description": "Whether customer provided a last name",
+            "exclude_from_group_by": true
         },
         {
             "name": "total_orders",
             "expr": "COUNT(stg__sales__orders__standardized.order_id)",
             "type": "fct",
             "description": "Total number of orders placed by customer"
-        }
-    ],
-    "group_by": [
-        {
-            "expr": "stg__customers__profiles__clean.customer_id"
-        },
-        {
-            "expr": "stg__customers__profiles__clean.customer_name"
-        },
-        {
-            "expr": "stg__customers__profiles__clean.first_name"
-        },
-        {
-            "expr": "stg__customers__profiles__clean.last_name"
         }
     ]
 }

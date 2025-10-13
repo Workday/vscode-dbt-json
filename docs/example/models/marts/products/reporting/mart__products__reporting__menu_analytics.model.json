@@ -11,34 +11,16 @@
     },
     "select": [
         {
-            "name": "product_sku",
-            "expr": "product_sku",
-            "type": "dim",
-            "description": "Product SKU identifier"
-        },
-        {
-            "name": "product_type",
-            "expr": "product_type",
-            "type": "dim",
-            "description": "Product category"
-        },
-        {
-            "name": "total_orders",
-            "expr": "total_orders",
-            "type": "fct",
-            "description": "Number of orders containing this product"
-        },
-        {
-            "name": "total_items_sold",
-            "expr": "total_items_sold",
-            "type": "fct",
-            "description": "Total quantity sold"
-        },
-        {
-            "name": "item_id",
-            "expr": "item_id",
-            "type": "dim",
-            "description": "Order item identifier"
+            "type": "all_from_model",
+            "model": "int__products__analytics__product_popularity",
+            "include": [
+                "product_name",
+                "product_sku",
+                "product_type",
+                "total_orders",
+                "total_items_sold",
+                "item_id"
+            ]
         }
     ]
 }

@@ -19,7 +19,7 @@ WITH
 				ELSE 'unknown'
 			END AS product_type
 		FROM
-			{{ source('memory__jaffle_shop_dev_seeds','raw_items') }}
+			{{ source('development__jaffle_shop_dev_seeds','raw_items') }}
 	)
 SELECT
 	*

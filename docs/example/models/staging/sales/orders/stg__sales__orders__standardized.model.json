@@ -5,7 +5,7 @@
     "name": "standardized",
     "materialized": "ephemeral",
     "from": {
-        "source": "memory__jaffle_shop_dev_seeds.raw_orders"
+        "source": "development__jaffle_shop_dev_seeds.raw_orders"
     },
     "select": [
         {

@@ -1,7 +1,7 @@
 version: "2"
 sources:
-  - name: memory__jaffle_shop_dev_seeds
-    database: memory
+  - name: development__jaffle_shop_dev_seeds
+    database: development
     schema: jaffle_shop_dev_seeds
     tables:
       - name: raw_customers

@@ -71,42 +71,42 @@ models:
               label: Portal Source Count
       - name: product_name
         data_type: varchar
-        description: Product name
+        description: Product name, trimmed
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+            id: model.jaffle_shop.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Name
       - name: product_price_dollars
         data_type: varchar
-        description: Product selling price
+        description: Product price in dollars
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+            id: model.jaffle_shop.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Price Dollars
             hidden: true
       - name: product_sku
         data_type: varchar
-        description: Product SKU identifier
+        description: Associated product SKU
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+            id: model.jaffle_shop.stg__supply_chain__supplies__inventory
           dimension:
             type: string
             label: Product Sku
       - name: product_type
         data_type: varchar
-        description: Product category
+        description: Product category (jaffle, beverage)
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+            id: model.jaffle_shop.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Type

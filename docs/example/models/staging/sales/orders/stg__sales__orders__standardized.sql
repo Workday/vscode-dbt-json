@@ -17,7 +17,7 @@ WITH
 			subtotal AS subtotal_cents,
 			tax_paid AS tax_paid_cents
 		FROM
-			{{ source('memory__jaffle_shop_dev_seeds','raw_orders') }}
+			{{ source('development__jaffle_shop_dev_seeds','raw_orders') }}
 	)
 SELECT
 	*

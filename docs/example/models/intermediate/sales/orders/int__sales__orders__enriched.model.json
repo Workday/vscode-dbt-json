@@ -11,9 +11,7 @@
                 "type": "left",
                 "on": {
                     "and": [
-                        {
-                            "expr": "stg__sales__orders__standardized.customer_id = stg__customers__profiles__clean.customer_id"
-                        }
+                        "customer_id"
                     ]
                 }
             },
@@ -22,9 +20,7 @@
                 "type": "left",
                 "on": {
                     "and": [
-                        {
-                            "expr": "stg__sales__orders__standardized.store_id = stg__sales__stores__locations.store_id"
-                        }
+                        "store_id"
                     ]
                 }
             }
@@ -36,28 +32,20 @@
             "type": "all_from_model"
         },
         {
-            "name": "customer_name",
-            "expr": "stg__customers__profiles__clean.customer_name",
-            "type": "dim",
-            "description": "Customer full name"
+            "type": "all_from_model",
+            "model": "stg__customers__profiles__clean",
+            "include": [
+                "customer_name",
+                "customer_first_name"
+            ]
         },
         {
-            "name": "customer_first_name",
-            "expr": "stg__customers__profiles__clean.first_name",
-            "type": "dim",
-            "description": "Customer first name"
-        },
-        {
-            "name": "store_name",
-            "expr": "stg__sales__stores__locations.store_name",
-            "type": "dim",
-            "description": "Store location name"
-        },
-        {
-            "name": "store_tax_rate",
-            "expr": "stg__sales__stores__locations.tax_rate",
-            "type": "fct",
-            "description": "Store tax rate"
+            "type": "all_from_model",
+            "model": "stg__sales__stores__locations",
+            "include": [
+                "store_name",
+                "store_tax_rate"
+            ]
         },
         {
             "name": "order_total_dollars",

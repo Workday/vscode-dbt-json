@@ -47,25 +47,25 @@ models:
             metric_portal_source_count:
               type: sum
               label: Portal Source Count
-      - name: price_cents
+      - name: product_name
+        data_type: varchar
+        description: Product name, trimmed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+      - name: product_price_cents
         data_type: varchar
         description: Product price in cents
         meta:
           type: fct
           origin:
             id: model.jaffle_shop.stg__products__catalog__catalog
-      - name: price_dollars
+      - name: product_price_dollars
         data_type: varchar
         description: Product price in dollars
         meta:
           type: fct
-          origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
-      - name: product_name
-        data_type: varchar
-        description: Product name, trimmed
-        meta:
-          type: dim
           origin:
             id: model.jaffle_shop.stg__products__catalog__catalog
       - name: product_sku

@@ -1,5 +1,5 @@
 {
-    "database": "memory",
+    "database": "development",
     "schema": "jaffle_shop_dev_seeds",
     "tables": [
         {

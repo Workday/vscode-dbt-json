@@ -56,18 +56,18 @@ models:
               label: Portal Source Count
       - name: product_name
         data_type: varchar
-        description: Product name that uses this supply
+        description: Product name, trimmed
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+            id: model.jaffle_shop.stg__products__catalog__catalog
       - name: product_price_dollars
         data_type: varchar
-        description: Product selling price in dollars
+        description: Product price in dollars
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+            id: model.jaffle_shop.stg__products__catalog__catalog
       - name: product_sku
         data_type: varchar
         description: Associated product SKU
@@ -81,7 +81,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.int__supply_chain__supplies__cost_analysis
+            id: model.jaffle_shop.stg__products__catalog__catalog
       - name: supply_category
         data_type: varchar
         description: Supply category classification

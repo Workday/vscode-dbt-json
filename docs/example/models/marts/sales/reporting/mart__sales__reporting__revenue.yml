@@ -17,21 +17,21 @@ models:
     columns:
       - name: customer_id
         data_type: varchar
-        description: Customer identifier
+        description: Foreign key to customer
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Customer Id
       - name: customer_name
         data_type: varchar
-        description: Customer name
+        description: Customer full name, trimmed of whitespace
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Name
@@ -47,21 +47,21 @@ models:
             label: Is Weekend Order
       - name: order_date
         data_type: varchar
-        description: Order date
+        description: Date when order was placed
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Order Date
       - name: order_id
         data_type: varchar
-        description: Unique order identifier
+        description: Unique identifier for each order
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Order Id
@@ -120,11 +120,11 @@ models:
             label: Revenue Tier
       - name: store_id
         data_type: varchar
-        description: Store identifier
+        description: Foreign key to store
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__sales__orders__standardized
           dimension:
             type: string
             label: Store Id
@@ -134,7 +134,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__sales__reporting__revenue
+            id: model.jaffle_shop.stg__sales__stores__locations
           dimension:
             type: string
             label: Store Name

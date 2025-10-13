@@ -5,7 +5,7 @@
     "name": "catalog",
     "materialized": "ephemeral",
     "from": {
-        "source": "memory__jaffle_shop_dev_seeds.raw_products"
+        "source": "development__jaffle_shop_dev_seeds.raw_products"
     },
     "select": [
         {
@@ -27,13 +27,13 @@
             "description": "Product category (jaffle, beverage)"
         },
         {
-            "name": "price_cents",
+            "name": "product_price_cents",
             "expr": "price",
             "type": "fct",
             "description": "Product price in cents"
         },
         {
-            "name": "price_dollars",
+            "name": "product_price_dollars",
             "expr": "CAST(price AS DECIMAL(10,2)) / 100.0",
             "type": "fct",
             "description": "Product price in dollars"

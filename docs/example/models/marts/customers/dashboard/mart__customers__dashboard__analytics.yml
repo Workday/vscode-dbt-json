@@ -15,23 +15,43 @@ models:
         - lightdash-explore
         - mart
     columns:
-      - name: customer_id
+      - name: customer_first_name
         data_type: varchar
-        description: Unique customer identifier
+        description: Customer first name
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
+            id: model.jaffle_shop.stg__customers__profiles__clean
+          dimension:
+            type: string
+            label: Customer First Name
+      - name: customer_id
+        data_type: varchar
+        description: Unique identifier for each customer
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Id
-      - name: customer_name
+      - name: customer_last_name
         data_type: varchar
-        description: Customer full name
+        description: Customer last name
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
+            id: model.jaffle_shop.stg__customers__profiles__clean
+          dimension:
+            type: string
+            label: Customer Last Name
+      - name: customer_name
+        data_type: varchar
+        description: Customer full name, trimmed of whitespace
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Name
@@ -45,54 +65,36 @@ models:
           dimension:
             type: string
             label: Customer Segment
-      - name: first_name
-        data_type: varchar
-        description: Customer first name
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
-          dimension:
-            type: string
-            label: First Name
       - name: has_last_name
         data_type: varchar
         description: Whether customer provided a last name
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
-          dimension:
-            type: string
-            label: Has Last Name
-      - name: last_name
-        data_type: varchar
-        description: Customer last name
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
-          dimension:
-            type: string
-            label: Last Name
-      - name: portal_source_count
-        data_type: varchar
-        description: Portal source count (constant value)
-        meta:
-          type: fct
-          origin:
             id: model.jaffle_shop.int__customers__profiles__summary
           dimension:
             type: string
+            label: Has Last Name
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            type: number
             label: Portal Source Count
             hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
       - name: total_orders
         data_type: varchar
         description: Total number of orders placed by customer
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__customers__dashboard__analytics
+            id: model.jaffle_shop.int__customers__profiles__summary
           dimension:
             type: string
             label: Total Orders

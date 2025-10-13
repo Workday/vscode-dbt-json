@@ -11,28 +11,14 @@
     },
     "select": [
         {
-            "name": "product_sku",
-            "expr": "product_sku",
-            "type": "dim",
-            "description": "Product SKU identifier"
-        },
-        {
-            "name": "product_name",
-            "expr": "product_name",
-            "type": "dim",
-            "description": "Product name"
-        },
-        {
-            "name": "product_type",
-            "expr": "product_type",
-            "type": "dim",
-            "description": "Product category"
-        },
-        {
-            "name": "product_price_dollars",
-            "expr": "product_price_dollars",
-            "type": "fct",
-            "description": "Product selling price"
+            "type": "all_from_model",
+            "model": "int__supply_chain__supplies__cost_analysis",
+            "include": [
+                "product_sku",
+                "product_name",
+                "product_type",
+                "product_price_dollars",
+            ]
         },
         {
             "name": "supply_cost_dollars",

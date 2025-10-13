@@ -5,7 +5,7 @@
     "name": "inventory",
     "materialized": "ephemeral",
     "from": {
-        "source": "memory__jaffle_shop_dev_seeds.raw_supplies"
+        "source": "development__jaffle_shop_dev_seeds.raw_supplies"
     },
     "select": [
         {

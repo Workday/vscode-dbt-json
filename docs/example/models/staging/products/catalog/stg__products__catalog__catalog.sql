@@ -11,13 +11,13 @@ WITH
 			LOWER(TRIM(TYPE)) = 'beverage' AS is_beverage,
 			LOWER(TRIM(TYPE)) = 'jaffle' AS is_jaffle,
 			1 AS portal_source_count,
-			price AS price_cents,
-			CAST(price AS DECIMAL(10, 2)) / 100.0 AS price_dollars,
 			TRIM(name) AS product_name,
+			price AS product_price_cents,
+			CAST(price AS DECIMAL(10, 2)) / 100.0 AS product_price_dollars,
 			sku AS product_sku,
 			TRIM(TYPE) AS product_type
 		FROM
-			{{ source('memory__jaffle_shop_dev_seeds','raw_products') }}
+			{{ source('development__jaffle_shop_dev_seeds','raw_products') }}
 	)
 SELECT
 	*

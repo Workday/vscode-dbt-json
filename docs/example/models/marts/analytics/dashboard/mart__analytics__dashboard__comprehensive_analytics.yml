@@ -26,26 +26,27 @@ models:
             type: string
             label: Business Impact Score
             hidden: true
-      - name: cost_efficiency_category
+      - name: cost_to_price_ratio
         data_type: varchar
-        description: Cost efficiency classification
+        description: Individual supply cost as ratio of selling price
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
+          dimension:
+            type: string
+            label: Cost To Price Ratio
+            hidden: true
+      - name: is_perishable_supply
+        data_type: varchar
+        description: Whether this supply is perishable
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
+            id: model.jaffle_shop.mart__products__reporting__cost_efficiency
           dimension:
             type: string
-            label: Cost Efficiency Category
-      - name: perishable_risk_level
-        data_type: varchar
-        description: Risk level based on perishable supplies
-        meta:
-          type: dim
-          origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
-          dimension:
-            type: string
-            label: Perishable Risk Level
+            label: Is Perishable Supply
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -59,23 +60,44 @@ models:
             metric_portal_source_count:
               type: sum
               label: Portal Source Count
+      - name: product_name
+        data_type: varchar
+        description: Product name, trimmed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+          dimension:
+            type: string
+            label: Product Name
+      - name: product_price_dollars
+        data_type: varchar
+        description: Product price in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__products__catalog__catalog
+          dimension:
+            type: string
+            label: Product Price Dollars
+            hidden: true
       - name: product_sku
         data_type: varchar
         description: Product SKU identifier
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
+            id: model.jaffle_shop.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Sku
       - name: product_type
         data_type: varchar
-        description: Product category (jaffle/beverage)
+        description: Product type derived from SKU pattern
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
+            id: model.jaffle_shop.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Type
@@ -89,35 +111,24 @@ models:
           dimension:
             type: string
             label: Strategic Recommendation
-      - name: supply_cost_dollars
-        data_type: varchar
-        description: Individual supply cost in dollars
-        meta:
-          type: fct
-          origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
-          dimension:
-            type: string
-            label: Supply Cost Dollars
-            hidden: true
       - name: total_items_sold
         data_type: varchar
-        description: Total quantity sold
+        description: Total quantity of this product sold
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
+            id: model.jaffle_shop.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Items Sold
             hidden: true
       - name: total_orders
         data_type: varchar
-        description: Number of orders containing this product
+        description: Number of unique orders containing this product
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.mart__analytics__dashboard__comprehensive_analytics
+            id: model.jaffle_shop.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Orders

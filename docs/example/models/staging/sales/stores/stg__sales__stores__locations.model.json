@@ -5,7 +5,7 @@
     "name": "locations",
     "materialized": "ephemeral",
     "from": {
-        "source": "memory__jaffle_shop_dev_seeds.raw_stores"
+        "source": "development__jaffle_shop_dev_seeds.raw_stores"
     },
     "select": [
         {
@@ -21,25 +21,25 @@
             "description": "Store location name"
         },
         {
-            "name": "opened_at",
+            "name": "store_opened_at",
             "expr": "CAST(opened_at AS TIMESTAMP)",
             "type": "dim",
             "description": "Timestamp when store opened"
         },
         {
-            "name": "opened_date",
+            "name": "store_opened_date",
             "expr": "DATE(CAST(opened_at AS TIMESTAMP))",
             "type": "dim",
             "description": "Date when store opened"
         },
         {
-            "name": "tax_rate",
+            "name": "store_tax_rate",
             "expr": "tax_rate",
             "type": "fct",
             "description": "Local tax rate for the store"
         },
         {
-            "name": "tax_rate_percent",
+            "name": "store_tax_rate_percent",
             "expr": "tax_rate * 100",
             "type": "fct",
             "description": "Tax rate as percentage"

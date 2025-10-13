@@ -5,7 +5,7 @@
     "name": "clean",
     "materialized": "ephemeral",
     "from": {
-        "source": "memory__jaffle_shop_dev_seeds.raw_customers"
+        "source": "development__jaffle_shop_dev_seeds.raw_customers"
     },
     "select": [
         {
@@ -21,13 +21,13 @@
             "description": "Customer full name, trimmed of whitespace"
         },
         {
-            "name": "first_name",
+            "name": "customer_first_name",
             "expr": "split(TRIM(name), ' ')[1]",
             "type": "dim",
             "description": "Customer first name"
         },
         {
-            "name": "last_name",
+            "name": "customer_last_name",
             "expr": "CASE WHEN cardinality(split(TRIM(name), ' ')) > 1 THEN split(TRIM(name), ' ')[cardinality(split(TRIM(name), ' '))] ELSE NULL END",
             "type": "dim",
             "description": "Customer last name"

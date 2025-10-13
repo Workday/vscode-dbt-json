@@ -7,10 +7,10 @@
 WITH
 	int__products__analytics__product_popularity AS (
 		SELECT
-			item_id AS item_id,
+			item_id,
 			sum(portal_source_count) AS portal_source_count,
-			product_sku AS product_sku,
-			product_type AS product_type,
+			product_sku,
+			product_type,
 			COUNT(*) AS total_items_sold,
 			COUNT(DISTINCT order_id) AS total_orders
 		FROM

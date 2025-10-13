@@ -14,9 +14,7 @@
                 "type": "left",
                 "on": {
                     "and": [
-                        {
-                            "expr": "mart__products__reporting__menu_analytics.product_sku = mart__products__reporting__cost_efficiency.product_sku"
-                        }
+                        "product_sku"
                     ]
                 }
             }
@@ -24,46 +22,24 @@
     },
     "select": [
         {
-            "name": "product_sku",
-            "expr": "mart__products__reporting__menu_analytics.product_sku",
-            "type": "dim",
-            "description": "Product SKU identifier"
+            "type": "all_from_model",
+            "model": "mart__products__reporting__menu_analytics",
+            "include": [
+                "product_sku",
+                "product_name",
+                "product_type",
+                "total_orders",
+                "total_items_sold"
+            ]
         },
         {
-            "name": "product_type",
-            "expr": "mart__products__reporting__menu_analytics.product_type",
-            "type": "dim",
-            "description": "Product category (jaffle/beverage)"
-        },
-        {
-            "name": "total_orders",
-            "expr": "mart__products__reporting__menu_analytics.total_orders",
-            "type": "fct",
-            "description": "Number of orders containing this product"
-        },
-        {
-            "name": "total_items_sold",
-            "expr": "mart__products__reporting__menu_analytics.total_items_sold",
-            "type": "fct",
-            "description": "Total quantity sold"
-        },
-        {
-            "name": "supply_cost_dollars",
-            "expr": "mart__products__reporting__cost_efficiency.supply_cost_dollars",
-            "type": "fct",
-            "description": "Individual supply cost in dollars"
-        },
-        {
-            "name": "cost_efficiency_category",
-            "expr": "mart__products__reporting__cost_efficiency.cost_efficiency_category",
-            "type": "dim",
-            "description": "Cost efficiency classification"
-        },
-        {
-            "name": "perishable_risk_level",
-            "expr": "mart__products__reporting__cost_efficiency.perishable_risk_level",
-            "type": "dim",
-            "description": "Risk level based on perishable supplies"
+            "type": "all_from_model",
+            "model": "mart__products__reporting__cost_efficiency",
+            "exclude": [
+                "cost_efficiency_category",
+                "perishable_risk_level",
+                "supply_cost_dollars"
+            ]
         },
         {
             "name": "business_impact_score",
