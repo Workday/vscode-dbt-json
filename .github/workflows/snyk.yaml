@@ -1,0 +1,41 @@
+name: Run Snyk test and upload report to Snyk
+
+on: 
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  Snyk:
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Monitor project in Snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        with:
+          command: monitor
+          args: --org=${{ env.SNYK_ORG }} --all-projects --skip-unresolved
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        with:
+          command: test
+          args: --all-projects --skip-unresolved --org=${{ env.SNYK_ORG }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

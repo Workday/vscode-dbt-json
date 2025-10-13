@@ -3,6 +3,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue.svg)](https://marketplace.visualstudio.com/)
 [![dbt](https://img.shields.io/badge/dbt-Core-orange.svg)](https://www.getdbt.com/)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Workday/vscode-dbt-json/badge)](https://scorecard.dev/viewer/?uri=github.com/Workday/vscode-dbt-json)
 
 DJ is a VS Code extension that revolutionizes dbt development through a structured, JSON-first approach. Define your dbt models and sources as validated `.model.json` and `.source.json` files that automatically generate corresponding SQL and YAML configurations.
 

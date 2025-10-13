@@ -1,4 +1,4 @@
-name: Scorecard supply-chain security
+name: Scorecard supply-chain security CI
 on:
   branch_protection_rule:
   schedule:
@@ -7,9 +7,7 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-permissions:
-  security-events: write
-  id-token: write
+permissions: read-all
 
 jobs:
   analysis:
