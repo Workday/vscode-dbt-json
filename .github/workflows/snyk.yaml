@@ -23,13 +23,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm install -g snyk
-
       - name: Monitor project in Snyk
         uses: snyk/actions/node@master
+        continue-on-error: true
         with:
           command: monitor
           args: --org=${{ env.SNYK_ORG }} --all-projects --skip-unresolved
@@ -40,6 +36,6 @@ jobs:
         uses: snyk/actions/node@master
         with:
           command: test
-          args: --all-projects --skip-unresolved
+          args: --all-projects --skip-unresolved --org=${{ env.SNYK_ORG }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
