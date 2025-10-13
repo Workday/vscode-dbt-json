@@ -22,10 +22,28 @@ This guide covers how to set up Trino locally for development with the DJ extens
 This guide uses Docker to run Trino locally. If you prefer other installation methods, refer to the [official Trino installation guide](https://trino.io/docs/current/installation.html).
 
 ```bash
-# Pull and run Trino
+# Set the catalog directory path (customize if needed)
+TRINO_CATALOG_DIR=~/trino-catalogs
+
+# Create a local directory for Trino catalog configurations
+mkdir -p $TRINO_CATALOG_DIR
+
+# Create the development catalog configuration
+cat > $TRINO_CATALOG_DIR/development.properties << EOF
+connector.name=memory
+memory.max-data-per-node=128MB
+EOF
+
+# Pull Trino image
 docker pull trinodb/trino
-docker run --name trino -d -p 8080:8080 trinodb/trino
+
+# Run Trino with catalog directory mounted
+docker run --name trino_default -d -p 8080:8080 \
+  -v $TRINO_CATALOG_DIR:/etc/trino/catalog \
+  trinodb/trino
 ```
+
+> **Note**: This approach mounts your local `$TRINO_CATALOG_DIR` directory to the container, making catalog configurations persistent and easy to modify.
 
 ### Verify
 
@@ -33,26 +51,35 @@ docker run --name trino -d -p 8080:8080 trinodb/trino
 # Test Trino server directly
 curl http://localhost:8080/v1/info
 
-# Test with Trino CLI (Requires CLI to be installed. See main setup guide)
+# Verify the development catalog exists
+docker exec trino_default trino --execute "SHOW CATALOGS;"
+
+# Or test with Trino CLI (Requires CLI to be installed. See main setup guide)
 trino-cli --server localhost:8080 --execute "SHOW CATALOGS;"
+
+# You should see: development, system
 ```
 
 Or access the Trino web UI at [http://localhost:8080](http://localhost:8080) (enter any username).
 
-### Configure
+### Configure Environment (Optional)
 
-Once Trino is running locally, configure your environment variables:
+Once Trino is running locally, configure your environment variables for trino CLI:
 
 ```bash
 # Add to your shell profile (.bashrc, .zshrc, etc.)
 export TRINO_HOST=localhost
 export TRINO_PORT=8080
 export TRINO_USERNAME=admin
-export TRINO_CATALOG=example
+export TRINO_CATALOG=development
 export TRINO_SCHEMA=jaffle_shop
 ```
 
 ## Troubleshooting
+
+### Catalog not found error
+
+If you see errors like `Catalog 'development' not found`, follow the steps in the [Using Docker](#using-docker) section to create the catalog configuration file.
 
 ### Connection refused
 
@@ -61,16 +88,16 @@ export TRINO_SCHEMA=jaffle_shop
 curl http://localhost:8080/v1/info
 
 # Check if Docker container exists and is running
-docker ps -a | grep trino
+docker ps -a | grep trino_default
 
 # Start the container if it's stopped
-docker start trino
+docker start trino_default
 
 # Restart Trino if needed
-docker restart trino
+docker restart trino_default
 
 # Check logs if there are issues
-docker logs trino
+docker logs trino_default
 ```
 
 #### Port already in use
@@ -80,7 +107,9 @@ docker logs trino
 lsof -i :8080
 
 # Use a different port if port 8080 is already in use
-docker run --name trino -d -p 8081:8080 trinodb/trino
+docker run --name trino_default -d -p 8081:8080 \
+  -v $TRINO_CATALOG_DIR:/etc/trino/catalog \
+  trinodb/trino
 
 # Update your environment variables
 export TRINO_PORT=8081

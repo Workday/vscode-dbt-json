@@ -127,6 +127,12 @@ This project demonstrates **4 core DJ model types** with **16 working models** a
 
 ## Running the Models
 
+### Prerequisites
+
+This project uses a `development` catalog in Trino. Make sure it's configured before running. See the [Trino Local Setup Guide](../TRINO_LOCAL_SETUP.md) for detailed instructions.
+
+### Commands
+
 ```bash
 # Run all models
 dbt run
