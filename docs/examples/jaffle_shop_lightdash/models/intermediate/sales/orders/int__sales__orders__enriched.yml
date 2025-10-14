@@ -28,6 +28,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            label: Customer ID
+            group_label: Customer Fields
       - name: customer_name
         data_type: varchar
         description: Customer full name, trimmed of whitespace
@@ -35,6 +38,14 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
+      - name: datetime
+        data_type: timestamp(6)
+        description: Event Datetime Column
+        meta:
+          type: dim
+          dimension:
+            type: timestamp
+            label: Datetime
       - name: order_date
         data_type: varchar
         description: Date when order was placed
@@ -42,6 +53,10 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            type: date
+            label: Order Date
+            group_label: Order Fields
       - name: order_id
         data_type: varchar
         description: Unique identifier for each order
@@ -49,6 +64,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            label: Order ID
+            group_label: Order Fields
       - name: order_total_cents
         data_type: varchar
         description: Total order amount in cents
@@ -56,6 +74,10 @@ models:
           type: fct
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            type: number
+            label: Order Total (in cents)
+            group_label: Order Fields
       - name: order_total_dollars
         data_type: varchar
         description: Order total in dollars
@@ -63,6 +85,11 @@ models:
           type: fct
           origin:
             id: model.jaffle_shop_lightdash.int__sales__orders__enriched
+          metrics:
+            metric_order_total_dollars:
+              ai_hint: "When asking questions "
+              type: sum
+              group_label: Order Metrics
       - name: ordered_at
         data_type: varchar
         description: Timestamp when order was placed
@@ -70,6 +97,10 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            type: timestamp
+            label: Ordered At
+            group_label: Order Fields
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -89,6 +120,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            label: Store ID
+            group_label: Store Fields
       - name: store_name
         data_type: varchar
         description: Store location name
@@ -110,6 +144,10 @@ models:
           type: fct
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            type: number
+            label: Order Subtotal (in cents)
+            group_label: Order Fields
       - name: tax_paid_cents
         data_type: varchar
         description: Tax amount paid in cents
@@ -117,3 +155,28 @@ models:
           type: fct
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
+          dimension:
+            type: number
+            label: Tax Paid (in cents)
+            group_label: Order Fields
+      - name: portal_partition_monthly
+        data_type: date
+        description: Monthly Partition Column
+        meta:
+          type: dim
+          dimension:
+            label: Portal Partition Monthly
+      - name: portal_partition_daily
+        data_type: date
+        description: Daily Partition Column
+        meta:
+          type: dim
+          dimension:
+            label: Portal Partition Daily
+      - name: portal_partition_hourly
+        data_type: timestamp(6)
+        description: Hourly Partition Column
+        meta:
+          type: dim
+          dimension:
+            label: Portal Partition Hourly

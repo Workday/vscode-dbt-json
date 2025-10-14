@@ -21,6 +21,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__items__order_details
+          dimension:
+            label: Order ID
+            group_label: Product Fields
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -40,6 +43,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__items__order_details
+          dimension:
+            label: Product SKU
+            group_label: Product Fields
       - name: product_type
         data_type: varchar
         description: Product type derived from SKU pattern
@@ -47,6 +53,9 @@ models:
           type: dim
           origin:
             id: model.jaffle_shop_lightdash.stg__sales__items__order_details
+          dimension:
+            label: Product Type
+            group_label: Product Fields
       - name: total_items_sold
         data_type: varchar
         description: Total quantity of this product sold

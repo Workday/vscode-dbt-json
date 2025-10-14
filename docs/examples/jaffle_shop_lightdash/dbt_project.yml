@@ -24,7 +24,7 @@ quoting:
   identifier: false
 
 vars:
-  # example: some_variable: some_value
+  event_dates: '2016-01-01~2017-01-01'  
   load_timestamp: '{{ run_started_at }}'
 
 flags:
