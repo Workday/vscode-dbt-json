@@ -1,4 +1,6 @@
 {
+    "dbt.enableNewLineagePanel": true,
+    "dbt.installDepsOnProjectInitialization": false,
     "dj.airflowGenerateDags": false,
     "dj.pythonVenvPath": ".venv",
     "json.schemas": [
