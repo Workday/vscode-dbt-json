@@ -75,7 +75,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Name
@@ -85,7 +85,7 @@ models:
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Price Dollars
@@ -106,7 +106,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Type

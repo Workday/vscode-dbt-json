@@ -60,14 +60,14 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
       - name: product_price_dollars
         data_type: varchar
         description: Product price in dollars
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
       - name: product_sku
         data_type: varchar
         description: Associated product SKU
@@ -81,7 +81,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
       - name: supply_category
         data_type: varchar
         description: Supply category classification

@@ -20,42 +20,42 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
       - name: customer_id
         data_type: varchar
         description: Foreign key to customer
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: customer_name
         data_type: varchar
         description: Customer full name, trimmed of whitespace
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
       - name: order_date
         data_type: varchar
         description: Date when order was placed
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: order_id
         data_type: varchar
         description: Unique identifier for each order
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: order_total_cents
         data_type: varchar
         description: Total order amount in cents
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: order_total_dollars
         data_type: varchar
         description: Order total in dollars
@@ -69,7 +69,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: portal_source_count
         data_type: bigint
         description: Portal Source Count
@@ -88,7 +88,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: store_name
         data_type: varchar
         description: Store location name
@@ -109,11 +109,11 @@ models:
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
       - name: tax_paid_cents
         data_type: varchar
         description: Tax amount paid in cents
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized

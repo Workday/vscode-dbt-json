@@ -21,7 +21,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer First Name
@@ -31,7 +31,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Id
@@ -41,7 +41,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Last Name
@@ -51,7 +51,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__customers__profiles__clean
+            id: model.jaffle_shop_lightdash.stg__customers__profiles__clean
           dimension:
             type: string
             label: Customer Name

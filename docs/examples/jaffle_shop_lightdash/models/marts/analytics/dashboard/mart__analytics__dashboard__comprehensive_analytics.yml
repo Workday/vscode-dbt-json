@@ -66,7 +66,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Name
@@ -76,7 +76,7 @@ models:
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.stg__products__catalog__catalog
+            id: model.jaffle_shop_lightdash.stg__products__catalog__catalog
           dimension:
             type: string
             label: Product Price Dollars
@@ -87,7 +87,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__items__order_details
+            id: model.jaffle_shop_lightdash.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Sku
@@ -97,7 +97,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__items__order_details
+            id: model.jaffle_shop_lightdash.stg__sales__items__order_details
           dimension:
             type: string
             label: Product Type
@@ -117,7 +117,7 @@ models:
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.int__products__analytics__product_popularity
+            id: model.jaffle_shop_lightdash.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Items Sold
@@ -128,7 +128,7 @@ models:
         meta:
           type: fct
           origin:
-            id: model.jaffle_shop.int__products__analytics__product_popularity
+            id: model.jaffle_shop_lightdash.int__products__analytics__product_popularity
           dimension:
             type: string
             label: Total Orders

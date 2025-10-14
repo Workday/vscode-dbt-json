@@ -43,7 +43,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
           dimension:
             type: string
             label: Order Date
@@ -87,7 +87,7 @@ models:
         meta:
           type: dim
           origin:
-            id: model.jaffle_shop.stg__sales__orders__standardized
+            id: model.jaffle_shop_lightdash.stg__sales__orders__standardized
           dimension:
             type: string
             label: Store Id
