@@ -44,9 +44,11 @@ DBT_PROJECT_DIR=<path-to-your-dbt-project>
 docker compose up -d
 ```
 
-### 2. Connect Trino and Lightdash Networks (optional, if you have setup Trino in local Docker)
+### 2. Connect Trino and Lightdash Networks (If both in Docker)
 
-**Important**: By default, the `profiles.yml` file specifies the Trino host as `localhost:8080`. However, if Trino is running in a separate Docker container, you need to ensure that both the Lightdash and Trino containers are on the same Docker network. After connecting the networks, update the connection settings in your Lightdash project to reflect the correct Trino host.
+**Note**: This is only required if both Trino and Lightdash are running in Docker containers. If Trino is running on your host machine, skip this step and use `host.docker.internal` in the DJ extension configuration (see below).
+
+If both are in Docker, connect the networks so they can communicate:
 
 ```bash
 # Check docker network name of Lightdash (usually lightdash_default)
@@ -85,6 +87,58 @@ lightdash deploy --create
 
 This will prompt you to enter the project name and once created, you should see URL of the newly created project in the output. This will be something like ` http://localhost:8081/createProject/cli?projectUuid=48c5c6d6-3b63-4661-baa3-da07eb446769`.
 
+### Configure DJ Extension for Docker
+
+When using the DJ extension to create Lightdash previews, you need to configure how Lightdash (running in Docker) connects to Trino. Choose the option that matches your setup:
+
+#### Option A: Trino running on host machine (Not in Docker)
+
+If Trino is running directly on your Mac (not in Docker), use Docker's special hostname to access the host:
+
+```bash
+# Add to your shell profile (.bashrc, .zshrc, etc.)
+echo 'export LIGHTDASH_TRINO_HOST=host.docker.internal' >> ~/.zshrc
+source ~/.zshrc
+```
+
+This allows Lightdash (in Docker) to connect to Trino on your host machine via `host.docker.internal:8080`.
+
+#### Option B: Both Trino and Lightdash in Docker
+
+If both are running in Docker containers, first connect them to the same network, then use the container name:
+
+```bash
+# Connect the Docker networks (do this first)
+docker network connect lightdash_default trino_default
+
+# Set the environment variable
+echo 'export LIGHTDASH_TRINO_HOST=trino_default' >> ~/.zshrc
+source ~/.zshrc
+```
+
+This allows Lightdash to connect to Trino using the container name `trino_default`.
+
+#### After Setting the Environment Variable
+
+1. **Verify it's set**:
+
+   ```bash
+   echo $LIGHTDASH_TRINO_HOST
+   # Should output: host.docker.internal OR trino_default
+   ```
+
+2. **Quit VS Code completely** (Cmd+Q, not just close the window)
+
+3. **Reopen VS Code from terminal**:
+   ```bash
+   cd /Users/gowthamraj.j/Development/Workday/vscode-dbt-json
+   code .
+   ```
+
+VS Code needs to be restarted to pick up the new environment variable. The extension will automatically pass this to dbt via the `DBT_HOST` environment variable when creating Lightdash previews.
+
+**Note**: Your normal dbt commands (running directly on your Mac) will continue to use `localhost` and work as expected.
+
 ### 4. Verify
 
 ```bash
@@ -94,39 +148,40 @@ docker compose ps
 
 Open the URL of the Lightdash project you created from the output in the browser. You should see the project you created.
 
-#### Verify Connection Settings
-
-If you are using local Trino, you may need to update the connection settings to Trino.
-
-In the Lightdash UI, go to `Settings` -> `Project Settings` and click on the `Connection Settings` tab.
-
-Under the `Warehouse Connections` tab, you should see the configuration to Trino.
-
-Update host details:
-
-```text
-# This is the name of the Trino container. Replace with the actual container name if you have created it with a different name.
-Host: trino_default
-```
-
-**Why `trino_default`?** Since both containers are now on the same network, Lightdash can reach Trino using its container name instead of IP addresses.
-
 ## Troubleshooting
 
-### Connection Errors
+### Connection Errors with DJ Extension Preview
 
-If you get "Connection Refused" errors:
+If you get connection errors when using the DJ extension's Lightdash preview feature, make sure you've configured the `LIGHTDASH_TRINO_HOST` environment variable as described in the "Configure DJ Extension for Docker" section above.
+
+The environment variable ensures the extension passes the correct Trino hostname to dbt when creating previews.
+
+### Manual Connection Configuration (Lightdash UI)
+
+If you're using `lightdash deploy` directly (not through the DJ extension) and have connection issues, you can manually update the connection settings in the Lightdash UI:
+
+1. Go to `Settings` -> `Project Settings`
+2. Click on the `Connection Settings` tab
+3. Under `Warehouse Connections`, update the host:
+   - If Trino is in Docker: `trino_default`
+   - If Trino is on host: `host.docker.internal`
+
+### Ensure Docker Networks are Connected
+
+If both Lightdash and Trino are running in Docker containers:
 
 ```bash
-# Ensure containers are connected
+# Ensure containers are connected to the same network
 docker network connect lightdash_default trino_default
 ```
 
-### Alternative Hosts
+### Alternative: Get Container IP (Linux)
 
-If `trino_default` doesn't work, try:
+On Linux, you can also use the container's IP address:
 
-- **Linux**: Get container IP with `docker inspect trino_default`
+```bash
+docker inspect trino_default --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+```
 
 ### Verify Trino
 

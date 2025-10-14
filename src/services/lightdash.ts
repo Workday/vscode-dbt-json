@@ -128,6 +128,7 @@ export class Lightdash implements DJService {
         projectDir,
         '-s',
         'tag:lightdash tag:lightdash-explore',
+        '--skip-warehouse-catalog', // Skip caching, force re-read from profile
         '--verbose',
       ];
 
@@ -142,6 +143,17 @@ export class Lightdash implements DJService {
         const venvBinPath = `${WORKSPACE_ROOT}/${pythonVenvPath}/bin`;
         env.PATH = `${venvBinPath}:${env.PATH}`;
         this.coder.log.info(`Using Python venv PATH: ${venvBinPath}`);
+      }
+
+      // Override Trino host for Docker environments
+      // When running Lightdash preview with Trino in Docker, the host should be
+      // the container name (eg., trino_default) instead of localhost for the containers
+      // to communicate on the same Docker network
+      if (process.env.LIGHTDASH_TRINO_HOST) {
+        env.DBT_HOST = process.env.LIGHTDASH_TRINO_HOST;
+        this.coder.log.info(
+          `Overriding Trino host: ${process.env.LIGHTDASH_TRINO_HOST}`,
+        );
       }
 
       // Execute lightdash command

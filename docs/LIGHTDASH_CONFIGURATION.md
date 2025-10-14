@@ -107,3 +107,64 @@ Create/edit `.vscode/settings.json` in your workspace:
 - Verify the project path exists and contains a valid dbt project
 - Check that Lightdash CLI is installed and accessible
 - Ensure the project has the required `lightdash` and `lightdash-explore` tags on models
+
+### "Lightdash preview cannot connect to Trino" (Docker environments)
+
+If you're running Lightdash in Docker and it cannot connect to Trino, you need to configure the Trino hostname. Choose the option that matches your setup:
+
+#### Option A: Trino running on host machine (Not in Docker)
+
+If Trino is running directly on your Mac (not in Docker), use Docker's special hostname:
+
+```bash
+# Add to your shell profile (.bashrc, .zshrc, etc.)
+echo 'export LIGHTDASH_TRINO_HOST=host.docker.internal' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Then verify and restart VS Code:
+
+```bash
+# Verify it's set
+echo $LIGHTDASH_TRINO_HOST
+# Should output: host.docker.internal
+
+# Quit VS Code (Cmd+Q) and reopen from terminal
+code .
+```
+
+#### Option B: Both Trino and Lightdash in Docker
+
+If both are running in Docker containers:
+
+1. **Connect the Docker networks**:
+
+   ```bash
+   docker network connect lightdash_default trino_default
+   ```
+
+2. **Set the environment variable**:
+
+   ```bash
+   echo 'export LIGHTDASH_TRINO_HOST=trino_default' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+3. **Verify and restart VS Code**:
+
+   ```bash
+   # Verify it's set
+   echo $LIGHTDASH_TRINO_HOST
+   # Should output: trino_default
+
+   # Quit VS Code (Cmd+Q) and reopen from terminal
+   code .
+   ```
+
+#### How It Works
+
+The DJ extension reads `LIGHTDASH_TRINO_HOST` and passes it to dbt via the `DBT_HOST` environment variable when creating Lightdash previews. The dbt profiles.yml uses this to override the connection host.
+
+**Important**: Your normal dbt commands (running directly on your Mac) will continue to use `localhost` because the environment variable override only applies to the Lightdash preview subprocess.
+
+For more details, see the [Lightdash Local Setup Guide](LIGHTDASH_LOCAL_SETUP.md).
