@@ -1,6 +1,6 @@
 {
     "dj.airflowGenerateDags": false,
-    "dj.lightdashProjectPath": ".",
+    "dj.pythonVenvPath": ".venv",
     "json.schemas": [
         {
             "fileMatch": [
@@ -15,5 +15,4 @@
             "url": ".dj/schemas/source.schema.json"
         }
     ],
-    "dbt.enableNewLineagePanel": true
 }
