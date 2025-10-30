@@ -1,7 +1,7 @@
 # DJ (dbt-json) Framework
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue.svg)](https://marketplace.visualstudio.com/)
+[![GitHub Release](https://img.shields.io/github/v/release/Workday/vscode-dbt-json)](https://github.com/Workday/vscode-dbt-json/releases)
 [![dbt](https://img.shields.io/badge/dbt-Core-orange.svg)](https://www.getdbt.com/)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Workday/vscode-dbt-json/badge)](https://scorecard.dev/viewer/?uri=github.com/Workday/vscode-dbt-json)
 
@@ -101,7 +101,12 @@ dbt parse # this generates the manifest.json file
 
 ### 4. Install the Extension
 
-Install DJ from the VS Code marketplace or search for "DJ" or "dbt-json" in VS Code Extensions.
+1. Download the latest `.vsix` file from the [GitHub Releases page](https://github.com/Workday/vscode-dbt-json/releases)
+2. Install the extension in VS Code:
+   - Open VS Code
+   - Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+   - Type "Extensions: Install from VSIX..."
+   - Select the downloaded `.vsix` file
 
 Note: Want to build DJ extension from source? See the [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for development setup.
 
