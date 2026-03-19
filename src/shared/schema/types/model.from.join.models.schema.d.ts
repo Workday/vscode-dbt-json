@@ -6,7 +6,7 @@
  */
 
 /**
- * Validates the join argument when joining multiple models
+ * Validates the join argument when joining multiple models or CTEs
  *
  * @minItems 1
  */
@@ -15,12 +15,45 @@ export type SchemaModelFromJoinModels = [
     | {
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
-        type?: "cross";
+        type?: 'cross';
       }
     | {
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
-        type?: "full" | "inner" | "left" | "right";
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
         /**
          * SQL for the join condition
          */
@@ -44,12 +77,12 @@ export type SchemaModelFromJoinModels = [
     | {
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
-        type?: "cross";
+        type?: 'cross';
       }
     | {
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
-        type?: "full" | "inner" | "left" | "right";
+        type?: 'full' | 'inner' | 'left' | 'right';
         /**
          * SQL for the join condition
          */
@@ -68,7 +101,40 @@ export type SchemaModelFromJoinModels = [
           )[];
         };
       }
-  )[]
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+  )[],
 ];
 /**
  * Validate model ids

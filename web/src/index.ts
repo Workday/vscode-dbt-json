@@ -1,8 +1,7 @@
 import { clsx } from 'clsx';
 import { useEffect, useMemo } from 'react';
 import { usePrevious } from 'react-use';
-
-export { useError, useMount, useUnmount } from '@web/hooks';
+import { twMerge } from 'tailwind-merge';
 
 export function makeClassName(
   ...classNames: (
@@ -11,7 +10,7 @@ export function makeClassName(
     | undefined
   )[]
 ) {
-  return clsx(...classNames);
+  return twMerge(clsx(...classNames));
 }
 
 export function useChange(value: unknown, callback: () => void) {

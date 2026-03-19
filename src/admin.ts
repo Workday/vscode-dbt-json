@@ -6,51 +6,58 @@ import * as vscode from 'vscode';
 export { ThemeIcon } from 'vscode';
 
 export const WORKSPACE_ROOT =
-  vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
-export const BASE_AIRFLOW_PATH = path.join(__dirname, '../../airflow');
-export const BASE_MACROS_PATH = path.join(__dirname, '../../macros');
-export const BASE_SCHEMAS_PATH = path.join(__dirname, '../../schemas');
+  vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? '';
 
 export const DJ_SCHEMAS_PATH = path.join(WORKSPACE_ROOT, `.dj/schemas`);
+export const DJ_STATE_PATH = path.join(WORKSPACE_ROOT, `.dj/state`);
 export const DJ_SQL_PATH = path.join(WORKSPACE_ROOT, `.dj/sql`);
-
-export const convertArgsForEnv = ({
-  command,
-  path,
-  venv,
-}: {
-  command: string;
-  path?: string;
-  venv?: string;
-}): { command: string; path: string } => {
-  path =
-    path?.replace(WORKSPACE_ROOT, '')?.replace(/^\//, '').replace(/\/$/, '') ||
-    '';
-  if (venv) {
-    const pathLevels = path ? path.split('/').length : 0;
-    const venvRoot = Array(pathLevels).fill('../').join('');
-    command = `source ${venvRoot}${venv}/bin/activate; ${command}`;
-    command = command.replace('trino-cli', 'trino');
-  }
-  return { command, path };
-};
 
 /**
  * Get Trino connection configuration with precedence: VS Code > Environment > Default
+ * Supports:
+ * - Command names: 'trino' or 'trino-cli' (resolved from PATH)
+ * - Full paths: '/usr/local/bin/trino' or '/usr/local/bin/trino-cli'
+ * - Directory paths: '/usr/local/bin' (checks for both 'trino-cli' and 'trino')
  */
 export function getTrinoConfig() {
   let { trinoPath } = getDjConfig();
 
-  if (trinoPath) {
-    // Remove any trailing slashes
-    trinoPath = trinoPath.replace(/\/+$/, '');
+  if (!trinoPath) {
+    // Default: use trino-cli from PATH
+    return { path: 'trino-cli' };
   }
 
-  const path = trinoPath ? `${trinoPath}/trino-cli` : 'trino-cli';
+  // Remove any trailing slashes
+  trinoPath = trinoPath.replace(/\/+$/, '');
 
-  return {
-    path,
-  };
+  // Check if it's a command name (no path separators) - use as-is
+  const isCommandName = !trinoPath.includes('/') && !trinoPath.includes('\\');
+  if (isCommandName) {
+    return { path: trinoPath };
+  }
+
+  // Check if it already points to a trino executable (ends with 'trino' or 'trino-cli')
+  const basename = trinoPath.split('/').pop() ?? '';
+  if (basename === 'trino' || basename === 'trino-cli') {
+    return { path: trinoPath };
+  }
+
+  // It's a directory path - check for both trino-cli and trino
+  const trinoCliPath = `${trinoPath}/trino-cli`;
+  const trinoPath2 = `${trinoPath}/trino`;
+
+  // Prefer trino-cli if it exists
+  if (fs.existsSync(trinoCliPath)) {
+    return { path: trinoCliPath };
+  }
+
+  // Fall back to trino if it exists
+  if (fs.existsSync(trinoPath2)) {
+    return { path: trinoPath2 };
+  }
+
+  // Neither exists - default to trino-cli (will fail at runtime with clear error)
+  return { path: trinoCliPath };
 }
 
 export function djSqlPath({ name }: { name: string }) {
@@ -84,14 +91,6 @@ export function timestamp() {
   return new Date().toISOString().slice(0, 23);
 }
 
-export type SettingFileAssociations = Record<string, string>;
-
-export type SettingJsonSchema = {
-  fileMatch: string[];
-  schema?: { allowTrailingCommas?: boolean; $ref?: string };
-  url?: string;
-};
-
 export type TreeItem = vscode.TreeItem & { children?: TreeItem[] };
 export type TreeData = TreeItem[];
 
@@ -106,7 +105,7 @@ export class TreeDataInstance implements vscode.TreeDataProvider<TreeItem> {
   data: TreeItem[];
 
   constructor(_data?: TreeItem[]) {
-    this.data = _data || [];
+    this.data = _data ?? [];
   }
 
   getTreeItem(element: TreeItem): TreeItem | Thenable<TreeItem> {
@@ -114,10 +113,12 @@ export class TreeDataInstance implements vscode.TreeDataProvider<TreeItem> {
   }
 
   getChildren(
-    element?: (TreeItem & { children?: TreeItem[] }) | undefined,
+    element?: TreeItem & { children?: TreeItem[] },
   ): vscode.ProviderResult<TreeItem[]> {
-    if (!element) return this.data;
-    return element?.children || [];
+    if (!element) {
+      return this.data;
+    }
+    return element?.children ?? [];
   }
 
   setData(data: TreeItem[]): void {
@@ -136,10 +137,12 @@ export class WebviewViewInstance implements vscode.WebviewViewProvider {
 
   resolveWebviewView(_view: vscode.WebviewView) {
     this.view = _view;
-    this.onResolve?.();
+    void this.onResolve?.();
   }
   setHtml(html: string) {
-    if (!this.view) return;
+    if (!this.view) {
+      return;
+    }
     this.view.webview.html = html;
   }
 }

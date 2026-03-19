@@ -12,6 +12,6 @@ export type SchemaModelTags = (
   | string
   | {
       tag: string;
-      type?: "exclude" | "inherit" | "local";
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
     }
 )[];

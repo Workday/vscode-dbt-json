@@ -10,7 +10,10 @@
  *
  * @minItems 1
  */
-export type SchemaModelPartitionedBy = [SchemaColumnName, ...SchemaColumnName[]];
+export type SchemaModelPartitionedBy = [
+  SchemaColumnName,
+  ...SchemaColumnName[],
+];
 /**
  * Validate column name
  */

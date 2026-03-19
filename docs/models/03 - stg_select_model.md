@@ -4,7 +4,20 @@
 
 The `stg_select_model` model type is designed to select and transform data from existing dbt models rather than directly from source tables. This model type is particularly useful for creating secondary staging layers, applying additional transformations to already-staged data, or creating specialized views of existing models for specific downstream purposes.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `stg_select_model`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, choose model, configure columns
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `stg_select_model` model are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `stg_select_model` model are:
 - **Data Refinement:** Add business logic or calculations to already-cleaned staging data
 - **Performance Optimization:** Create materialized views of frequently-used subsets of larger models
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 A `stg_select_model` requires the following configuration parameters:
 
@@ -27,7 +40,7 @@ A `stg_select_model` requires the following configuration parameters:
   - **`model`:** Reference to an existing dbt model (string identifier)
 - **`select`:** Array of column definitions (same structure as other staging models)
 
-## 4. Key Differences from stg_select_source
+## 5. Key Differences from stg_select_source
 
 | Aspect             | stg_select_source       | stg_select_model          |
 | ------------------ | ----------------------- | ------------------------- |
@@ -36,7 +49,7 @@ A `stg_select_model` requires the following configuration parameters:
 | **From Structure** | `from.source`           | `from.model`              |
 | **Typical Layer**  | First staging layer     | Secondary staging layer   |
 
-## 5. When to Use stg_select_model
+## 6. When to Use stg_select_model
 
 ### Ideal Use Cases
 
@@ -53,7 +66,7 @@ A `stg_select_model` requires the following configuration parameters:
 - Filtering large datasets for specific business units
 - Adding computed fields that require clean, staged data as input
 
-## 6. Basic Example: Enhanced Store Analysis
+## 7. Basic Example: Enhanced Store Analysis
 
 Let's build on our jaffle shop store data. Assume we have a unified store model from `stg_union_sources` and want to add business intelligence and performance metrics.
 
@@ -155,7 +168,7 @@ This example demonstrates:
 - **Boolean flags:** Creating binary indicators for business logic
 - **Performance metrics:** Adding derived metrics for downstream analysis
 
-## 7. Advanced Example: Order Enrichment with Business Logic
+## 8. Advanced Example: Order Enrichment with Business Logic
 
 Let's create an enhanced order model that builds on our unified order data and adds sophisticated business logic.
 
@@ -287,7 +300,7 @@ This example demonstrates:
 - **Boolean indicators:** Creating flags for weekend orders and legacy system identification
 - **Complex transformations:** Advanced CASE statements for sophisticated business logic
 
-## 8. Best Practices
+## 9. Best Practices
 
 ### Model Dependencies
 
@@ -310,7 +323,7 @@ This example demonstrates:
 - **Complex calculations:** Consider pre-computing expensive operations
 - **Indexing:** Ensure upstream models have appropriate indexes for join performance
 
-## 9. Integration with Data Pipeline
+## 10. Integration with Data Pipeline
 
 The `stg_select_model` serves as a secondary staging layer:
 

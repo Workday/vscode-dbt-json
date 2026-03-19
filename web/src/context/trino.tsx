@@ -1,12 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 
-type TrinoValue = {
-  setTables: (tables: string[]) => void;
-  tables: null | string[];
-};
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const TrinoContext = createContext<TrinoValue | null>(null);
+import { TrinoContext, type TrinoValue } from './TrinoContext';
 
 export function TrinoProvider({
   children,
@@ -36,10 +30,3 @@ export function TrinoProvider({
     <TrinoContext.Provider value={value}>{children}</TrinoContext.Provider>
   );
 }
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useTrino = () => {
-  const context = useContext(TrinoContext);
-  if (!context) throw new Error('useTrino must be used within a TrinoProvider');
-  return context;
-};

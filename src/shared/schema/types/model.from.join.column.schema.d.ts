@@ -14,7 +14,7 @@ export type SchemaColumnExpr = string;
  * Validates the join argument when joining to a column
  */
 export interface SchemaModelFromJoinColumn {
-  type?: "cross_join_unnest";
+  type?: 'cross_join_unnest';
   column: SchemaColumnExpr;
   /**
    * @minItems 1

@@ -7,6 +7,11 @@ export type FieldSelectSingleProps = ControllerRenderProps & {
   label?: string;
   options: { label: string; value: string }[];
   tooltipText?: string;
+  className?: string;
+  wrapperClass?: string;
+  inputClassName?: string;
+  labelClass?: string;
+  helpIcon?: React.ReactNode; // Help icon for Assist Me
 };
 
 export const FieldSelectSingle = forwardRef<

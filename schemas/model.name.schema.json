@@ -3,5 +3,5 @@
   "title": "Schema Model Name",
   "description": "Validate model name",
   "type": "string",
-  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+  "pattern": "^(?!_)(?!.*_$)([a-z]|[0-9]|_)+$"
 }

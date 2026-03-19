@@ -1,0 +1,55 @@
+/* Disable React Flow zoom/pan when dropdowns are open */
+.dropdown-open .react-flow {
+  pointer-events: none !important;
+}
+
+.dropdown-open .react-flow__node {
+  pointer-events: auto !important;
+}
+
+.dropdown-open .react-flow__controls {
+  pointer-events: auto !important;
+}
+
+/* Alternative approach - disable wheel events specifically */
+.dropdown-open .react-flow__pane {
+  pointer-events: none !important;
+}
+
+.dropdown-open .react-flow__viewport {
+  pointer-events: none !important;
+}
+
+/* Prevent ReactFlow from capturing scroll events on scrollable node content */
+.react-flow__node-scrollable {
+  /* This class will be used with noWheelClassName prop */
+}
+/* Override React Flow Controls styling for dark mode support */
+.react-flow__controls {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--color-surface)) !important;
+  border-radius: 6px !important;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+.react-flow__controls-button {
+  background: var(--color-card) !important;
+  color: hsl(var(--white)) !important;
+  border: none !important;
+  border-bottom: 1px solid hsl(var(--color-surface)) !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.react-flow__controls-button svg {
+  /* fill: hsl(var(--color-surface-contrast)) !important; */
+}

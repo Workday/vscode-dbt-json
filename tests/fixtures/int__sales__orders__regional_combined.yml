@@ -1,0 +1,126 @@
+version: "2"
+models:
+  - name: int__sales__orders__regional_combined
+    group: sales
+    description: Union of orders with regional classification for consolidated
+      reporting across all stores
+    docs:
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - intermediate
+        - json
+    columns:
+      - name: customer_first_name
+        data_type: varchar
+        description: Customer first name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
+      - name: customer_id
+        data_type: varchar
+        description: Foreign key to customer
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: customer_name
+        data_type: varchar
+        description: Customer full name, trimmed of whitespace
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__customers__profiles__clean
+      - name: order_date
+        data_type: varchar
+        description: Date when order was placed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_id
+        data_type: varchar
+        description: Unique identifier for each order
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_total_cents
+        data_type: varchar
+        description: Total order amount in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_total_dollars
+        data_type: varchar
+        description: Order total in dollars
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__sales__orders__enriched
+      - name: ordered_at
+        data_type: varchar
+        description: Timestamp when order was placed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: portal_source_count
+        data_type: bigint
+        description: Portal Source Count
+        meta:
+          type: fct
+          dimension:
+            label: Portal Source Count
+            hidden: true
+          metrics:
+            metric_portal_source_count:
+              type: sum
+              label: Portal Source Count
+      - name: region
+        data_type: varchar
+        description: Geographic region classification
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.int__sales__orders__regional_combined
+      - name: store_id
+        data_type: varchar
+        description: Foreign key to store
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: store_name
+        data_type: varchar
+        description: Store location name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__stores__locations
+      - name: store_tax_rate
+        data_type: varchar
+        description: Local tax rate for the store
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__stores__locations
+      - name: subtotal_cents
+        data_type: varchar
+        description: Order subtotal in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: tax_paid_cents
+        data_type: varchar
+        description: Tax amount paid in cents
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized

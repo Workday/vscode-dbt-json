@@ -4,7 +4,20 @@
 
 The `stg_select_source` model is the foundational building block of any dbt project using DJ. It represents the first transformation layer where raw source data is cleaned, standardized, and prepared for downstream consumption. This model type follows dbt best practices by performing initial data transformations without aggregations or joins.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `stg_select_source`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, choose source table, configure columns
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `stg_select_source` model are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `stg_select_source` model are:
 - **Data Quality:** Add basic data validation and cleaning rules
 - **Documentation Foundation:** Establish the first layer of documented, tested data models
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 A `stg_select_source` model requires the following configuration parameters:
 
@@ -27,7 +40,7 @@ A `stg_select_source` model requires the following configuration parameters:
   - **`source`:** Reference to a source table (string identifier)
 - **`select`:** Array of column definitions specifying which columns to include and how to transform them
 
-## 4. Column Types
+## 5. Column Types
 
 DJ supports two main column types for analytical purposes:
 
@@ -36,7 +49,7 @@ DJ supports two main column types for analytical purposes:
 
 **Note:** The `type` field is required for `fct` columns but optional for `dim` columns (defaults to `dim` if not specified).
 
-## 5. Basic Example: Customer Data
+## 6. Basic Example: Customer Data
 
 Let's start with a simple example using the jaffle shop customer data. Our raw customer data looks like this:
 
@@ -99,7 +112,7 @@ This configuration:
 - Includes descriptive documentation for each column
 - Marks all columns as dimensions since they're descriptive attributes
 
-## 6. Advanced Example: Order Data with Transformations
+## 7. Advanced Example: Order Data with Transformations
 
 For more complex data like orders, we often need additional transformations:
 
@@ -182,7 +195,7 @@ This example demonstrates:
 - **Consistent naming** (adding `_cents` suffix to clarify currency units)
 - **Comprehensive documentation** for each column
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Naming Conventions
 
@@ -210,7 +223,7 @@ This example demonstrates:
 - Use `incremental` materialization for staging models with large datasets or many downstream dependencies
 - Avoid complex calculations that can be done in intermediate models
 
-## 8. Common Patterns
+## 9. Common Patterns
 
 ### ID Standardization
 
@@ -252,7 +265,7 @@ This example demonstrates:
 }
 ```
 
-## 9. Testing and Validation
+## 10. Testing and Validation
 
 Staging models should include basic tests to ensure data quality:
 

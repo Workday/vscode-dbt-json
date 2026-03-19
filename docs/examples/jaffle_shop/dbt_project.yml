@@ -28,6 +28,8 @@ quoting:
 vars:
   # example: some_variable: some_value
   load_timestamp: '{{ run_started_at }}'
+  # Date range for lookback models (format: YYYY-MM-DD~YYYY-MM-DD or comma-separated dates)
+  event_dates: '2017-08-01~2017-08-31'
 
 flags:
   send_anonymous_usage_stats: false

@@ -34,7 +34,7 @@ export type SchemaSourceEtl =
        * SQL statement which will be run before a retry if the first attempt to query the source dates fails
        */
       sql_retry?: string;
-      type?: "event_count";
+      type?: 'event_count';
     }
   | {
       /**
@@ -45,27 +45,27 @@ export type SchemaSourceEtl =
        * SQL statement which will be run before a retry if the first attempt to query the source dates fails
        */
       sql_retry?: string;
-      type?: "run_schedule";
+      type?: 'run_schedule';
     };
 /**
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * The expression to use to extract the event datetime
  */
@@ -85,11 +85,11 @@ export type SchemaSourcePartition =
       /**
        * The interval used for partitioning, this will be used to determine the partition date range
        */
-      interval?: "day" | "month";
+      interval?: 'day' | 'month';
       /**
        * The type of partition to use (event_dates will build a list for comparison to the project event dates variable)
        */
-      type: "event_dates";
+      type: 'event_dates';
       /**
        * Whether or not to use a range for the partition date filter instead of a list
        */
@@ -101,7 +101,7 @@ export type SchemaSourcePartition =
       /**
        * The type of partition to use (event_dates will build a list for comparison to the project event dates variable)
        */
-      type: "eq" | "gt" | "gte" | "lt" | "lte" | "neq";
+      type: 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'neq';
       /**
        * The value to compare the partition field to
        */
@@ -120,7 +120,10 @@ export type SchemaColumnExpr3 = string;
  *
  * @minItems 1
  */
-export type SchemaSourcePortalPartitionColumns = [SchemaColumnName, ...SchemaColumnName[]];
+export type SchemaSourcePortalPartitionColumns = [
+  SchemaColumnName,
+  ...SchemaColumnName[],
+];
 /**
  * Validate column name
  */
@@ -167,7 +170,7 @@ export interface SchemaSourcePartitionDate {
   /**
    * The interval used for partitioning, this will be used to determine the partition date range
    */
-  interval?: "day" | "month";
+  interval?: 'day' | 'month';
   /**
    * Whether or not to use the event dates as the partition dates
    */
@@ -205,7 +208,7 @@ export interface SchemaSourceTableFunction {
   /**
    * The schema of the table function
    */
-  dialect: "bigquery";
+  dialect: 'bigquery';
   /**
    * The ref for the source table we are selecting from inside the table function
    */

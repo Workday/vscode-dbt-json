@@ -6,6 +6,9 @@ export type FieldInputTextProps = ControllerRenderProps & {
   error?: FieldError;
   label: string;
   tooltipText?: string;
+  inputClassName?: string;
+  labelClassName?: string;
+  helpIcon?: React.ReactNode; // Help icon for Assist Me
 };
 
 export const FieldInputText = forwardRef<HTMLInputElement, FieldInputTextProps>(

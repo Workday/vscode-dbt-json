@@ -8,6 +8,9 @@ export type InputTextProps = React.ComponentProps<'input'> & {
   innerRef?: React.Ref<HTMLInputElement>;
   label?: string;
   tooltipText?: string;
+  placeholder?: string;
+  labelClassName?: string;
+  inputClassName?: string;
 };
 
 export function InputText({
@@ -17,12 +20,20 @@ export function InputText({
   label,
   value = '',
   tooltipText,
+  placeholder,
+  inputClassName = '',
+  labelClassName = '',
   ...props
 }: InputTextProps) {
   return (
     <Field className="w-full">
       {label && (
-        <Label className="block text-sm/6 leading-6 mt-2 text-background-contrast flex gap-1 items-center">
+        <Label
+          className={makeClassName(
+            'text-sm/6 font-semibold leading-6 mt-2 text-background-contrast flex gap-1 items-center',
+            labelClassName,
+          )}
+        >
           {label}
           {tooltipText && <Tooltip content={tooltipText} />}
         </Label>
@@ -33,11 +44,15 @@ export function InputText({
       <Input
         {...props}
         className={makeClassName(
-          'block bg-background ring-1 ring-background-contrast rounded-lg px-3 py-1 mt-3 text-sm text-background-contrast w-full',
-          error ? 'ring-2 ring-error' : 'focus:outline-2',
+          'block bg-background ring-1 rounded-lg px-3 h-10 text-sm text-background-contrast w-full',
+          'focus:ring-2 focus:ring-primary focus:outline-none',
+          error ? 'ring-2 ring-error' : 'ring-[#D9D9D9] dark:ring-[#4A4A4A]',
+          label && 'mt-3',
+          inputClassName,
         )}
         ref={innerRef}
         value={value}
+        placeholder={placeholder}
       />
       {error && typeof error === 'string' && (
         <p className="inline-block text-error text-xs italic">{error}</p>

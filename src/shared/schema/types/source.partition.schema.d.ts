@@ -16,11 +16,11 @@ export type SchemaSourcePartition =
       /**
        * The interval used for partitioning, this will be used to determine the partition date range
        */
-      interval?: "day" | "month";
+      interval?: 'day' | 'month';
       /**
        * The type of partition to use (event_dates will build a list for comparison to the project event dates variable)
        */
-      type: "event_dates";
+      type: 'event_dates';
       /**
        * Whether or not to use a range for the partition date filter instead of a list
        */
@@ -32,7 +32,7 @@ export type SchemaSourcePartition =
       /**
        * The type of partition to use (event_dates will build a list for comparison to the project event dates variable)
        */
-      type: "eq" | "gt" | "gte" | "lt" | "lte" | "neq";
+      type: 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'neq';
       /**
        * The value to compare the partition field to
        */
@@ -42,21 +42,21 @@ export type SchemaSourcePartition =
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * The expression to use to determine the partition date, be careful not to cast here as that will prevent partition pruning
  */

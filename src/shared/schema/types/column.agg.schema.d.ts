@@ -8,4 +8,10 @@
 /**
  * Automatically creates new aggregation columns, "hll" is HyperLogLog (used to approximate count distinct), and "tdigest" is T-Digest (used to approximate percentiles)
  */
-export type SchemaColumnAgg = "count" | "hll" | "max" | "min" | "sum" | "tdigest";
+export type SchemaColumnAgg =
+  | 'count'
+  | 'hll'
+  | 'max'
+  | 'min'
+  | 'sum'
+  | 'tdigest';

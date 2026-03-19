@@ -1,0 +1,70 @@
+version: "2"
+models:
+  - name: int__sales__analytics__rolling_30day
+    group: sales
+    description: 30-day rolling window analysis of sales metrics partitioned by
+      store for trend analysis
+    docs:
+      show: true
+    private: false
+    contract:
+      enforced: false
+    config:
+      tags:
+        - intermediate
+        - json
+    columns:
+      - name: order_date
+        data_type: varchar
+        description: Date when order was placed
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_id_count
+        data_type: number
+        description: Number of orders in the last 30 days
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: order_total_dollars_sum
+        data_type: number
+        description: Revenue metrics for the last 30 days (sum, min, max)
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__sales__orders__enriched
+      - name: order_total_dollars_min
+        data_type: number
+        description: Revenue metrics for the last 30 days (sum, min, max)
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__sales__orders__enriched
+      - name: order_total_dollars_max
+        data_type: number
+        description: Revenue metrics for the last 30 days (sum, min, max)
+        meta:
+          type: fct
+          origin:
+            id: model.jaffle_shop.int__sales__orders__enriched
+      - name: store_id
+        data_type: varchar
+        description: Foreign key to store
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__orders__standardized
+      - name: store_name
+        data_type: varchar
+        description: Store location name
+        meta:
+          type: dim
+          origin:
+            id: model.jaffle_shop.stg__sales__stores__locations
+      - name: portal_partition_daily
+        data_type: date
+        description: Portal Partition Daily
+        meta:
+          type: dim

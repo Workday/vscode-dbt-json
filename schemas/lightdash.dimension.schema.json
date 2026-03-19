@@ -4,12 +4,19 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "ai_hint": { "$ref": "lightdash.ai_hint.schema.json" },
+    "ai_hint": {
+      "$ref": "lightdash.ai_hint.schema.json"
+    },
     "group_label": {
       "description": "The group label that will be applied to the column in lightdash",
       "type": "string"
     },
-    "groups": { "type": "array", "items": { "type": "string" } },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "hidden": {
       "description": "The hidden status that will be applied to the column in lightdash",
       "type": "boolean"
@@ -21,7 +28,10 @@
     "required_attributes": {
       "$ref": "lightdash.required_attributes.schema.json"
     },
-    "round": { "type": "integer", "minimum": 0 },
+    "round": {
+      "type": "integer",
+      "minimum": 0
+    },
     "format": {
       "enum": ["eur", "gbp", "id", "km", "mi", "percent", "usd"]
     },
@@ -29,10 +39,15 @@
       "description": "SQL statement to determine the dimension",
       "type": "string"
     },
+    "tags": {
+      "$ref": "model.tags.schema.json"
+    },
     "time_intervals": {
       "description": "The time intervals for the lightdash dimension",
       "anyOf": [
-        { "const": "OFF" },
+        {
+          "const": "OFF"
+        },
         {
           "type": "array",
           "items": {

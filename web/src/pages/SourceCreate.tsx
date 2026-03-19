@@ -1,26 +1,28 @@
-import type { Api } from '@shared/api/types';
-import type { DbtProject } from '@shared/dbt/types';
-import { useChange, useError, useMount } from '@web';
-import { useApp } from '@web/context/app';
-import { Alert, Button, DialogBox, Spinner } from '@web/elements';
-import { Controller, FieldSelectSingle, Form } from '@web/forms';
-import _ from 'lodash';
-import { useCallback, useMemo, useState } from 'react';
-import { usePersistedForm } from '../hooks/usePersistedForm';
 import {
   BookmarkSquareIcon,
   QuestionMarkCircleIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { stateSync } from '../utils/stateSync';
-import { useEnvironment } from '@web/context/environment';
+import type { Api } from '@shared/api/types';
+import type { DbtProject } from '@shared/dbt/types';
 import { EXTERNAL_LINKS } from '@shared/web/constants';
+import { useChange } from '@web';
+import { useApp } from '@web/context';
+import { useEnvironment } from '@web/context';
+import { Alert, Button, DialogBox, Spinner } from '@web/elements';
+import { Controller, FieldSelectSingle, Form } from '@web/forms';
+import { useError, useMount } from '@web/hooks';
+import _ from 'lodash';
+import { useCallback, useMemo, useState } from 'react';
+
+import { usePersistedForm } from '../hooks/usePersistedForm';
+import { stateSync } from '../utils/stateSync';
 
 type Values = Api<'framework-source-create'>['request'];
 
 export function SourceCreate() {
   const { api } = useApp();
-  const { error, handleError } = useError();
+  const { handleError, clearError } = useError();
   const { vscode } = useEnvironment();
 
   const {
@@ -38,12 +40,15 @@ export function SourceCreate() {
   });
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [projects, setProjects] = useState<DbtProject[] | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [trinoCatalogs, setTrinoCatalogs] = useState<string[] | null>(null);
   const [trinoSchemas, setTrinoSchemas] = useState<string[] | null>(null);
   const [trinoTables, setTrinoTables] = useState<string[] | null>(null);
   const [isProjectsLoading, setIsProjectsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const projectName = watch('projectName');
   const trinoCatalog = watch('trinoCatalog');
@@ -67,12 +72,12 @@ export function SourceCreate() {
     () => _.map(trinoCatalogs, (value) => ({ label: value, value })),
     [trinoCatalogs],
   );
-  const trinoCatalogsLoading = useMemo(() => !trinoCatalogs, [trinoCatalogs]);
+  const isTrinoCatalogsLoading = useMemo(() => !trinoCatalogs, [trinoCatalogs]);
   const trinoSchemaOptions = useMemo(
     () => _.map(trinoSchemas, (value) => ({ label: value, value })),
     [trinoSchemas],
   );
-  const trinoSchemasLoading = useMemo(
+  const isTrinoSchemasLoading = useMemo(
     () => trinoCatalog && !trinoSchemas,
     [trinoCatalog, trinoSchemas],
   );
@@ -80,39 +85,73 @@ export function SourceCreate() {
     () => _.map(trinoTables, (value) => ({ label: value, value })),
     [trinoTables],
   );
-  const trinoTablesLoading = useMemo(
+  const isTrinoTablesLoading = useMemo(
     () => trinoCatalog && trinoSchema && !trinoTables,
     [trinoCatalog, trinoSchema, trinoTables],
   );
 
-  const hideSubmit = useMemo(
-    () => !trinoCatalog || !trinoSchema || !trinoTable,
-    [trinoCatalog, trinoSchema, trinoTable],
-  );
-  const disableSubmit = useMemo(
-    () =>
-      hideSubmit ||
-      !(trinoCatalogsLoading || trinoSchemasLoading || trinoTablesLoading),
-    [hideSubmit, trinoCatalogsLoading, trinoSchemasLoading, trinoTablesLoading],
-  );
+  const disableSubmit = useMemo(() => {
+    // Disable if any data is loading
+    if (
+      isTrinoCatalogsLoading ||
+      isTrinoSchemasLoading ||
+      isTrinoTablesLoading
+    ) {
+      return true;
+    }
+
+    // Disable if any required field is empty
+    if (!projectName || !trinoCatalog || !trinoSchema || !trinoTable) {
+      return true;
+    }
+
+    return false;
+  }, [
+    isTrinoCatalogsLoading,
+    isTrinoSchemasLoading,
+    isTrinoTablesLoading,
+    projectName,
+    trinoCatalog,
+    trinoSchema,
+    trinoTable,
+  ]);
 
   const onSubmit = useCallback(
     async (values: Values) => {
       try {
+        setIsSubmitting(true);
+        setShowErrorDialog(false);
+        setErrorMessage('');
         const resp = await api.post({
           type: 'framework-source-create',
           request: values,
         });
         setSuccess(resp);
       } catch (err) {
+        // Extract error message from the error object
+        let message =
+          'We encountered an issue while creating the source. Please check your selections and try again.';
+
+        if (err instanceof Error) {
+          message = err.message;
+        } else if (typeof err === 'string') {
+          message = err;
+        } else if (err && typeof err === 'object' && 'message' in err) {
+          message = String(err.message);
+        }
+
+        setErrorMessage(message);
+        setShowErrorDialog(true);
         handleError(err, 'Error creating source');
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [api, handleError],
   );
 
   useMount(() => {
-    void (async () => {
+    const loadProjects = async () => {
       try {
         setIsProjectsLoading(true);
         const _projects = await api.post({
@@ -128,11 +167,13 @@ export function SourceCreate() {
       } finally {
         setIsProjectsLoading(false);
       }
-    })();
+    };
+
+    void loadProjects();
   });
 
   useChange(projectName, () => {
-    void (async () => {
+    const fetchCatalogs = async () => {
       try {
         setTrinoCatalogs(null);
         const _trinoCatalogs = await api.post({
@@ -143,10 +184,12 @@ export function SourceCreate() {
       } catch (err) {
         console.error('ERROR FETCHING CATALOGS', err);
       }
-    })();
+    };
+
+    void fetchCatalogs();
   });
   useChange(trinoCatalog, () => {
-    void (async () => {
+    const fetchSchemas = async () => {
       try {
         setTrinoSchemas(null);
         const _trinoSchemas = await api.post({
@@ -157,11 +200,13 @@ export function SourceCreate() {
       } catch (err) {
         console.error('ERROR FETCHING SCHEMAS', err);
       }
-    })();
+    };
+
+    void fetchSchemas();
   });
 
   useChange(trinoSchema, () => {
-    void (async () => {
+    const fetchTables = async () => {
       try {
         setTrinoTables(null);
         const _trinoTables = await api.post({
@@ -172,7 +217,9 @@ export function SourceCreate() {
       } catch (err) {
         console.error('ERROR FETCHING TABLES', err);
       }
-    })();
+    };
+
+    void fetchTables();
   });
 
   const onClose = useCallback(() => {
@@ -183,10 +230,6 @@ export function SourceCreate() {
         panelType: 'source-create',
       });
     } else {
-      console.log(
-        '[SourceCreate] VS Code API not available, using window.parent.postMessage',
-      );
-
       window.parent.postMessage(
         {
           type: 'close-panel',
@@ -231,6 +274,14 @@ export function SourceCreate() {
     }
   }, [vscode]);
 
+  const handleErrorRetry = useCallback(() => {
+    // Clear the error and allow user to retry
+    setShowErrorDialog(false);
+    setErrorMessage('');
+    setIsSubmitting(false); // Reset loading state
+    clearError();
+  }, [clearError]);
+
   if (isLoading || isProjectsLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
@@ -249,10 +300,6 @@ export function SourceCreate() {
         </p>
       </div>
     );
-  }
-
-  if (error) {
-    return <Alert description={error.message} label="Error" variant="error" />;
   }
 
   if (success) {
@@ -304,13 +351,7 @@ export function SourceCreate() {
           />
         </div>
       </div>
-      <Form<Values>
-        disableSubmit={disableSubmit}
-        handleSubmit={handleSubmit}
-        hideSubmit={hideSubmit}
-        labelSubmit="Create Source"
-        onSubmit={onSubmit}
-      >
+      <Form<Values> handleSubmit={handleSubmit} hideSubmit onSubmit={onSubmit}>
         <Controller
           control={control}
           name="projectName"
@@ -325,7 +366,7 @@ export function SourceCreate() {
             />
           )}
         />
-        {!projectName ? null : trinoCatalogsLoading ? (
+        {!projectName ? null : isTrinoCatalogsLoading ? (
           <Spinner label="Loading Trino Catalogs" />
         ) : (
           <Controller
@@ -338,12 +379,12 @@ export function SourceCreate() {
                 error={errors.trinoCatalog}
                 label="Select Trino Catalog"
                 options={trinoCatalogOptions}
-                tooltipText="Choose the Trino catalog that contains your data. A catalog in Trino represents a data source or connector."
+                tooltipText="Choose the Trino catalog that contains your data. A catalog in Trino represents a data source or connector (e.g., 'development', 'opus', 'portal')."
               />
             )}
           />
         )}
-        {!trinoCatalog ? null : trinoSchemasLoading ? (
+        {!trinoCatalog ? null : isTrinoSchemasLoading ? (
           <Spinner label="Loading Trino Schemas" />
         ) : (
           <Controller
@@ -361,7 +402,7 @@ export function SourceCreate() {
             )}
           />
         )}
-        {!trinoSchema ? null : trinoTablesLoading ? (
+        {!trinoSchema ? null : isTrinoTablesLoading ? (
           <Spinner label="Loading Trino Tables" />
         ) : (
           <Controller
@@ -379,7 +420,28 @@ export function SourceCreate() {
             )}
           />
         )}
+
+        {/* Custom Submit Button */}
+        <div className="flex gap-2 mt-4">
+          <Button
+            label={isSubmitting ? 'Creating...' : 'Create Source'}
+            variant="primary"
+            type="button"
+            onClick={() => void handleSubmit(onSubmit)()}
+            disabled={disableSubmit || isSubmitting}
+            loading={isSubmitting}
+          />
+        </div>
       </Form>
+
+      {/* Error Dialog */}
+      <DialogBox
+        title="Source Creation Failed"
+        open={showErrorDialog}
+        description={errorMessage}
+        confirmCTALabel="Try Again"
+        onConfirm={handleErrorRetry}
+      />
 
       <DialogBox
         title="Confirm Discard"

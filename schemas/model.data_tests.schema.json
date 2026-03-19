@@ -11,11 +11,78 @@
         "required": ["column_name", "type"],
         "properties": {
           "type": {
-            "const": "unique"
+            "const": "unique",
+            "description": "Validates that all values in the specified column are unique (no duplicates)."
           },
           "column_name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Name of the column to test for uniqueness (e.g., 'id', 'email')"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compare_model"],
+        "properties": {
+          "type": {
+            "const": "equal_row_count",
+            "description": "Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column."
+          },
+          "compare_model": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')"
+          },
+          "join_type": {
+            "type": "string",
+            "description": "Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types."
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "column_name"],
+        "properties": {
+          "type": {
+            "const": "no_null_aggregates",
+            "description": "Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data."
+          },
+          "column_name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the aggregate column to test (e.g., 'total_amount', 'record_count')"
+          },
+          "date_filter_column": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified."
+          },
+          "date_filter_type": {
+            "enum": ["date", "timestamp", "string", "number"],
+            "description": "Data type of the date filter column. Affects how date filtering is applied."
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compare_model"],
+        "properties": {
+          "type": {
+            "const": "equal_or_lower_row_count",
+            "description": "Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column."
+          },
+          "compare_model": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')"
+          },
+          "join_type": {
+            "type": "string",
+            "description": "Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes."
           }
         }
       }

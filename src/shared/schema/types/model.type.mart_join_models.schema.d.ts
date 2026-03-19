@@ -46,7 +46,7 @@ export type SchemaModelTags = (
   | string
   | {
       tag: string;
-      type?: "exclude" | "inherit" | "local";
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
     }
 )[];
 /**
@@ -61,7 +61,7 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
   ),
   ...(
@@ -70,10 +70,37 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
-  )[]
+  )[],
 ];
+/**
+ * SQL HAVING
+ */
+export type SchemaModelHaving =
+  | string
+  | {
+      /**
+       * Conditions to be combined by AND
+       */
+      and?: {
+        /**
+         * SQL for the condition
+         */
+        expr?: string;
+        group?: SchemaModelHaving;
+      }[];
+      /**
+       * Conditions to be combined by OR
+       */
+      or?: {
+        /**
+         * SQL for the condition
+         */
+        expr?: string;
+        group?: SchemaModelHaving;
+      }[];
+    };
 /**
  * Will prevent the automatic portal partition date columns from getting added
  */
@@ -83,47 +110,191 @@ export type SchemaModelExcludePortalPartitionColumns = boolean;
  */
 export type SchemaModelExcludePortalSourceCount = boolean;
 /**
- * Validate selecting a new column using an expression
+ * Array of CTE definitions within a model. CTEs are processed in order; later CTEs can reference earlier ones.
+ *
+ * @minItems 1
  */
-export type SchemaModelSelectExpr =
+export type SchemaModelCTEs = [SchemaModelCTE, ...SchemaModelCTE[]];
+/**
+ * Validate model ids
+ */
+export type SchemaModelRef = string;
+/**
+ * Validates the join argument when joining multiple models or CTEs
+ *
+ * @minItems 1
+ */
+export type SchemaModelFromJoinModels = [
+  (
+    | {
+        model: SchemaModelRef;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        model: SchemaModelRef;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+  ),
+  ...(
+    | {
+        model: SchemaModelRef;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        model: SchemaModelRef;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'cross';
+      }
+    | {
+        /**
+         * Name of a CTE defined in the ctes array
+         */
+        cte: string;
+        override_alias?: SchemaColumnName;
+        type?: 'full' | 'inner' | 'left' | 'right';
+        /**
+         * SQL for the join condition
+         */
+        on: {
+          /**
+           * Conditions to be combined by AND
+           */
+          and?: (
+            | SchemaColumnName
+            | {
+                /**
+                 * SQL for the condition
+                 */
+                expr: string;
+              }
+          )[];
+        };
+      }
+  )[],
+];
+/**
+ * Validate column name
+ */
+export type SchemaColumnName = string;
+/**
+ * Validate selecting an existing named column
+ */
+export type SchemaModelSelectCol =
   | {
       data_type?: SchemaColumnDataType;
       description?: SchemaColumnDescription;
       exclude_from_group_by?: SchemaColumnExcludeFromGroupBy;
-      expr: SchemaColumnExpr;
+      expr?: SchemaColumnExpr;
       lightdash?: SchemaColumnLightdash;
       name: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type?: "dim";
+      type?: 'dim';
     }
   | {
       data_type?: SchemaColumnDataType;
       description?: SchemaColumnDescription;
-      expr: SchemaColumnExpr;
       lightdash?: SchemaColumnLightdash;
       name: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type: "fct";
+      type: 'fct';
     };
 /**
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * Description for the selected column
  */
@@ -137,14 +308,18 @@ export type SchemaColumnExcludeFromGroupBy = boolean;
  */
 export type SchemaColumnExpr = string;
 /**
- * Validate column name
- */
-export type SchemaColumnName = string;
-/**
  * Validate column data_tests
  */
 export type SchemaColumnDataTests = (
-  | ("not_null" | "unique")
+  | (
+      | 'accepted_values'
+      | 'equal_or_lower_row_count'
+      | 'equal_row_count'
+      | 'no_null_aggregates'
+      | 'not_null'
+      | 'relationships'
+      | 'unique'
+    )
   | {
       unique: {
         config: {
@@ -153,22 +328,120 @@ export type SchemaColumnDataTests = (
       };
     }
   | {
-      accepted_values: {
-        quote?: boolean;
-        values: string[];
-      };
+      /**
+       * Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data.
+       */
+      type: 'no_null_aggregates';
+      /**
+       * Name of the aggregate column to test (e.g., 'total_amount', 'record_count')
+       */
+      column_name: string;
+      /**
+       * Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified.
+       */
+      date_filter_column?: string;
+      /**
+       * Data type of the date filter column. Affects how date filtering is applied.
+       */
+      date_filter_type?: 'date' | 'timestamp' | 'string' | 'number';
     }
   | {
-      relationships: {
-        field: SchemaColumnName;
-        to: string;
-      };
+      /**
+       * Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column.
+       */
+      type: 'equal_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types.
+       */
+      join_type?: string;
+    }
+  | {
+      /**
+       * Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column.
+       */
+      type: 'equal_or_lower_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes.
+       */
+      join_type?: string;
     }
 )[];
 /**
- * Validate model ids
+ * Validate selecting an existing named column and creating an agg
  */
-export type SchemaModelRef = string;
+export type SchemaModelSelectColWithAgg = {
+  agg?: SchemaColumnAgg;
+  aggs?: SchemaColumnAggs;
+  data_type?: SchemaColumnDataType;
+  description?: SchemaColumnDescription;
+  lightdash?: SchemaColumnLightdash;
+  name: SchemaColumnName;
+  override_suffix_agg?: boolean;
+  data_tests?: SchemaColumnDataTests;
+  type: 'fct';
+};
+/**
+ * Automatically creates new aggregation columns, "hll" is HyperLogLog (used to approximate count distinct), and "tdigest" is T-Digest (used to approximate percentiles)
+ */
+export type SchemaColumnAgg =
+  | 'count'
+  | 'hll'
+  | 'max'
+  | 'min'
+  | 'sum'
+  | 'tdigest';
+/**
+ * The aggregate functions to apply to the fact, this will generate a new column per agg specified, and automatically the agg type to the column name, e.g. column_count, column_sum. "hll" is HyperLogLog (used to approximate count distinct), and "tdigest" is T-Digest (used to approximate percentiles)
+ *
+ * @minItems 1
+ */
+export type SchemaColumnAggs = [SchemaColumnAgg, ...SchemaColumnAgg[]];
+/**
+ * Validate selecting a new column using an expression
+ */
+export type SchemaModelSelectExpr =
+  | {
+      data_type?: SchemaColumnDataType;
+      description?: SchemaColumnDescription;
+      exclude_from_group_by?: SchemaColumnExcludeFromGroupBy;
+      expr: SchemaColumnExpr;
+      lightdash?: SchemaColumnLightdash;
+      name: SchemaColumnName;
+      data_tests?: SchemaColumnDataTests;
+      type?: 'dim';
+    }
+  | {
+      data_type?: SchemaColumnDataType;
+      description?: SchemaColumnDescription;
+      expr: SchemaColumnExpr;
+      lightdash?: SchemaColumnLightdash;
+      name: SchemaColumnName;
+      data_tests?: SchemaColumnDataTests;
+      type: 'fct';
+    };
+/**
+ * Validate selecting a new column using an expression and creating an agg
+ */
+export type SchemaModelSelectExprWithAgg = {
+  agg?: SchemaColumnAgg;
+  aggs?: SchemaColumnAggs;
+  data_type?: SchemaColumnDataType;
+  description?: SchemaColumnDescription;
+  expr: SchemaColumnExpr;
+  lightdash?: SchemaColumnLightdash;
+  name: SchemaColumnName;
+  override_suffix_agg?: boolean;
+  data_tests?: SchemaColumnDataTests;
+  type: 'fct';
+};
 /**
  * Schema when selecting columns from another model
  */
@@ -182,7 +455,7 @@ export type SchemaModelSelectModel =
       name: SchemaColumnName;
       override_prefix?: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type?: "dim";
+      type?: 'dim';
     }
   | {
       data_type?: SchemaColumnDataType;
@@ -192,10 +465,10 @@ export type SchemaModelSelectModel =
       name: SchemaColumnName;
       override_prefix?: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type: "fct";
+      type: 'fct';
     }
   | {
-      type: "all_from_model" | "dims_from_model" | "fcts_from_model";
+      type: 'all_from_model' | 'dims_from_model' | 'fcts_from_model';
       /**
        * @minItems 1
        */
@@ -206,6 +479,65 @@ export type SchemaModelSelectModel =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
       model: SchemaModelRef;
       override_prefix?: SchemaColumnName;
+    };
+/**
+ * Schema when selecting columns from another model with an agg applied
+ */
+export type SchemaModelSelectModelWithAgg = {
+  agg?: SchemaColumnAgg;
+  aggs?: SchemaColumnAggs;
+  data_type?: SchemaColumnDataType;
+  description?: SchemaColumnDescription;
+  lightdash?: SchemaColumnLightdash;
+  model: SchemaModelRef;
+  name: SchemaColumnName;
+  override_prefix?: SchemaColumnName;
+  override_suffix_agg?: boolean;
+  data_tests?: SchemaColumnDataTests;
+  type: 'fct';
+};
+/**
+ * Schema when selecting columns from a CTE defined in the same model
+ */
+export type SchemaModelSelectCTE =
+  | {
+      /**
+       * Reference to a CTE defined in the ctes array
+       */
+      cte: string;
+      data_type?: SchemaColumnDataType;
+      description?: SchemaColumnDescription;
+      lightdash?: SchemaColumnLightdash;
+      name: SchemaColumnName;
+      data_tests?: SchemaColumnDataTests;
+      type?: 'dim';
+    }
+  | {
+      /**
+       * Reference to a CTE defined in the ctes array
+       */
+      cte: string;
+      data_type?: SchemaColumnDataType;
+      description?: SchemaColumnDescription;
+      lightdash?: SchemaColumnLightdash;
+      name: SchemaColumnName;
+      data_tests?: SchemaColumnDataTests;
+      type: 'fct';
+    }
+  | {
+      type: 'all_from_cte' | 'dims_from_cte' | 'fcts_from_cte';
+      /**
+       * Reference to a CTE defined in the ctes array
+       */
+      cte: string;
+      /**
+       * @minItems 1
+       */
+      exclude?: [SchemaColumnName, ...SchemaColumnName[]];
+      /**
+       * @minItems 1
+       */
+      include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
  * SQL WHERE
@@ -228,77 +560,12 @@ export type SchemaModelWhere =
         group?: SchemaModelWhere;
       }[];
     };
-/**
- * Validates the join argument when joining multiple models
- *
- * @minItems 1
- */
-export type SchemaModelFromJoinModels = [
-  (
-    | {
-        model: SchemaModelRef;
-        override_alias?: SchemaColumnName;
-        type?: "cross";
-      }
-    | {
-        model: SchemaModelRef;
-        override_alias?: SchemaColumnName;
-        type?: "full" | "inner" | "left" | "right";
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-          )[];
-        };
-      }
-  ),
-  ...(
-    | {
-        model: SchemaModelRef;
-        override_alias?: SchemaColumnName;
-        type?: "cross";
-      }
-    | {
-        model: SchemaModelRef;
-        override_alias?: SchemaColumnName;
-        type?: "full" | "inner" | "left" | "right";
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-          )[];
-        };
-      }
-  )[]
-];
 
 /**
  * Validates schema for mart models which join multiple models
  */
 export interface SchemaModelTypeMartJoinModels {
-  type: "mart_join_models";
+  type: 'mart_join_models';
   group: SchemaModelGroup;
   topic: SchemaModelTopic;
   name: SchemaModelName;
@@ -306,20 +573,46 @@ export interface SchemaModelTypeMartJoinModels {
   lightdash?: SchemaModelLightdash;
   tags?: SchemaModelTags;
   group_by?: SchemaModelGroupBy;
+  having?: SchemaModelHaving;
   exclude_portal_partition_columns?: SchemaModelExcludePortalPartitionColumns;
   exclude_portal_source_count?: SchemaModelExcludePortalSourceCount;
+  ctes?: SchemaModelCTEs;
   /**
    * @minItems 1
    */
   select: [
-    SchemaModelSelectExpr | SchemaModelSelectInterval | SchemaModelSelectModel,
-    ...(SchemaModelSelectExpr | SchemaModelSelectInterval | SchemaModelSelectModel)[]
+    (
+      | SchemaModelSelectColWithAgg
+      | SchemaModelSelectExpr
+      | SchemaModelSelectExprWithAgg
+      | SchemaModelSelectInterval
+      | SchemaModelSelectModel
+      | SchemaModelSelectModelWithAgg
+      | SchemaModelSelectCTE
+    ),
+    ...(
+      | SchemaModelSelectColWithAgg
+      | SchemaModelSelectExpr
+      | SchemaModelSelectExprWithAgg
+      | SchemaModelSelectInterval
+      | SchemaModelSelectModel
+      | SchemaModelSelectModelWithAgg
+      | SchemaModelSelectCTE
+    )[],
   ];
   where?: SchemaModelWhere;
-  from: {
-    join: SchemaModelFromJoinModels;
-    model: SchemaModelRef;
-  };
+  from:
+    | {
+        join: SchemaModelFromJoinModels;
+        model: SchemaModelRef;
+      }
+    | {
+        /**
+         * Reference to a CTE defined in the ctes array
+         */
+        cte: string;
+        join?: SchemaModelFromJoinModels;
+      };
 }
 /**
  * Validates schema for setting lightdash properties at the model level
@@ -383,7 +676,7 @@ export interface SchemaLightdashMetric {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
   /**
    * The description that will be applied to the column in lightdash
    */
@@ -394,27 +687,109 @@ export interface SchemaLightdashMetric {
   label?: string;
   name: SchemaLightdashMetricName;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The custom sql expression to generate the metric
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The type of metric
    */
   type:
-    | "average"
-    | "boolean"
-    | "count"
-    | "count_distinct"
-    | "date"
-    | "max"
-    | "median"
-    | "min"
-    | "number"
-    | "percentile"
-    | "string"
-    | "sum";
+    | 'average'
+    | 'boolean'
+    | 'count'
+    | 'count_distinct'
+    | 'date'
+    | 'max'
+    | 'median'
+    | 'min'
+    | 'number'
+    | 'percentile'
+    | 'string'
+    | 'sum';
+}
+/**
+ * Defines a Common Table Expression (CTE) within a model. CTEs are lightweight intermediate transformations that generate SQL WITH clauses.
+ */
+export interface SchemaModelCTE {
+  /**
+   * Unique name for this CTE within the model
+   */
+  name: string;
+  /**
+   * Data source for the CTE: a model ref, CTE ref, or union of CTEs/models
+   */
+  from:
+    | {
+        model: SchemaModelRef;
+        join?: SchemaModelFromJoinModels;
+      }
+    | {
+        /**
+         * Reference to a CTE defined earlier in the ctes array
+         */
+        cte: string;
+        join?: SchemaModelFromJoinModels;
+      }
+    | {
+        /**
+         * First CTE in the union
+         */
+        cte: string;
+        union: {
+          type?: 'all';
+          /**
+           * Additional CTEs to union with
+           *
+           * @minItems 1
+           */
+          ctes: [string, ...string[]];
+        };
+      }
+    | {
+        model: SchemaModelRef;
+        union: {
+          type?: 'all';
+          /**
+           * Additional models to union with
+           *
+           * @minItems 1
+           */
+          models: [SchemaModelRef, ...SchemaModelRef[]];
+        };
+      };
+  /**
+   * @minItems 1
+   */
+  select?: [
+    (
+      | SchemaColumnName
+      | SchemaModelSelectCol
+      | SchemaModelSelectColWithAgg
+      | SchemaModelSelectExpr
+      | SchemaModelSelectExprWithAgg
+      | SchemaModelSelectInterval
+      | SchemaModelSelectModel
+      | SchemaModelSelectModelWithAgg
+      | SchemaModelSelectCTE
+    ),
+    ...(
+      | SchemaColumnName
+      | SchemaModelSelectCol
+      | SchemaModelSelectColWithAgg
+      | SchemaModelSelectExpr
+      | SchemaModelSelectExprWithAgg
+      | SchemaModelSelectInterval
+      | SchemaModelSelectModel
+      | SchemaModelSelectModelWithAgg
+      | SchemaModelSelectCTE
+    )[],
+  ];
+  where?: SchemaModelWhere;
+  group_by?: SchemaModelGroupBy;
+  having?: SchemaModelHaving;
 }
 export interface SchemaColumnLightdash {
   dimension?: SchemaLightdashDimension;
@@ -422,11 +797,36 @@ export interface SchemaColumnLightdash {
    * @minItems 1
    */
   metrics?: [
-    ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum") | SchemaLightdashMetric,
-    ...(
-      | ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum")
+    (
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
       | SchemaLightdashMetric
-    )[]
+    ),
+    ...(
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
+      | SchemaLightdashMetric
+    )[],
   ];
   metrics_merge?: SchemaLightdashMetricMerge;
 }
@@ -447,36 +847,37 @@ export interface SchemaLightdashDimension {
   label?: string;
   required_attributes?: SchemaLightdashRequiredAttributes;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * SQL statement to determine the dimension
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The time intervals for the lightdash dimension
    */
   time_intervals?:
-    | "OFF"
+    | 'OFF'
     | (
-        | "DAY"
-        | "DAY_OF_WEEK_INDEX"
-        | "DAY_OF_WEEK_NAME"
-        | "DAY_OF_MONTH_NUM"
-        | "DAY_OF_YEAR_NUM"
-        | "HOUR"
-        | "MONTH"
-        | "MONTH_NAME"
-        | "MONTH_NUM"
-        | "QUARTER"
-        | "QUARTER_NAME"
-        | "QUARTER_NUM"
-        | "RAW"
-        | "WEEK"
-        | "WEEK_NUM"
-        | "YEAR"
-        | "YEAR_NUM"
+        | 'DAY'
+        | 'DAY_OF_WEEK_INDEX'
+        | 'DAY_OF_WEEK_NAME'
+        | 'DAY_OF_MONTH_NUM'
+        | 'DAY_OF_YEAR_NUM'
+        | 'HOUR'
+        | 'MONTH'
+        | 'MONTH_NAME'
+        | 'MONTH_NUM'
+        | 'QUARTER'
+        | 'QUARTER_NAME'
+        | 'QUARTER_NUM'
+        | 'RAW'
+        | 'WEEK'
+        | 'WEEK_NUM'
+        | 'YEAR'
+        | 'YEAR_NUM'
       )[];
-  type?: "boolean" | "date" | "number" | "string" | "timestamp";
+  type?: 'boolean' | 'date' | 'number' | 'string' | 'timestamp';
   /**
    * The URLs for the lightdash dimension
    */
@@ -498,8 +899,12 @@ export interface SchemaLightdashMetricMerge {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
+  /**
+   * The description that will be applied to the metric in lightdash
+   */
+  description?: string;
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The group label that will be applied to the column in lightdash
    */
@@ -517,10 +922,10 @@ export interface SchemaLightdashMetricMerge {
 }
 export interface SchemaModelSelectInterval {
   description?: SchemaColumnDescription;
-  interval: "day" | "hour" | "month" | "year";
+  interval: 'day' | 'hour' | 'month' | 'year';
   lightdash?: SchemaColumnLightdash;
   model?: SchemaModelRef;
-  name: "datetime";
+  name: 'datetime';
   data_tests?: SchemaColumnDataTests;
-  type?: "dim";
+  type?: 'dim';
 }

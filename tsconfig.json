@@ -2,22 +2,51 @@
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2023",
+      "ESNext",
+      "ESNext.Decorators"
+    ],
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "out",
     "paths": {
-      "admin": ["./src/admin"],
-      "@services/*": ["./src/services/*"],
-      "@shared": ["./src/shared"],
-      "@shared/*": ["./src/shared/*"]
+      "admin": [
+        "./src/admin"
+      ],
+      "@types/shared": [
+        "./src/types/shared"
+      ],
+      "@types/shared/*": [
+        "./src/types/shared/*"
+      ],
+      "@types/extension": [
+        "./src/types/extension"
+      ],
+      "@types/extension/*": [
+        "./src/types/extension/*"
+      ],
+      "@services/*": [
+        "./src/services/*"
+      ],
+      "@shared": [
+        "./src/shared"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ]
     },
-    "rootDir": "src",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2023"
   },
-  "exclude": ["node_modules", ".vscode-test"],
-  "include": ["src"]
+  "exclude": [
+    "node_modules",
+    ".vscode-test"
+  ],
+  "include": [
+    "src",
+    "tests"
+  ]
 }

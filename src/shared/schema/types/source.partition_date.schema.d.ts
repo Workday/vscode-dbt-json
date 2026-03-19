@@ -9,21 +9,21 @@
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * The expression to use to determine the partition date, be careful not to cast here as that will prevent partition pruning
  */
@@ -42,7 +42,7 @@ export interface SchemaSourcePartitionDate {
   /**
    * The interval used for partitioning, this will be used to determine the partition date range
    */
-  interval?: "day" | "month";
+  interval?: 'day' | 'month';
   /**
    * Whether or not to use the event dates as the partition dates
    */

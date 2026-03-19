@@ -46,25 +46,79 @@ export type SchemaModelTags = (
   | string
   | {
       tag: string;
-      type?: "exclude" | "inherit" | "local";
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
     }
 )[];
 /**
  * Validate model data_tests
  */
-export type SchemaModelDataTests = {
-  type: "unique";
-  column_name: string;
-}[];
+export type SchemaModelDataTests = (
+  | {
+      /**
+       * Validates that all values in the specified column are unique (no duplicates).
+       */
+      type: 'unique';
+      /**
+       * Name of the column to test for uniqueness (e.g., 'id', 'email')
+       */
+      column_name: string;
+    }
+  | {
+      /**
+       * Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column.
+       */
+      type: 'equal_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types.
+       */
+      join_type?: string;
+    }
+  | {
+      /**
+       * Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data.
+       */
+      type: 'no_null_aggregates';
+      /**
+       * Name of the aggregate column to test (e.g., 'total_amount', 'record_count')
+       */
+      column_name: string;
+      /**
+       * Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified.
+       */
+      date_filter_column?: string;
+      /**
+       * Data type of the date filter column. Affects how date filtering is applied.
+       */
+      date_filter_type?: 'date' | 'timestamp' | 'string' | 'number';
+    }
+  | {
+      /**
+       * Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column.
+       */
+      type: 'equal_or_lower_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes.
+       */
+      join_type?: string;
+    }
+)[];
 /**
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
   | {
-      type: "ephemeral";
+      type: 'ephemeral';
     }
   | {
-      type: "incremental";
+      type: 'incremental';
       database?: SchemaModelDatabase;
       format?: SchemaModelFormat;
       partitions?: SchemaModelPartitions;
@@ -77,7 +131,7 @@ export type SchemaModelDatabase = string;
 /**
  * Open table format for the model
  */
-export type SchemaModelFormat = "delta_lake" | "hive" | "iceberg";
+export type SchemaModelFormat = 'delta_lake' | 'hive' | 'iceberg';
 /**
  * Validate column name
  */
@@ -91,7 +145,7 @@ export type SchemaModelPartitions = SchemaColumnName[];
  */
 export type ModelIncrementalStrategySchemaJson =
   | {
-      type: "delete+insert";
+      type: 'delete+insert';
       /**
        * Override the unique key(s) to use for merging
        */
@@ -99,7 +153,7 @@ export type ModelIncrementalStrategySchemaJson =
       [k: string]: unknown | undefined;
     }
   | {
-      type: "merge";
+      type: 'merge';
       /**
        * The unique key(s) to use for merging
        */
@@ -117,13 +171,16 @@ export type ModelIncrementalStrategySchemaJson =
 /**
  * Type of materialization
  */
-export type SchemaModelMaterialized = "ephemeral" | "incremental";
+export type SchemaModelMaterialized = 'ephemeral' | 'incremental';
 /**
  * Override the default partitioned_by configuration for this model
  *
  * @minItems 1
  */
-export type SchemaModelPartitionedBy = [SchemaColumnName, ...SchemaColumnName[]];
+export type SchemaModelPartitionedBy = [
+  SchemaColumnName,
+  ...SchemaColumnName[],
+];
 /**
  * Exclude Daily Filter
  */
@@ -149,7 +206,7 @@ export type SchemaModelRef = string;
  * Validates schema for rollup models
  */
 export interface SchemaModelTypeIntRollupModel {
-  type: "int_rollup_model";
+  type: 'int_rollup_model';
   group: SchemaModelGroup;
   topic: SchemaModelTopic;
   name: SchemaModelName;
@@ -173,7 +230,7 @@ export interface SchemaModelTypeIntRollupModel {
       /**
        * The interval for the rollup
        */
-      interval: "day" | "hour" | "month" | "year";
+      interval: 'day' | 'hour' | 'month' | 'year';
     };
   };
 }
@@ -239,7 +296,7 @@ export interface SchemaLightdashMetric {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
   /**
    * The description that will be applied to the column in lightdash
    */
@@ -250,27 +307,28 @@ export interface SchemaLightdashMetric {
   label?: string;
   name: SchemaLightdashMetricName;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The custom sql expression to generate the metric
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The type of metric
    */
   type:
-    | "average"
-    | "boolean"
-    | "count"
-    | "count_distinct"
-    | "date"
-    | "max"
-    | "median"
-    | "min"
-    | "number"
-    | "percentile"
-    | "string"
-    | "sum";
+    | 'average'
+    | 'boolean'
+    | 'count'
+    | 'count_distinct'
+    | 'date'
+    | 'max'
+    | 'median'
+    | 'min'
+    | 'number'
+    | 'percentile'
+    | 'string'
+    | 'sum';
 }
 /**
  * SQL statements to run before or after models

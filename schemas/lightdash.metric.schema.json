@@ -5,12 +5,19 @@
   "additionalProperties": false,
   "required": ["name", "type"],
   "properties": {
-    "ai_hint": { "$ref": "lightdash.ai_hint.schema.json" },
+    "ai_hint": {
+      "$ref": "lightdash.ai_hint.schema.json"
+    },
     "group_label": {
       "description": "The group label that will be applied to the column in lightdash",
       "type": "string"
     },
-    "groups": { "type": "array", "items": { "type": "string" } },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "hidden": {
       "description": "The hidden status that will be applied to the column in lightdash",
       "type": "boolean"
@@ -27,7 +34,9 @@
       "description": "The label that will be applied to the column in lightdash",
       "type": "string"
     },
-    "name": { "$ref": "lightdash.metric.name.schema.json" },
+    "name": {
+      "$ref": "lightdash.metric.name.schema.json"
+    },
     "round": {
       "type": "integer",
       "minimum": 0
@@ -38,6 +47,9 @@
     "sql": {
       "description": "The custom sql expression to generate the metric",
       "type": "string"
+    },
+    "tags": {
+      "$ref": "model.tags.schema.json"
     },
     "type": {
       "description": "The type of metric",

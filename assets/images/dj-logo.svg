@@ -1,0 +1,13 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="256" height="256" rx="44" fill="#0A1628"/>
+    <!-- Left curly brace -->
+    <path d="M52 58 Q38 58 38 74 L38 114 Q38 128 24 128 Q38 128 38 142 L38 182 Q38 198 52 198" fill="none" stroke="#FC5B05" stroke-width="9" stroke-linecap="round"/>
+    <!-- Right curly brace -->
+    <path d="M204 58 Q218 58 218 74 L218 114 Q218 128 232 128 Q218 128 218 142 L218 182 Q218 198 204 198" fill="none" stroke="#FC5B05" stroke-width="9" stroke-linecap="round"/>
+    <!-- D letter -->
+    <path d="M76 88h18c18 0 32 14 32 32s-14 32-32 32H76V88z" fill="none" stroke="#0057AE" stroke-width="9" stroke-linejoin="round"/>
+    <!-- J letter stem and hook -->
+    <path d="M170 88v48c0 12-8 18-17 18" fill="none" stroke="#0057AE" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- J tittle (dot) -->
+    <circle cx="170" cy="78" r="5" fill="#FC5B05"/>
+</svg>

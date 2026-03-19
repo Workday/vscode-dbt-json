@@ -7,6 +7,20 @@
 
 DJ is a VS Code extension that revolutionizes dbt development through a structured, JSON-first approach. Define your dbt models and sources as validated `.model.json` and `.source.json` files that automatically generate corresponding SQL and YAML configurations.
 
+## Interactive Development Experience
+
+- **Visual Model Builder** - Interactive node-based canvas for creating models visually
+- **Interactive Tutorials** - "Assist Me" and "Play Tutorial" modes for guided learning
+- **Real-time Lineage** - Model and column-level dependency visualization
+- **Integrated BI Preview** - One-click Lightdash preview from your models
+
+<video width="100%" controls>
+  <source src="https://github.com/Workday/vscode-dbt-json/raw/main/assets/videos/visual-editor-overview.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+> Quick demonstration of creating a model using the visual editor
+
 ## Key Features
 
 - **IntelliSense**: Smart autocomplete for models, sources, columns, and SQL expressions.
@@ -49,7 +63,7 @@ Table of Contents
 
 > If you dont have a dbt project already setup, you can instead follow the [Tutorial](docs/TUTORIAL.md) that will walk you through setting up the example dbt project.
 >
-> For a complete setup guide, see [SETUP.md](docs/SETUP.md)
+> For a complete setup guide, see [SETUP.md](docs/setup/setup.md)
 
 ### 1. Install Trino CLI
 
@@ -75,7 +89,7 @@ export TRINO_CATALOG=your-catalog
 export TRINO_SCHEMA=your-schema
 ```
 
-> If you don't have Trino CLI installed, see [SETUP.md](docs/SETUP.md#2-install-trino-cli)
+> If you don't have Trino CLI installed, see [SETUP.md](docs/setup/setup.md#2-install-trino-cli)
 
 ### 3. Open Your dbt Project
 
@@ -90,7 +104,7 @@ pip install -r requirements.txt # dbt-trino is required for this extension
 
 > If you don't have a dbt project already setup, you can instead follow the [Tutorial](docs/TUTORIAL.md) that will walk you through setting up the example dbt project.
 >
-> For a complete setup guide, see [SETUP.md](docs/SETUP.md)
+> For a complete setup guide, see [SETUP.md](docs/setup/setup.md)
 
 3. Make sure dbt dependencies have been installed and dbt parse has been run to generate the manifest.json file.
 
@@ -129,15 +143,43 @@ To configure the extension via `.vscode/settings.json`, add the configuration op
 }
 ```
 
-Available settings:
+## Configuration
 
-- **`dj.pythonVenvPath`**: Path to the local Python virtual environment relative to the workspace root.
-- **`dj.trinoPath`**: Path to the Trino CLI executable. If not set, will try to find `trino-cli` in PATH.
-- **`dj.dbtProjectNames`**: Restrict which dbt projects the extension recognizes. If omitted, all projects are allowed.
-- **`dj.airflowGenerateDags`**: Toggle writing Airflow DAG files. Defaults to `true`; set to `false` to skip writing DAGs.
-- **`dj.airflowTargetVersion`**: Target Airflow version to use when generating the DAG. Defaults to `2.7`.
-- **`dj.airflowDagsPath`**: Folder where the extension writes Airflow DAGs. Defaults to `dags/_ext_`.
-- **`dj.dbtMacroPath`**: Subfolder where the extension writes macros, relative to the `macro-paths` in `dbt_project.yml` (defaults to `macros` if not set). Defaults to `_ext_`.
+DJ offers extensive configuration options to customize your workflow. For a complete reference with examples and troubleshooting, see the **[Settings Reference Guide](docs/SETTINGS.md)**.
+
+### Quick Configuration
+
+Common settings you'll want to configure first:
+
+```json
+{
+  "dj.pythonVenvPath": ".venv", // Python virtual environment
+  "dj.trinoPath": "/usr/local/bin", // Trino CLI location
+  "dj.dbtProjectNames": ["analytics"], // Filter which projects to load
+  "dj.airflowGenerateDags": true // Enable Airflow DAG generation
+}
+```
+
+### Settings by Category
+
+- **[Python & Environment](docs/SETTINGS.md#python--environment)** - `pythonVenvPath`, `trinoPath`
+- **[Project Configuration](docs/SETTINGS.md#project-configuration)** - `dbtProjectNames`, `dbtMacroPath`
+- **[Airflow Integration](docs/SETTINGS.md#airflow-integration)** - `airflowGenerateDags`, `airflowTargetVersion`, `airflowDagsPath`
+- **[Lightdash Integration](docs/SETTINGS.md#lightdash-integration)** - `lightdashProjectPath`, `lightdashProfilesPath`
+- **[AI & Coding Agents](docs/SETTINGS.md#ai--coding-agents)** - `aiHintTag`, `codingAgent`
+- **[Auto-Generation & Tests](docs/SETTINGS.md#auto-generation--tests)** - `autoGenerateTests`
+- **[Lineage Visualization](docs/SETTINGS.md#lineage-visualization)** - `columnLineage.autoRefresh`, `dataExplorer.autoRefresh`
+- **[Diagnostics](docs/SETTINGS.md#diagnostics)** - `logLevel`
+
+### When Settings Take Effect
+
+Most settings take effect immediately or on next command execution. Some settings require running `DJ: Refresh Projects`:
+
+- **Immediate**: `logLevel`, auto-refresh settings
+- **Next command**: `pythonVenvPath`, `trinoPath`, Lightdash paths
+- **Refresh Projects needed**: `dbtProjectNames`, Airflow settings, `codingAgent`
+
+See the [Settings Reference](docs/SETTINGS.md#when-settings-take-effect) for complete details.
 
 ### 6. Create Your First Source
 
@@ -153,7 +195,15 @@ This creates a `.source.json` file with full IntelliSense support.
 
 > Important: Source data should have been ingested into the Trino catalog as this is where the extension will look for the values for the form fields.
 
-### 7. Create Your First Model
+### 7. Choose Your Path
+
+DJ offers multiple ways to build models - choose what works best for you:
+
+- **Visual Editor**: Use the node-based canvas for interactive model creation
+- **JSON-First**: Edit `.model.json` files directly with full IntelliSense
+- **Guided Tutorial**: Run "DJ: Play Tutorial" from the command palette
+
+### 8. Create Your First Model
 
 1. Look for the DJ extension panel in the sidebar and click on it.
 2. Under "Actions", click on "Create Model".
@@ -169,7 +219,7 @@ This creates a `.model.json` file with full IntelliSense support and auto-genera
 
 > Important: If you don't see any groups in the dropdown, you need to configure the groups in your dbt project and run `dbt parse` to generate/update the manifest.json file.
 
-### 8. Optional: Lightdash Integration
+### 9. Optional: Lightdash Integration
 
 For BI integration, install Lightdash CLI and configure the environment variables:
 
@@ -184,9 +234,9 @@ export LIGHTDASH_PROJECT=your-project-uuid
 export LIGHTDASH_TRINO_HOST=your-trino-host # Optional. Uses host from profiles.yml by default. Set this if running Lightdash and Trino together in Docker locally.
 ```
 
-> **Local Setup**: If you want to setup Lightdash locally, see [LIGHTDASH_LOCAL_SETUP.md](docs/LIGHTDASH_LOCAL_SETUP.md).
+> **Local Setup**: If you want to setup Lightdash locally, see [LIGHTDASH_LOCAL_SETUP.md](docs/setup/lightdash-local-setup.md).
 >
-> **Advanced Configuration**: For custom dbt project paths and multiple project support, see [Lightdash Configuration Guide](docs/LIGHTDASH_CONFIGURATION.md).
+> **Advanced Configuration**: For custom dbt project paths and multiple project support, see [Lightdash Configuration Guide](docs/setup/lightdash-configuration.md).
 
 ## Model Types
 
@@ -229,18 +279,22 @@ DJ supports the following model types:
 1. **[Tutorial](docs/TUTORIAL.md)** - Step-by-step guide with real data
 2. **[Example Project](docs/examples/jaffle_shop/README.md)** - Complete example project with jaffle shop implementation
 
-### Need Help?
+### Documentation
 
-- **[Model Types Reference](docs/models/README.md)** - Detailed documentation with examples for all 11 model types
-- **[Setup Guide](docs/SETUP.md)** - Detailed installation and configuration
-- **[Trino Setup](docs/TRINO_LOCAL_SETUP.md)** - Local Trino configuration
-- **[Lightdash Setup](docs/LIGHTDASH_LOCAL_SETUP.md)** - BI tool integration
-- **[Lightdash Configuration](docs/LIGHTDASH_CONFIGURATION.md)** - Advanced Lightdash configuration options
+- **[Setup Guide](docs/setup/setup.md)** - Complete setup and first launch experience
+- **[Trino Setup](docs/setup/trino-local-setup.md)** - Local Trino configuration
+- **[Lightdash Setup](docs/setup/lightdash-local-setup.md)** - BI tool integration
+- **[Lightdash Configuration](docs/setup/lightdash-configuration.md)** - Advanced Lightdash configuration options
+- **[Tutorial](docs/TUTORIAL.md)** - Hands-on tutorial with interactive modes
+- **[Visual Editor Guide](docs/VISUAL_EDITOR.md)** - Node-based model builder
+- **[Lineage Visualization](docs/LINEAGE.md)** - Model and column-level lineage
+- **[Integrations Guide](docs/integrations/README.md)** - dbt, Trino, and Lightdash integration
+- **[Model Types Reference](docs/models/README.md)** - All 11 model types with examples
 
 ## Support & Community
 
-- **Discussions**: [GitHub Discussions](https://github.com/workday/vscode-portal-dbt/discussions)
-- **Issues**: [GitHub Issues](https://github.com/workday/vscode-portal-dbt/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Workday/vscode-dbt-json/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Workday/vscode-dbt-json/issues)
 - **Documentation**: [Complete Docs](docs/)
 
 ## Contributing

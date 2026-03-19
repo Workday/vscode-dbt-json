@@ -4,7 +4,20 @@
 
 The `int_union_models` model type is designed for combining data from multiple models with compatible structures using SQL UNION operations. It stacks data from specified models vertically, creating a unified dataset from logically related but physically separated data sources. This is essential for consolidating similar data that exists across different models or systems.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_union_models`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select nodes for models, add Union node, configure column mapping
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_union_models` model are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `int_union_models` model are:
 - **Historical Data Integration:** Merge current and historical data from different time periods
 - **Multi-source Analytics:** Enable analysis across data from different systems or regions
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_union_models` requires the following configuration parameters:
 
@@ -31,7 +44,7 @@ An `int_union_models` requires the following configuration parameters:
 - **`select`:** Optional array of column definitions to specify which columns to include
 - **`where`:** Optional filtering conditions applied to the unioned result
 
-## 4. Union Process
+## 5. Union Process
 
 The `int_union_models` model performs the following transformation:
 
@@ -42,7 +55,7 @@ The `int_union_models` model performs the following transformation:
 5. **Filtering:** Applies where conditions if specified
 6. **Output Generation:** Produces the consolidated result set
 
-## 5. Basic Example: Unified Customer Analytics
+## 6. Basic Example: Unified Customer Analytics
 
 Let's create a comprehensive customer view by combining customer data from different intermediate models that analyze different aspects of customer behavior.
 
@@ -132,7 +145,7 @@ This example demonstrates:
 - **Flexible insights:** Creating a unified structure for different types of customer data
 - **Business intelligence:** Combining profiles, behavior, and preferences for 360-degree customer view
 
-## 6. Advanced Example: Multi-Channel Sales Analysis
+## 7. Advanced Example: Multi-Channel Sales Analysis
 
 Let's create a more complex example that combines sales data from different channels and time periods for comprehensive analysis.
 
@@ -240,7 +253,7 @@ This example demonstrates:
 - **Temporal filtering:** Using WHERE clause to limit data to recent periods
 - **System migration handling:** Distinguishing between current and legacy systems
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Schema Compatibility
 
@@ -263,7 +276,7 @@ This example demonstrates:
 - **Monitor query performance:** Track execution times for complex unions
 - **Optimize model order:** Place the largest or most frequently updated model first
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `int_union_models` serves as a consolidation layer:
 

@@ -1,7 +1,12 @@
-import { DistributiveOmit } from '@shared';
+import type { DistributiveOmit } from '@shared';
+import type {
+  DataExplorerUiApi,
+  DbtCompilationApi,
+} from '@shared/dataexplorer/types';
 import type { DbtApi } from '@shared/dbt/types';
 import type { FrameworkApi } from '@shared/framework/types';
 import type { LightdashApi } from '@shared/lightdash/types';
+import type { ModelLineageApi } from '@shared/modellineage/types';
 import type { TrinoApi } from '@shared/trino/types';
 
 // State API types
@@ -25,7 +30,32 @@ export type StateApi =
       response: { success: boolean };
     };
 
-export type Apis = DbtApi | FrameworkApi | LightdashApi | TrinoApi | StateApi;
+// Model Settings API types
+export type ModelSettingsApi =
+  | {
+      type: 'framework-get-model-settings';
+      service: 'framework';
+      request: null;
+      response: { loadedSteps?: string[] };
+    }
+  | {
+      type: 'framework-set-model-settings';
+      service: 'framework';
+      request: { loadedSteps?: string[] };
+      response: { success: boolean };
+    };
+
+// Union of all API types including new framework model settings APIs
+export type Apis =
+  | DbtApi
+  | DbtCompilationApi
+  | DataExplorerUiApi
+  | FrameworkApi
+  | LightdashApi
+  | ModelLineageApi
+  | TrinoApi
+  | StateApi
+  | ModelSettingsApi;
 
 export type Api<T extends Apis['type'] = Apis['type']> = Extract<
   Apis,
@@ -54,98 +84,59 @@ export type ApiResponse<T extends ApiType = ApiType> = Extract<
 export type ApiService = Api['service'];
 export type ApiType = Api['type'];
 
-// Overload functions
-async function apiHandler(p: {
-  type: 'dbt-fetch-modified-models';
-  request: ApiRequest<'dbt-fetch-modified-models'>;
-}): Promise<ApiResponse<'dbt-fetch-modified-models'>>;
-async function apiHandler(p: {
-  type: 'dbt-fetch-projects';
-  request: ApiRequest<'dbt-fetch-projects'>;
-}): Promise<ApiResponse<'dbt-fetch-projects'>>;
-async function apiHandler(p: {
-  type: 'dbt-parse-project';
-  request: ApiRequest<'dbt-parse-project'>;
-}): Promise<ApiResponse<'dbt-parse-project'>>;
-async function apiHandler(p: {
-  type: 'dbt-run-model';
-  request: ApiRequest<'dbt-run-model'>;
-}): Promise<ApiResponse<'dbt-run-model'>>;
-async function apiHandler(p: {
-  type: 'dbt-run-model-lineage';
-  request: ApiRequest<'dbt-run-model-lineage'>;
-}): Promise<ApiResponse<'dbt-run-model-lineage'>>;
-async function apiHandler(p: {
-  type: 'framework-model-create';
-  request: ApiRequest<'framework-model-create'>;
-}): Promise<ApiResponse<'framework-model-create'>>;
-async function apiHandler(p: {
-  type: 'framework-source-create';
-  request: ApiRequest<'framework-source-create'>;
-}): Promise<ApiResponse<'framework-source-create'>>;
-async function apiHandler(p: {
-  type: 'lightdash-start-preview';
-  request: ApiRequest<'lightdash-start-preview'>;
-}): Promise<ApiResponse<'framework-source-create'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-catalogs';
-  request: ApiRequest<'trino-fetch-catalogs'>;
-}): Promise<ApiResponse<'trino-fetch-catalogs'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-columns';
-  request: ApiRequest<'trino-fetch-columns'>;
-}): Promise<ApiResponse<'trino-fetch-columns'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-current-schema';
-  request: ApiRequest<'trino-fetch-current-schema'>;
-}): Promise<ApiResponse<'trino-fetch-current-schema'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-etl-sources';
-  request: ApiRequest<'trino-fetch-etl-sources'>;
-}): Promise<ApiResponse<'trino-fetch-etl-sources'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-schemas';
-  request: ApiRequest<'trino-fetch-schemas'>;
-}): Promise<ApiResponse<'trino-fetch-schemas'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-tables';
-  request: ApiRequest<'trino-fetch-tables'>;
-}): Promise<ApiResponse<'trino-fetch-tables'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-system-nodes';
-  request: ApiRequest<'trino-fetch-system-nodes'>;
-}): Promise<ApiResponse<'trino-fetch-system-nodes'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-system-queries';
-  request: ApiRequest<'trino-fetch-system-queries'>;
-}): Promise<ApiResponse<'trino-fetch-system-queries'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-system-query-with-task';
-  request: ApiRequest<'trino-fetch-system-query-with-task'>;
-}): Promise<ApiResponse<'trino-fetch-system-query-with-task'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-system-query-sql';
-  request: ApiRequest<'trino-fetch-system-query-sql'>;
-}): Promise<ApiResponse<'trino-fetch-system-query-sql'>>;
-async function apiHandler(p: {
-  type: 'state-load';
-  request: ApiRequest<'state-load'>;
-}): Promise<ApiResponse<'state-load'>>;
-async function apiHandler(p: {
-  type: 'state-save';
-  request: ApiRequest<'state-save'>;
-}): Promise<ApiResponse<'state-save'>>;
-async function apiHandler(p: {
-  type: 'state-clear';
-  request: ApiRequest<'state-clear'>;
-}): Promise<ApiResponse<'state-clear'>>;
-// Implementation function
-async function apiHandler(
-  p: Omit<Api, 'response' | 'service'>,
-): Promise<unknown> {
-  return null;
+/**
+ * Type-safe API router using discriminated union pattern.
+ *
+ * @example
+ * const handler = createApiHandler({
+ *   'dbt-fetch-projects': async (payload) => {
+ *     // payload.request is typed as ApiRequest<'dbt-fetch-projects'>
+ *     return [createMockProject()];
+ *   },
+ * });
+ */
+export type ApiRouter = {
+  [K in ApiType]: (payload: {
+    type: K;
+    request: ApiRequest<K>;
+  }) => Promise<ApiResponse<K>>;
+};
+
+/**
+ * Creates a type-safe API handler from a router configuration.
+ *
+ * The returned handler automatically narrows types based on the 'type' discriminant,
+ * providing the same developer experience as manual overloads without duplication.
+ *
+ * @param router - Partial map of API types to their handlers
+ * @returns Type-safe API handler function
+ */
+export function createApiHandler(router: Partial<ApiRouter>) {
+  return async <T extends ApiType>(payload: {
+    type: T;
+    request: ApiRequest<T>;
+  }): Promise<ApiResponse<T>> => {
+    const handler = router[payload.type];
+    if (!handler) {
+      throw new Error(`No API handler registered for type: ${payload.type}`);
+    }
+    // Type assertion needed here due to TypeScript's limitations with mapped types
+    // The router ensures type safety at the configuration level
+    return (handler as any)(payload);
+  };
 }
-// Export function type
-export type ApiHandler = typeof apiHandler;
+
+/**
+ * Type-safe API handler function.
+ *
+ * This type is equivalent to 50+ manual overload signatures, but generated
+ * automatically from the ApiRouter mapped type. It provides full autocomplete
+ * and type checking without manual maintenance.
+ */
+export type ApiHandler = ReturnType<typeof createApiHandler>;
+
+/**
+ * Utility types for working with API handlers.
+ */
 export type ApiHandlerPayload = Parameters<ApiHandler>[0];
 export type ApiHandlerReturn = ReturnType<ApiHandler>;

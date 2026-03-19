@@ -129,7 +129,7 @@ This project demonstrates **4 core DJ model types** with **16 working models** a
 
 ### Prerequisites
 
-This project uses a `development` catalog in Trino. Make sure it's configured before running. See the [Trino Local Setup Guide](../TRINO_LOCAL_SETUP.md) for detailed instructions.
+This project uses a `development` catalog in Trino. Make sure it's configured before running. See the [Trino Local Setup Guide](../../setup/trino-local-setup.md) for detailed instructions.
 
 ### Commands
 
@@ -161,7 +161,7 @@ dbt parse                         # Validate models
 
 ### **New to DJ?**
 
-**[Setup Guide](../SETUP.md)** - Install the extension and configure Trino
+**[Setup Guide](../../setup/setup.md)** - Install the extension and configure Trino
 **[Start the Tutorial](../TUTORIAL.md)** - Learn by building models with this project
 
 ### **Want to Understand Model Types?**

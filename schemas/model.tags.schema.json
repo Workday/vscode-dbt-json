@@ -5,14 +5,22 @@
   "type": "array",
   "items": {
     "anyOf": [
-      { "type": "string", "pattern": "^([A-z]|[0-9]|_|-)+$" },
+      {
+        "type": "string",
+        "pattern": "^([A-z]|[0-9]|_|-)+$"
+      },
       {
         "type": "object",
         "additionalProperties": false,
         "required": ["tag"],
         "properties": {
-          "tag": { "type": "string", "pattern": "^([A-z]|[0-9]|_|-)+$" },
-          "type": { "enum": ["exclude", "inherit", "local"] }
+          "tag": {
+            "type": "string",
+            "pattern": "^([A-z]|[0-9]|_|-)+$"
+          },
+          "type": {
+            "enum": ["ai_hints", "exclude", "inherit", "local"]
+          }
         }
       }
     ]

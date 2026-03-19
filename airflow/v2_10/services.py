@@ -1,5 +1,6 @@
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.operators.bash import BashOperator
+from airflow.utils.email import send_email
 from datetime import date, datetime, timedelta, timezone
 from dbt.cli.main import dbtRunner
 import json
@@ -13,11 +14,13 @@ import yaml
 
 
 from _ext_.utils import (
+    get_model_name_from_id,
     parse_dbt_results,
     sql_dbt_model_dates_merge,
     sql_dbt_test_dates_merge,
 )
 from _ext_.variables import (
+    custom_failure_notifications,
     dbt_project,
     dbt_threads,
     exclude_models,
@@ -42,6 +45,9 @@ os.environ["TRINO_SCHEMA"] = trino_schema
 
 
 def airflow_timeout(start_timestamp: str, timeout_minutes: int):
+    """
+    Raise AirflowSkipException if the DAG has been running longer than the configured timeout.
+    """
     start_datetime = datetime.strptime(start_timestamp, "%Y-%m-%d %H:%M:%S.%f").replace(
         tzinfo=timezone.utc
     )
@@ -151,6 +157,9 @@ def dbt_build(
     event_dates: list[str],
     select_list: list[str],
 ):
+    """
+    Execute a dbt build for the given models/sources and merge run results into ETL metadata tables.
+    """
     log.info("STARTING DBT BUILD")
     log.info(f"SELECT LIST: {select_list}")
     log.info(f"EVENT DATES: {event_dates}")
@@ -218,6 +227,9 @@ def dbt_build(
 
 
 def k8s_scale(workers: int):
+    """
+    Scale the Kubernetes deployment to the specified number of worker replicas.
+    """
     if is_local or not k8s_config_path or not k8s_deployment_name or not k8s_namespace:
         log.error(
             f"Skipping worker scaling because k8s_config_path, k8s_deployment_name and k8s_namespace must all be set in the airflow variables and not running locally"
@@ -235,6 +247,9 @@ def k8s_scale(workers: int):
 
 
 def trino_run(sql: str, sql_retry: str = None):
+    """
+    Execute a SQL statement against Trino and return the result rows.
+    """
     auth = BasicAuthentication(trino_user, trino_password)
     conn = connect(
         auth=auth,
@@ -263,3 +278,205 @@ def trino_run(sql: str, sql_retry: str = None):
     cur.close()
     conn.close()
     return rows
+
+
+def send_dag_failure_notification(email_list: list[str], context: dict, task_instance=None, dag_name: str = None):
+    """
+    Send a consolidated failure notification for a DAG run based on model and test failures from meta tables.
+    
+    Args:
+        email_list: List of email addresses to send notifications to
+        context: Airflow context dictionary containing dag_run and other info
+        task_instance: Task instance (required for getting etl_timestamp)
+        dag_name: Custom name for the DAG (optional, defaults to dag_id)
+    """
+    if not email_list:
+        return
+        
+    dag_run = context['dag_run']
+    
+    # Get etl_timestamp from task_instance - required for querying meta tables
+    etl_timestamp = None
+    if task_instance:
+        try:
+            etl_timestamp = task_instance.xcom_pull(key="etl_timestamp", task_ids="start_etl")
+        except:
+            log.warning("Could not retrieve etl_timestamp from task_instance")
+            return
+    
+    if not etl_timestamp:
+        log.warning("etl_timestamp is required to query meta tables for failures")
+        return
+    
+    # Query failed models from dbt_model_dates table (distinct models only)
+    failed_models_sql = f"""
+        SELECT
+            model_id,
+            run_status,
+            substring(run_message,1,100) AS run_message,
+            array_join(
+                array_agg(
+                    CAST(event_date AS VARCHAR) 
+                    ORDER BY event_date
+                ), 
+                ', ' 
+            ) AS event_date
+        FROM
+            {trino_catalog}.source_etl.dbt_model_dates
+        WHERE
+            etl_timestamp = cast('{etl_timestamp}' as timestamp(6))
+            AND run_status != 'success'
+        GROUP BY
+            model_id,
+            run_status,
+            substring(run_message,1,100)
+        ORDER BY
+            model_id
+    """
+    
+    failed_models = trino_run(failed_models_sql)
+    
+    # Query failed tests from dbt_test_dates table (distinct test_id, model_id combinations)
+    failed_tests_sql = f"""
+        SELECT DISTINCT
+            test_id,
+            model_id,
+            test_status,
+            substring(test_message,1,100) as test_message
+        FROM
+            {trino_catalog}.source_etl.dbt_test_dates
+        WHERE
+            etl_timestamp = cast('{etl_timestamp}' as timestamp(6))
+            AND test_status != 'pass'
+        ORDER BY
+            model_id, test_id
+    """
+    
+    failed_tests = trino_run(failed_tests_sql)
+    
+    # Send consolidated failure notification if there are failures
+    if failed_models or failed_tests:
+        subject = f"{dag_run.dag_id} DAG Failures - {dag_run.execution_date.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        html_content = f"""
+        <h2>Model and Test Failure Summary</h2>
+        <p><strong>DAG ID:</strong> {dag_run.dag_id}</p>
+        <p><strong>Execution Date:</strong> {dag_run.execution_date}</p>
+        <p><strong>ETL Timestamp:</strong> {etl_timestamp}</p>
+        """
+        
+        # Add failed models section
+        if failed_models:
+            total_failed_models = len(failed_models)
+            html_content += f"""
+            <h3>Failed/Skipped Models ({total_failed_models}):</h3>
+            <table border="1" cellpadding="5" cellspacing="0">
+                <tr>
+                    <th>Model Name</th>
+                    <th>Run Status</th>
+                    <th>Event Date</th>
+                    <th>Error Message</th>
+                </tr>
+                """
+            
+            for model in failed_models:
+                model_id = model[0] if model[0] else 'N/A'
+                run_status = model[1] if model[1] else 'error'
+                run_message = model[2] if len(model) > 2 and model[2] else 'N/A'
+                event_date = model[3] if len(model) > 3 and model[3] else 'N/A'
+                model_name = get_model_name_from_id(model_id) if model_id != 'N/A' else 'N/A'
+                
+                # Escape HTML in messages
+                run_message_escaped = str(run_message).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') if run_message != 'N/A' else 'N/A'
+                
+                # Color code the status
+                status_color = 'red' if run_status.lower() == 'error' else 'orange' if run_status.lower() == 'skipped' else 'black'
+                status_style = f'color: {status_color}; font-weight: bold;'
+                
+                html_content += f"""
+                <tr>
+                    <td>{model_name}</td>
+                    <td style="{status_style}">{run_status}</td>
+                    <td>{event_date}</td>
+                    <td>{run_message_escaped}</td>
+                </tr>
+                """
+            
+            html_content += "</table>"
+        
+        # Add failed tests section
+        if failed_tests:
+            total_failed_tests = len(failed_tests)
+            html_content += f"""
+            <h3>Failed/Skipped Tests ({total_failed_tests}):</h3>
+            <table border="1" cellpadding="5" cellspacing="0">
+                <tr>
+                    <th>Test ID</th>
+                    <th>Model Name</th>
+                    <th>Test Status</th>
+                    <th>Error Message</th>
+                </tr>
+                """
+            
+            for test in failed_tests:
+                test_id = test[0] if test[0] else 'N/A'
+                model_id = test[1] if test[1] else 'N/A'
+                test_status = test[2] if test[2] else 'fail'
+                test_message = test[3] if len(test) > 3 and test[3] else 'N/A'
+                model_name = get_model_name_from_id(model_id) if model_id != 'N/A' else 'N/A'
+                
+                # Escape HTML in messages
+                test_message_escaped = str(test_message).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') if test_message != 'N/A' else 'N/A'
+                
+                # Color code the status
+                status_color = 'red' if test_status.lower() in ['fail', 'error'] else 'orange' if test_status.lower() == 'skipped' else 'black'
+                status_style = f'color: {status_color}; font-weight: bold;'
+                
+                html_content += f"""
+                <tr>
+                    <td>{test_id}</td>
+                    <td>{model_name}</td>
+                    <td style="{status_style}">{test_status}</td>
+                    <td>{test_message_escaped}</td>
+                </tr>
+                """
+            
+            html_content += "</table>"
+        
+        # Construct DAG run URL using task_instance or Airflow configuration
+        dag_run_url = None
+        if task_instance:
+            try:
+                # Try to get URL from task_instance's dag
+                from airflow.configuration import conf
+                webserver_base_url = conf.get('webserver', 'BASE_URL', fallback='')
+                if webserver_base_url:
+                    dag_run_id = dag_run.run_id
+                    # Remove trailing slash if present
+                    webserver_base_url = webserver_base_url.rstrip('/')
+                    dag_run_url = f"{webserver_base_url}/dags/{dag_run.dag_id}/grid?dag_run_id={dag_run_id}"
+            except Exception as e:
+                log.warning(f"Could not construct DAG run URL: {str(e)}")
+        
+        if dag_run_url:
+            html_content += f"""
+        <p>Please check the <a href="{dag_run_url}">Airflow UI</a> for detailed logs and error messages.</p>
+        """
+        else:
+            html_content += """
+        <p>Please check the Airflow UI for detailed logs and error messages.</p>
+        """
+        
+        # Send the consolidated notification
+        try:
+            send_email(
+                to=email_list,
+                subject=subject,
+                html_content=html_content
+            )
+            total_failures = len(failed_models) + len(failed_tests)
+            log.info(f"Sent consolidated failure notification for {total_failures} failures ({len(failed_models)} models, {len(failed_tests)} tests)")
+        except Exception as e:
+            log.error(f"Failed to send consolidated notification: {str(e)}")
+            raise AirflowFailException(f"Failed to send consolidated notification: {str(e)}")
+

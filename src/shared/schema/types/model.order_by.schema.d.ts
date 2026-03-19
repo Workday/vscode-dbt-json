@@ -15,16 +15,16 @@ export type SchemaModelOrderBy = [
     | SchemaColumnName
     | {
         name?: SchemaColumnName;
-        type?: "asc" | "desc";
+        type?: 'asc' | 'desc';
       }
   ),
   ...(
     | SchemaColumnName
     | {
         name?: SchemaColumnName;
-        type?: "asc" | "desc";
+        type?: 'asc' | 'desc';
       }
-  )[]
+  )[],
 ];
 /**
  * Validate column name

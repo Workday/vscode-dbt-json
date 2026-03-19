@@ -1,0 +1,89 @@
+/* Custom styling for Driver.js Tutorial */
+
+/* Ensure close button is always visible and styled */
+.driver-popover-close-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0px !important;
+  background: transparent !important;
+  border-radius: 4px !important;
+  opacity: 1 !important;
+  z-index: 10000 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.driver-popover-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+  transform: scale(1.1) !important;
+}
+
+.driver-popover-close-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+}
+
+/* Ensure popover header has proper spacing for close button */
+.driver-popover-title {
+  padding-right: 40px !important;
+}
+
+/* Make sure close button container is visible */
+.driver-popover-close-btn-container {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 10001 !important;
+}
+
+/* ===== FIX DROPDOWN Z-INDEX ISSUES ===== */
+/* Ensure dropdowns render above driver.js overlay (z-index: 10000) */
+
+/* Headless UI dropdowns and menus */
+[role='listbox'],
+[role='menu'],
+[role='option'],
+[data-headlessui-state*='open'] {
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+/* React Select dropdowns */
+.select__menu,
+.select__menu-list,
+.select__option {
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+/* Generic dropdown patterns */
+.dropdown-menu,
+div[class*='menu'],
+div[class*='dropdown'],
+div[class*='listbox'],
+div[class*='popover'] {
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure driver overlay doesn't block interactions */
+.driver-overlay {
+  pointer-events: none !important;
+}
+
+/* Active element should be interactive */
+.driver-active-element {
+  pointer-events: auto !important;
+  z-index: 10001 !important;
+}
+
+/* Popover should be interactive */
+.driver-popover {
+  pointer-events: auto !important;
+  z-index: 10003 !important;
+}

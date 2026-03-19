@@ -3,33 +3,91 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
     "noFallthroughCasesInSwitch": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "paths": {
-      "@shared": ["../src/shared"],
-      "@shared/*": ["../src/shared/*"],
-      "@web": ["./src"],
-      "@web/context": ["./src/context"],
-      "@web/context/*": ["./src/context/*"],
-      "@web/elements": ["./src/elements"],
-      "@web/elements/*": ["./src/elements/*"],
-      "@web/forms": ["./src/forms"],
-      "@web/forms/*": ["./src/forms/*"],
-      "@web/hooks": ["./src/hooks"],
-      "@web/pages/*": ["./src/pages/*"],
-      "@web/styles": ["./src/styles"]
+      "@shared": [
+        "../src/shared"
+      ],
+      "@shared/*": [
+        "../src/shared/*"
+      ],
+      "@web": [
+        "./src"
+      ],
+      "@web/context": [
+        "./src/context"
+      ],
+      "@web/context/*": [
+        "./src/context/*"
+      ],
+      "@web/elements": [
+        "./src/elements"
+      ],
+      "@web/elements/*": [
+        "./src/elements/*"
+      ],
+      "@web/features": [
+        "./src/features"
+      ],
+      "@web/features/*": [
+        "./src/features/*"
+      ],
+      "@web/forms": [
+        "./src/forms"
+      ],
+      "@web/forms/*": [
+        "./src/forms/*"
+      ],
+      "@web/hooks": [
+        "./src/hooks"
+      ],
+      "@web/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@web/pages": [
+        "./src/pages"
+      ],
+      "@web/pages/*": [
+        "./src/pages/*"
+      ],
+      "@web/stores": [
+        "./src/stores"
+      ],
+      "@web/stores/*": [
+        "./src/stores/*"
+      ],
+      "@web/styles": [
+        "./src/styles"
+      ],
+      "@web/utils": [
+        "./src/utils"
+      ],
+      "@web/utils/*": [
+        "./src/utils/*"
+      ]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2020",
+    "target": "ES2023",
     "useDefineForClassFields": true
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }

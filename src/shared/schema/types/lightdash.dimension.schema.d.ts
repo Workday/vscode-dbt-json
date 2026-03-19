@@ -9,6 +9,16 @@
  * Schema for lightdash AI hints
  */
 export type SchemaLightdashAIHint = string | string[];
+/**
+ * Validate model tags
+ */
+export type SchemaModelTags = (
+  | string
+  | {
+      tag: string;
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
+    }
+)[];
 
 export interface SchemaLightdashDimension {
   ai_hint?: SchemaLightdashAIHint;
@@ -27,36 +37,37 @@ export interface SchemaLightdashDimension {
   label?: string;
   required_attributes?: SchemaLightdashRequiredAttributes;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * SQL statement to determine the dimension
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The time intervals for the lightdash dimension
    */
   time_intervals?:
-    | "OFF"
+    | 'OFF'
     | (
-        | "DAY"
-        | "DAY_OF_WEEK_INDEX"
-        | "DAY_OF_WEEK_NAME"
-        | "DAY_OF_MONTH_NUM"
-        | "DAY_OF_YEAR_NUM"
-        | "HOUR"
-        | "MONTH"
-        | "MONTH_NAME"
-        | "MONTH_NUM"
-        | "QUARTER"
-        | "QUARTER_NAME"
-        | "QUARTER_NUM"
-        | "RAW"
-        | "WEEK"
-        | "WEEK_NUM"
-        | "YEAR"
-        | "YEAR_NUM"
+        | 'DAY'
+        | 'DAY_OF_WEEK_INDEX'
+        | 'DAY_OF_WEEK_NAME'
+        | 'DAY_OF_MONTH_NUM'
+        | 'DAY_OF_YEAR_NUM'
+        | 'HOUR'
+        | 'MONTH'
+        | 'MONTH_NAME'
+        | 'MONTH_NUM'
+        | 'QUARTER'
+        | 'QUARTER_NAME'
+        | 'QUARTER_NUM'
+        | 'RAW'
+        | 'WEEK'
+        | 'WEEK_NUM'
+        | 'YEAR'
+        | 'YEAR_NUM'
       )[];
-  type?: "boolean" | "date" | "number" | "string" | "timestamp";
+  type?: 'boolean' | 'date' | 'number' | 'string' | 'timestamp';
   /**
    * The URLs for the lightdash dimension
    */

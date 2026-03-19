@@ -10,6 +10,7 @@ from _ext_.services import (
     k8s_scale,
     log,
     trino_run,
+    send_dag_failure_notification,
 )
 from _ext_.utils import (
     build_runs,
@@ -23,6 +24,7 @@ from _ext_.utils import (
     sql_dbt_source_dates_old,
 )
 from _ext_.variables import (
+    custom_failure_notifications,
     email_notifications,
     error_run_limit,
     error_run_timeout_minutes,
@@ -44,7 +46,6 @@ from _ext_.variables import (
     override_backfill_start,
     override_sources,
     schedule_cron,
-    skip_sources,
     source_date_limit,
     source_date_tasks,
     source_run_limit,
@@ -69,7 +70,7 @@ if not suppress_notifications:
     dag_id="source_etl",
     default_args={
         "email": dag_email_list,
-        "email_on_failure": True,
+        "email_on_failure": not custom_failure_notifications,
         "email_on_retry": False,
         "owner": "airflow",
         "retries": 0,
@@ -77,8 +78,10 @@ if not suppress_notifications:
         "start_date": datetime(2021, 1, 1, tzinfo=timezone.utc),
     },
     max_active_runs=1,
+    params={
+        "skip_sources": False,
+    },
     schedule=schedule_cron,
-    schedule_interval=None,
     start_date=datetime(1970, 1, 1),
     tags=["json"],
 )
@@ -86,6 +89,9 @@ def source_etl_dag():
 
     @task(task_id="start_etl")
     def start_etl(ti=None, **context):
+        """
+        Generate an ETL timestamp and scale up K8s workers if configured.
+        """
         etl_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
 
         # Set xcom variables for access from future tasks
@@ -96,6 +102,9 @@ def source_etl_dag():
 
     @task(task_id="create_source_tables")
     def create_source_tables():
+        """
+        Create the schema and tables for tracking ETL metadata if they don't exist.
+        """
         # Create new schema for the source etl tables if it doesn't exist yet
         trino_run(
             f"""
@@ -176,6 +185,9 @@ def source_etl_dag():
 
     @task(task_id="fetch_sources")
     def fetch_sources(ti=None, **context):
+        """
+        Parse the dbt manifest and extract ETL-active sources and their downstream models.
+        """
         sources: list[dict] = []
         sources_merge_args: list[dict] = []
 
@@ -266,11 +278,14 @@ def source_etl_dag():
     @task(
         task_id="fetch_source_dates",
         max_active_tis_per_dagrun=source_date_tasks,
-        map_index_template="{{ source.id.split('.', 2)[2] }}",
     )
-    def fetch_source_dates(source: SourceExtended, ti=None):
+    def fetch_source_dates(source: SourceExtended, ti=None, **context):
+        """
+        Identify which dates have new data for a source that need to be processed.
+        """
         source_id = source["id"]
 
+        skip_sources = context.get("params", {}).get("skip_sources", False)
         if skip_sources:
             # If skipping sources, we don't need to fetch any source dates
             log.info(f"Skipping source runs for {source['id']}")
@@ -522,7 +537,6 @@ def source_etl_dag():
         task_id="run_sources",
         max_active_tis_per_dagrun=1,
         trigger_rule=TriggerRule.ALL_DONE,  # We'll run the ones that were successful, even if some failed
-        map_index_template="{{ source_run.event_dates[0] if source_run.event_dates | length == 1 else (source_run.event_dates | min) ~ '~' ~ (source_run.event_dates | max) }}",
     )
     def run_sources(source_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -613,7 +627,6 @@ def source_etl_dag():
     @task(
         task_id="fetch_model_dates",
         max_active_tis_per_dagrun=model_date_tasks,
-        map_index_template="{{ source_models.source_id.split('.', 2)[2] }}",
     )
     def fetch_model_dates(source_models: dict, ti=None):
         source_id = source_models["source_id"]
@@ -720,7 +733,6 @@ def source_etl_dag():
         task_id="run_models",
         max_active_tis_per_dagrun=1,
         trigger_rule=TriggerRule.ALL_DONE,  # We'll run the ones that were successful, even if some failed
-        map_index_template="{{ model_run.event_dates[0] if model_run.event_dates | length == 1 else (model_run.event_dates | min) ~ '~' ~ (model_run.event_dates | max) }}",
     )
     def run_models(model_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -792,7 +804,6 @@ def source_etl_dag():
     @task(
         task_id="run_errors",
         max_active_tis_per_dagrun=1,
-        map_index_template="{{ error_run.event_dates[0] if error_run.event_dates | length == 1 else (error_run.event_dates | min) ~ '~' ~ (error_run.event_dates | max) }}",
     )
     def run_errors(error_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -884,7 +895,6 @@ def source_etl_dag():
     @task(
         task_id="run_optimize",
         max_active_tis_per_dagrun=optimize_run_tasks,
-        map_index_template="{{ optimize_run.id.split('.', 2)[2] }}",
     )
     def run_optimize(optimize_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -1016,7 +1026,6 @@ def source_etl_dag():
     @task(
         task_id="run_vacuum",
         max_active_tis_per_dagrun=vacuum_run_tasks,
-        map_index_template="{{ vacuum_run.id.split('.', 2)[2] }}",
     )
     def run_vacuum(vacuum_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -1052,6 +1061,16 @@ def source_etl_dag():
 
     @task(task_id="end_etl", trigger_rule=TriggerRule.ALL_DONE)
     def end_etl(ti=None, **context):
+        """
+        Finalize the ETL run. Scale down workers and send failure notifications if configured.
+        """
+        if custom_failure_notifications and not suppress_notifications:
+            send_dag_failure_notification(
+                email_list=dag_email_list,
+                context=context,
+                task_instance=ti,
+            )
+
         if k8s_workers_end is not None:
             # Scale down the workers to the desired number
             k8s_scale(workers=k8s_workers_end)

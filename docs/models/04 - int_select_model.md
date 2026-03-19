@@ -4,7 +4,20 @@
 
 The `int_select_model` is the workhorse of the intermediate layer in dbt projects using DJ. It transforms staging models into analysis-ready datasets by performing selections, transformations, aggregations, and filtering. This model type is essential for implementing business logic and creating the building blocks for downstream mart models.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_select_model`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, choose model, configure aggregations and GROUP BY
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_select_model` are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `int_select_model` are:
 - **Data Preparation:** Create analysis-ready datasets for mart models and reporting
 - **Complex Transformations:** Handle sophisticated data transformations that go beyond simple staging operations
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_select_model` requires the following configuration parameters:
 
@@ -33,7 +46,7 @@ An `int_select_model` requires the following configuration parameters:
 - **`limit`:** Optional row limit
 - **`offset`:** Optional row offset
 
-## 4. Key Features of int_select_model
+## 5. Key Features of int_select_model
 
 ### Aggregation Support
 
@@ -49,7 +62,7 @@ Unlike staging models, `int_select_model` supports aggregation functions:
 - **Dimension columns:** Categorical columns for grouping and filtering
 - **Calculated columns:** Derived columns using SQL expressions
 
-## 5. Basic Example: Customer Profile Summary
+## 6. Basic Example: Customer Profile Summary
 
 Let's create a customer profile summary with business logic using our jaffle shop staging data.
 
@@ -112,7 +125,7 @@ This example demonstrates:
 - **Data enrichment:** Adding derived fields to staging data
 - **Simple transformations:** Pass-through columns with business context
 
-## 6. Advanced Example: Product Popularity Analysis
+## 7. Advanced Example: Product Popularity Analysis
 
 Let's create a product popularity analysis with aggregations using our jaffle shop order items data.
 
@@ -180,7 +193,7 @@ This example shows:
 - **Business metrics:** Order counts and item quantities
 - **Mixed column types:** Dimensions for grouping, facts for aggregation
 
-## 7. Select Configuration Options
+## 8. Select Configuration Options
 
 ### Model-Level Selection
 
@@ -246,7 +259,7 @@ Calculated column:
 }
 ```
 
-## 8. Filtering with WHERE
+## 9. Filtering with WHERE
 
 ### Simple condition
 
@@ -286,7 +299,7 @@ Calculated column:
 }
 ```
 
-## 9. Grouping with GROUP BY
+## 10. Grouping with GROUP BY
 
 ### Group by all dimensions
 
@@ -324,7 +337,7 @@ Calculated column:
 ]
 ```
 
-## 10. Best Practices
+## 11. Best Practices
 
 ### Performance Optimization
 
@@ -347,7 +360,7 @@ Calculated column:
 - **Use HAVING clauses** to filter out invalid aggregated results
 - **Monitor data freshness** for incremental models
 
-## 11. Common Patterns
+## 12. Common Patterns
 
 ### Customer Lifetime Value
 
@@ -390,7 +403,7 @@ Calculated column:
 }
 ```
 
-## 12. Integration with Data Pipeline
+## 13. Integration with Data Pipeline
 
 The `int_select_model` serves as the core transformation layer:
 

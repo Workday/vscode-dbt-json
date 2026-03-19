@@ -4,7 +4,20 @@
 
 The `mart_join_models` is the most comprehensive mart model type, designed for creating sophisticated analytics datasets by joining multiple intermediate models. This model type serves as the ultimate presentation layer, combining data from various sources to create complete, business-ready datasets that provide 360-degree views of business entities like customers, products, or orders. These models are optimized for complex business intelligence, executive reporting, and advanced analytics.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `mart_join_models`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Join node for comprehensive 360-degree view, configure all relationships
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `mart_join_models` are:
 
@@ -15,7 +28,7 @@ The primary purposes of the `mart_join_models` are:
 - **Data Consolidation:** Centralize related business metrics and dimensions in single, authoritative datasets
 - **Performance Optimization:** Pre-join related data to eliminate complex joins in downstream applications
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 A `mart_join_models` requires the following configuration parameters:
 
@@ -30,7 +43,7 @@ A `mart_join_models` requires the following configuration parameters:
 - **`where`:** Optional filtering conditions applied to the joined result
 - **`group_by`:** Optional grouping for aggregations across joined data
 
-## 4. Join Process
+## 5. Join Process
 
 The `mart_join_models` performs the following transformation:
 
@@ -41,7 +54,7 @@ The `mart_join_models` performs the following transformation:
 5. **Data Quality Assurance:** Implements validations and quality checks across joined data
 6. **Performance Optimization:** Structures the final dataset for optimal analytical performance
 
-## 5. Basic Example: Comprehensive Product Analytics
+## 6. Basic Example: Comprehensive Product Analytics
 
 Let's create a comprehensive product analytics dataset that combines menu performance with cost efficiency data.
 
@@ -138,7 +151,7 @@ This example demonstrates:
 - **Executive reporting:** Creating datasets optimized for strategic decision-making
 - **Complex transformations:** Advanced CASE statements for business intelligence
 
-## 6. Advanced Example: Customer 360 Analytics
+## 7. Advanced Example: Customer 360 Analytics
 
 Let's create a realistic customer 360 view that demonstrates more complex join patterns and business logic.
 
@@ -236,7 +249,7 @@ This example demonstrates:
 - **Behavioral insights:** Weekend shopping pattern analysis
 - **Value-based segmentation:** Customer tiers based on spending behavior
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Join Strategy
 
@@ -259,7 +272,7 @@ This example demonstrates:
 - **Monitor query performance:** Track execution times and optimize as needed
 - **Consider incremental processing:** For large datasets with time-based updates
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `mart_join_models` serves as the ultimate presentation layer:
 
