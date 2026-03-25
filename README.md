@@ -9,7 +9,7 @@ DJ is a VS Code extension that revolutionizes dbt development through a structur
 
 ## Key Features
 
-- **IntelliSense**: Smart autocomplete for models, sources, columns, and SQL expressions.
+- **IntelliSense**: Smart autocomplete for models, sources, columns, and SQL expressions. 
 - **Real-time Validation**: JSON Schema validation with instant error detection.
 - **Modern Web Interface**: React-based UI for scaffolding model and source JSONs.
 - **Auto-Generation**: Automatically generates dbt SQL and YAML files from JSON configurations.
