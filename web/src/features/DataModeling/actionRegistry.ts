@@ -43,11 +43,12 @@ export const DEFAULT_GROUP_BY_STATE: GroupByStoreSpec = {
   expressions: [],
 };
 
+// metrics_include / metrics_exclude intentionally omitted so they default to
+// undefined. An explicit [] has semantic meaning ("block metric inheritance"),
+// and is only set when loaded from existing model data.
 export const DEFAULT_LIGHTDASH_STATE: SchemaModelLightdash = {
   table: { group_label: '', label: '' },
   metrics: [],
-  metrics_exclude: [],
-  metrics_include: [],
 };
 
 /**

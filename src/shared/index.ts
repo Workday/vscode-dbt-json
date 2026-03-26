@@ -26,7 +26,11 @@ const yamlStringify = (obj: object) =>
   yaml.stringify(obj, { aliasDuplicateObjects: false });
 export { yamlParse, yamlStringify };
 
-export { parse as jsonParse } from 'jsonc-parser';
+export {
+  applyEdits as jsoncApplyEdits,
+  modify as jsoncModify,
+  parse as jsonParse,
+} from 'jsonc-parser';
 
 /** Utility function to ensure we're handling all cases in switch statements */
 export function assertExhaustive<T>(x: never, fallback?: any) {

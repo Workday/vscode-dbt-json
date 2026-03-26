@@ -10,6 +10,10 @@
  */
 export type SchemaColumnDescription = string;
 /**
+ * Whether this column should be treated as case-sensitive
+ */
+export type SchemaLightdashCaseSensitive = boolean;
+/**
  * Schema for lightdash AI hints
  */
 export type SchemaLightdashAIHint = string | string[];
@@ -113,6 +117,7 @@ export interface SchemaModelSelectInterval {
   type?: 'dim';
 }
 export interface SchemaColumnLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   dimension?: SchemaLightdashDimension;
   /**
    * @minItems 1

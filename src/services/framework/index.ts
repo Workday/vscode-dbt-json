@@ -38,6 +38,7 @@ import { DJ_SCHEMAS_PATH, WORKSPACE_ROOT } from 'admin';
 import type { ValidateFunction } from 'ajv';
 import { Ajv } from 'ajv';
 import * as fs from 'fs';
+import { applyEdits, modify } from 'jsonc-parser';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -1193,10 +1194,10 @@ export class Framework implements ApiEnabledService<'framework'> {
         this.log.info(`    🧪 Generated ${autoTests.length} test(s)`);
 
         if (autoTests.length > 0) {
-          (modelJson as any).data_tests = autoTests;
-
-          // Write back to file with proper formatting (preserve 4 spaces to match existing format)
-          const updatedContent = JSON.stringify(modelJson, null, 4);
+          const edits = modify(content, ['data_tests'], autoTests, {
+            formattingOptions: { tabSize: 4, insertSpaces: true, eol: '\n' },
+          });
+          const updatedContent = applyEdits(content, edits);
           await fs.promises.writeFile(fileUri.fsPath, updatedContent, 'utf8');
 
           this.log.info(`    ✅ Added test(s) to ${modelJson.name}`);

@@ -137,6 +137,10 @@ export type SchemaColumnExpr4 = string;
  */
 export type SchemaColumnDescription = string;
 /**
+ * Whether this column should be treated as case-sensitive
+ */
+export type SchemaLightdashCaseSensitive = boolean;
+/**
  * Schema for lightdash AI hints
  */
 export type SchemaLightdashAIHint = string | string[];
@@ -282,6 +286,7 @@ export interface SchemaSourceWhere {
   expr: SchemaColumnExpr4;
 }
 export interface SchemaColumnLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   dimension?: SchemaLightdashDimension;
   /**
    * @minItems 1

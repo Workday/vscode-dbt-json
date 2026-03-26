@@ -335,14 +335,15 @@ export const initialModelingState: ModelingStateAdapter = {
   lookback: { days: 0, exclude_event_date: false },
   union: { type: 'all', models: [], sources: [] },
   select: [],
+  // metrics_include and metrics_exclude intentionally omitted (undefined).
+  // An explicit [] means "block inheritance" and is only set when loaded
+  // from model data, so we can distinguish it from "never set."
   lightdash: {
     table: {
       group_label: '',
       label: '',
     },
     metrics: [],
-    metrics_exclude: [],
-    metrics_include: [],
   },
 };
 
@@ -900,10 +901,13 @@ export const useModelStore = create<ModelStore>()(
 
           // Validate and sanitize array fields
           if (key === 'tags' || key === 'partitioned_by') {
-            if (
-              data.materialized !== 'incremental' &&
-              key === 'partitioned_by'
-            ) {
+            // Models may use either `materialized: "incremental"` (string form) or
+            // `materialization: { type: "incremental", ... }` (object form).
+            // Both must be checked to avoid discarding partitioned_by.
+            const isIncremental =
+              data.materialized === 'incremental' ||
+              (data as any).materialization?.type === 'incremental';
+            if (!isIncremental && key === 'partitioned_by') {
               value = undefined;
             } else if (Array.isArray(value)) {
               value = value.filter(
@@ -1391,12 +1395,17 @@ export const useModelStore = create<ModelStore>()(
         modelJson.lightdash = lightdashConfig;
       }
 
-      if (
-        !modelJson.partitioned_by ||
-        (Array.isArray(modelJson.partitioned_by) &&
-          modelJson.partitioned_by.length === 0)
-      ) {
-        modelJson.partitioned_by = null;
+      // Only coerce to null when the UI explicitly has the field but it's
+      // empty/falsy. When absent (undefined), leave it out so the backend
+      // merge preserves the original value from the file.
+      if (modelJson.partitioned_by !== undefined) {
+        if (
+          !modelJson.partitioned_by ||
+          (Array.isArray(modelJson.partitioned_by) &&
+            modelJson.partitioned_by.length === 0)
+        ) {
+          modelJson.partitioned_by = null;
+        }
       }
 
       return modelJson as unknown as Partial<FrameworkModel>;
@@ -1458,14 +1467,18 @@ export function convertSchemaModelGroupByToModelStoreGroupBy(
   return groupByItems;
 }
 
+// Exclude `undefined` entries so the backend merge preserves original values
+// for fields the UI never loaded. Only explicit values (including `null` via
+// empty-string/false conversion) are sent; `null` tells the backend to delete.
 function buildAdditionalFields(additionalFields: AdditionalFieldsSchema) {
   return Object.fromEntries(
-    Object.entries(additionalFields).map(([key, value]) => {
-      // If value is undefined, empty string, or false, set it to null to remove the field from the final model JSON
-      if (value === undefined || value === '' || value === false) {
-        return [key, null];
-      }
-      return [key, value];
-    }),
+    Object.entries(additionalFields)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => {
+        if (value === '' || value === false) {
+          return [key, null];
+        }
+        return [key, value];
+      }),
   );
 }

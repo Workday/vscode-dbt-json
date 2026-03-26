@@ -379,6 +379,7 @@ export type FrameworkColumn = {
 };
 export type FrameworkColumnMeta = {
   type: 'dim' | 'fct';
+  case_sensitive?: boolean;
   // Only used for datetime column
   interval?: 'day' | 'hour' | 'month' | 'year';
   // Should get stripped out when inherited
@@ -427,6 +428,7 @@ export type FrameworkModelHaving = SchemaModelHaving;
 export type FrameworkSelectCTE = SchemaModelSelectCTE;
 export type FrameworkModelLightdash = SchemaModelLightdash;
 export type FrameworkModelMeta = LightdashTable & {
+  case_sensitive?: boolean;
   local_tags?: string[];
   metrics?: LightdashMetrics;
   portal_partition_columns?: string[];

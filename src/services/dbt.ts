@@ -59,6 +59,7 @@ import type { TreeData, TreeItem } from 'admin';
 import { DJ_SCHEMAS_PATH, TreeDataInstance, WORKSPACE_ROOT } from 'admin';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import { applyEdits, modify } from 'jsonc-parser';
 import * as _ from 'lodash';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -833,7 +834,7 @@ export class Dbt implements ApiEnabledService<'dbt'> {
           }
 
           const modelJsonContent = fs.readFileSync(jsonPath, 'utf8');
-          const modelJson = JSON.parse(modelJsonContent);
+          const modelJson = jsonParse(modelJsonContent);
 
           let testsToAdd: Array<{
             type: string;
@@ -905,13 +906,21 @@ export class Dbt implements ApiEnabledService<'dbt'> {
           const actuallyNewTests = mergedTests.length - existingCount;
 
           if (actuallyNewTests > 0) {
-            modelJson.data_tests = mergedTests;
-
-            fs.writeFileSync(
-              jsonPath,
-              JSON.stringify(modelJson, null, 2),
-              'utf8',
+            const edits = modify(
+              modelJsonContent,
+              ['data_tests'],
+              mergedTests,
+              {
+                formattingOptions: {
+                  tabSize: 4,
+                  insertSpaces: true,
+                  eol: '\n',
+                },
+              },
             );
+            const updatedContent = applyEdits(modelJsonContent, edits);
+
+            fs.writeFileSync(jsonPath, updatedContent, 'utf8');
 
             this.log.info(
               `Added ${actuallyNewTests} new test(s) to ${modelName}`,
@@ -983,16 +992,24 @@ export class Dbt implements ApiEnabledService<'dbt'> {
               }
 
               const modelJsonContent = fs.readFileSync(jsonPath, 'utf8');
-              const modelJson = JSON.parse(modelJsonContent);
+              const modelJson = jsonParse(modelJsonContent);
 
               if (modelJson.data_tests && modelJson.data_tests.length > 0) {
-                modelJson.data_tests = [];
-
-                fs.writeFileSync(
-                  jsonPath,
-                  JSON.stringify(modelJson, null, 2),
-                  'utf8',
+                const edits = modify(
+                  modelJsonContent,
+                  ['data_tests'],
+                  undefined,
+                  {
+                    formattingOptions: {
+                      tabSize: 4,
+                      insertSpaces: true,
+                      eol: '\n',
+                    },
+                  },
                 );
+                const updatedContent = applyEdits(modelJsonContent, edits);
+
+                fs.writeFileSync(jsonPath, updatedContent, 'utf8');
 
                 modelsUpdated++;
                 this.log.info(`Removed all data_tests from ${modelName}`);

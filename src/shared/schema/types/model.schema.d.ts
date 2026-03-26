@@ -191,6 +191,10 @@ export type SchemaColumnExcludeFromGroupBy = boolean;
  */
 export type SchemaColumnExpr = string;
 /**
+ * Whether this column should be treated as case-sensitive
+ */
+export type SchemaLightdashCaseSensitive = boolean;
+/**
  * Schema for lightdash AI hints
  */
 export type SchemaLightdashAIHint = string | string[];
@@ -836,6 +840,7 @@ export interface ModelSqlHooksSchemaJson {
   pre?: string | [string, ...string[]];
 }
 export interface SchemaColumnLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   dimension?: SchemaLightdashDimension;
   /**
    * @minItems 1
@@ -1192,6 +1197,7 @@ export interface SchemaModelTypeIntSelectModel {
  * Validates schema for setting lightdash properties at the model level
  */
 export interface SchemaModelLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   table?: SchemaLightdashTable;
   metrics?: SchemaLightdashMetric[];
   metrics_exclude?: SchemaLightdashMetricName[];

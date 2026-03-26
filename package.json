@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/Workday/vscode-dbt-json.git"
   },
-  "version": "1.0.1",
+  "version": "1.1.0",
   "workspaces": [
     "web"
   ],

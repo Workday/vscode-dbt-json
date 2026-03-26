@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.1.0
+
+- Added an optional case_sensitive field at the model and field levels for explicit overrides; global default is managed via Lightdash config
+- Fixed: Filter out inherited Lightdash metrics that reference unavailable columns during YAML generation
+
 ## 1.0.1 (March 19, 2026)
 
 - Added a confirmation dialog when creating a model to resume a saved draft or start fresh

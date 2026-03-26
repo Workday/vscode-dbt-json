@@ -13,14 +13,22 @@ import {
   getValidatorForType,
   validateCtes,
 } from '@services/validationErrors';
-import { removeEmpty } from '@shared';
+import { jsonParse, removeEmpty } from '@shared';
 import type { ApiPayload, ApiResponse } from '@shared/api/types';
 import { apiResponse } from '@shared/api/utils';
 import type { FrameworkColumn, FrameworkModel } from '@shared/framework/types';
 import * as fs from 'fs';
+import { applyEdits, modify } from 'jsonc-parser';
+import { isEqual } from 'lodash';
 import * as vscode from 'vscode';
 
 import type { FrameworkContext } from '../context';
+
+const JSONC_FORMAT_OPTIONS = {
+  tabSize: 4,
+  insertSpaces: true,
+  eol: '\n',
+};
 
 /**
  * Handles API requests for creating, updating, and previewing Framework models.
@@ -132,28 +140,38 @@ export class ModelCrudHandlers {
       throw new Error('Original model file not found');
     }
 
-    // Merge with existing model JSON;
-    // Relies on explicit null from client to indicate deletion.
-    // If user deletes a field, we set null and remove the key here.
-    // TODO: Once all features are complete, overwrite instead.
-    let updatedModelJson = modelJson;
+    // Read existing file content to enable comment-preserving edits.
+    // jsonc-parser's modify()/applyEdits() operate on raw text, so we
+    // apply each changed property as a targeted text edit rather than
+    // round-tripping through JSON.stringify (which strips JSONC comments).
+    let rawFileContent: string | null = null;
+    let existingModelJson: FrameworkModel | null = null;
     try {
-      const existingModelJson = await this.ctx.fetchModelJson(originalModelUri);
-      if (existingModelJson) {
-        const mergedBase: Record<string, unknown> = {
-          ...existingModelJson,
-        };
-        for (const [k, v] of Object.entries(modelJson)) {
-          if (v === undefined || v === null) {
-            delete mergedBase[k];
-          } else {
-            mergedBase[k] = v;
-          }
-        }
-        updatedModelJson = mergedBase as unknown as typeof modelJson;
-      }
+      const fileBytes = await vscode.workspace.fs.readFile(originalModelUri);
+      rawFileContent = fileBytes.toString();
+      existingModelJson = jsonParse(rawFileContent) as FrameworkModel;
     } catch (error: unknown) {
       this.ctx.log.warn('Could not read existing model JSON for merge:', error);
+    }
+
+    // Merge with existing model JSON.
+    // Fields the UI doesn't track are absent from modelJson, so the spread
+    // of existingModelJson preserves them (e.g. materialization, partitioned_by
+    // when the UI didn't load them). Only explicit null/undefined from the
+    // client signals deletion.
+    let updatedModelJson = modelJson;
+    if (existingModelJson) {
+      const mergedBase: Record<string, unknown> = {
+        ...existingModelJson,
+      };
+      for (const [k, v] of Object.entries(modelJson)) {
+        if (v === undefined || v === null) {
+          delete mergedBase[k];
+        } else {
+          mergedBase[k] = v;
+        }
+      }
+      updatedModelJson = mergedBase as unknown as typeof modelJson;
     }
 
     // Remove properties that should not be in the model JSON schema before validation
@@ -273,11 +291,39 @@ export class ModelCrudHandlers {
       );
     }
 
-    const modelJsonString = JSON.stringify(
-      modelJsonForValidation,
-      null,
-      '    ',
-    );
+    // Build the updated file content, preserving JSONC comments when possible.
+    let modelJsonString: string;
+    if (rawFileContent && existingModelJson) {
+      let updatedContent = rawFileContent;
+      for (const [key, value] of Object.entries(modelJsonForValidation)) {
+        const existingValue = (
+          existingModelJson as unknown as Record<string, unknown>
+        )[key];
+        if (isEqual(existingValue, value)) {
+          continue;
+        }
+        const edits = modify(updatedContent, [key], value, {
+          formattingOptions: JSONC_FORMAT_OPTIONS,
+        });
+        updatedContent = applyEdits(updatedContent, edits);
+      }
+      // Remove keys that existed before but were deleted (set to null/undefined)
+      for (const key of Object.keys(existingModelJson)) {
+        if (
+          !(key in modelJsonForValidation) &&
+          key !== 'projectName' &&
+          key !== 'source'
+        ) {
+          const edits = modify(updatedContent, [key], undefined, {
+            formattingOptions: JSONC_FORMAT_OPTIONS,
+          });
+          updatedContent = applyEdits(updatedContent, edits);
+        }
+      }
+      modelJsonString = updatedContent;
+    } else {
+      modelJsonString = JSON.stringify(modelJsonForValidation, null, '    ');
+    }
 
     this.ctx.diagnosticModelJson.delete(originalModelUri);
 

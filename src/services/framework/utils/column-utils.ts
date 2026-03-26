@@ -10,11 +10,6 @@
  * - frameworkGetRollupInputs ↔ frameworkProcessSelected
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-
-const ENABLE_INHERITED_METRICS_COLUMN_FILTER = false;
-
 import { FRAMEWORK_AGGS } from '@services/framework/constants';
 import { lightdashBuildMetrics } from '@services/lightdash/utils';
 import type { DJ } from '@shared';
@@ -37,7 +32,9 @@ import type {
 import type { SchemaModelCTE } from '@shared/schema/types/model.cte.schema';
 import type { SchemaModelSelectCTE } from '@shared/schema/types/model.select.cte.schema';
 import { sqlCleanLine } from '@shared/sql/utils';
+import * as fs from 'fs';
 import * as _ from 'lodash';
+import * as path from 'path';
 
 // Import functions from other utils modules
 import {
@@ -153,6 +150,12 @@ export function frameworkProcessSelected({
     }
     if ('data_tests' in selected && selected.data_tests) {
       selectedColumn.data_tests = selected.data_tests;
+    }
+    if (
+      'lightdash' in selected &&
+      selected.lightdash?.case_sensitive !== undefined
+    ) {
+      selectedColumn.meta.case_sensitive = selected.lightdash.case_sensitive;
     }
     if (prefix) {
       selectedColumn.meta.prefix = prefix;
@@ -441,7 +444,7 @@ export function frameworkBuildColumns({
         fromCte && cteColumnRegistry
           ? (() => {
               const stripCteAgg = (c: FrameworkColumn): FrameworkColumn => {
-                const { agg, ...restMeta } = (c.meta || {}) as Record<
+                const { agg: _agg, ...restMeta } = (c.meta || {}) as Record<
                   string,
                   unknown
                 >;
@@ -745,45 +748,43 @@ export function frameworkBuildColumns({
   }
 
   // Filter inherited metrics that reference columns not present in the downstream model
-  if (ENABLE_INHERITED_METRICS_COLUMN_FILTER) {
-    const downstreamColumnNames = new Set(
-      columns.map((c) => frameworkColumnName({ column: c, modelJson })),
-    );
-    const upstreamColumnNames = frameworkGetUpstreamColumnNames({
-      modelJson,
-      project,
-    });
+  const downstreamColumnNames = new Set(
+    columns.map((c) => frameworkColumnName({ column: c, modelJson })),
+  );
+  const upstreamColumnNames = frameworkGetUpstreamColumnNames({
+    modelJson,
+    project,
+  });
 
-    const inheritedModelMetrics: LightdashMetrics = {};
-    for (const [name, metric] of Object.entries(modelMetrics)) {
-      if (
-        inheritedMetricNames.has(name) &&
-        modelMetrics[name] === inheritedMetrics[name]
-      ) {
-        inheritedModelMetrics[name] = metric;
-      }
+  const inheritedModelMetrics: LightdashMetrics = {};
+  for (const [name, metric] of Object.entries(modelMetrics)) {
+    if (
+      inheritedMetricNames.has(name) &&
+      modelMetrics[name] === inheritedMetrics[name]
+    ) {
+      inheritedModelMetrics[name] = metric;
     }
-    const filteredInheritedModelMetrics = frameworkFilterMetricsBySql({
-      metrics: inheritedModelMetrics,
-      downstreamColumnNames,
-      upstreamColumnNames,
-    });
-    for (const name of Object.keys(inheritedModelMetrics)) {
-      if (!(name in filteredInheritedModelMetrics)) {
-        delete modelMetrics[name];
-      }
+  }
+  const filteredInheritedModelMetrics = frameworkFilterMetricsBySql({
+    metrics: inheritedModelMetrics,
+    downstreamColumnNames,
+    upstreamColumnNames,
+  });
+  for (const name of Object.keys(inheritedModelMetrics)) {
+    if (!(name in filteredInheritedModelMetrics)) {
+      delete modelMetrics[name];
     }
+  }
 
-    for (const col of columns) {
-      if (inheritedColumnNames.has(col.name) && col.meta.metrics) {
-        col.meta.metrics = frameworkFilterMetricsBySql({
-          metrics: col.meta.metrics,
-          downstreamColumnNames,
-          upstreamColumnNames,
-        });
-        if (_.isEmpty(col.meta.metrics)) {
-          delete col.meta.metrics;
-        }
+  for (const col of columns) {
+    if (inheritedColumnNames.has(col.name) && col.meta.metrics) {
+      col.meta.metrics = frameworkFilterMetricsBySql({
+        metrics: col.meta.metrics,
+        downstreamColumnNames,
+        upstreamColumnNames,
+      });
+      if (_.isEmpty(col.meta.metrics)) {
+        delete col.meta.metrics;
       }
     }
   }
@@ -1226,7 +1227,7 @@ export function frameworkGetNodeColumns({
       if (!c?.meta?.type) {
         c.meta = { ...c.meta, type: 'dim' };
       }
-      const { agg, aggs, prefix, ...meta } = c.meta;
+      const { agg: _agg, aggs: _aggs, prefix: _prefix, ...meta } = c.meta;
       columns.push({
         name,
         data_type: c.data_type,

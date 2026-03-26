@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "case_sensitive": { "$ref": "lightdash.case_sensitive.schema.json" },
     "table": { "$ref": "lightdash.table.schema.json" },
     "metrics": {
       "type": "array",

@@ -1,0 +1,6 @@
+{
+  "$id": "lightdash.case_sensitive.schema.json",
+  "title": "Schema Lightdash Case Sensitive",
+  "description": "Whether this column should be treated as case-sensitive",
+  "type": "boolean"
+}

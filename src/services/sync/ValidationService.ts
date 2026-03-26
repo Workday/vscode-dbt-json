@@ -28,6 +28,7 @@ import {
 } from '@services/validationErrors';
 import type { FrameworkModel, FrameworkSource } from '@shared/framework/types';
 import type { Ajv, ValidateFunction } from 'ajv';
+import { applyEdits, modify } from 'jsonc-parser';
 import * as path from 'path';
 
 import type {
@@ -35,6 +36,12 @@ import type {
   SourceValidationResult,
   SyncLogger,
 } from './types';
+
+const JSONC_FORMAT_OPTIONS = {
+  tabSize: 4,
+  insertSpaces: true,
+  eol: '\n',
+};
 
 /**
  * ValidationService handles schema validation and model enhancement.
@@ -119,6 +126,7 @@ export class ValidationService {
     pathJson: string;
     config?: AutoGenerateTestsConfig;
     projectPath?: string;
+    rawJsonContent?: string;
   }): ModelValidationResult {
     const { modelJson, pathJson, config } = params;
 
@@ -196,8 +204,24 @@ export class ValidationService {
       }
     }
 
-    // Return enhanced JSON content
-    const enhancedJsonContent = JSON.stringify(enhancedModelJson, null, 4);
+    // Use comment-preserving edits when raw content is available and tests were added.
+    // This preserves JSONC comments in the original file instead of stripping them
+    // via JSON.stringify.
+    let enhancedJsonContent: string;
+    if (testsAdded > 0 && params.rawJsonContent) {
+      const edits = modify(
+        params.rawJsonContent,
+        ['data_tests'],
+        (enhancedModelJson as any).data_tests,
+        { formattingOptions: JSONC_FORMAT_OPTIONS },
+      );
+      enhancedJsonContent = applyEdits(params.rawJsonContent, edits);
+    } else if (testsAdded > 0) {
+      enhancedJsonContent = JSON.stringify(enhancedModelJson, null, 4);
+    } else {
+      enhancedJsonContent =
+        params.rawJsonContent ?? JSON.stringify(enhancedModelJson, null, 4);
+    }
 
     return {
       valid: true,

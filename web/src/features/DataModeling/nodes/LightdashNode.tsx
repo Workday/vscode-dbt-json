@@ -1,5 +1,5 @@
 import { ChartBarIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Button, Tooltip } from '@web/elements';
+import { Button, Checkbox, Tooltip } from '@web/elements';
 import { useModelStore } from '@web/stores/useModelStore';
 import type { NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
@@ -75,6 +75,25 @@ export const LightdashNode: React.FC<NodeProps> = () => {
           />
         </div>
       </div>
+
+      {/* Case Sensitivity */}
+      <div className="mb-4 flex items-center gap-2">
+        <Checkbox
+          checked={lightdashConfig.case_sensitive ?? false}
+          onChange={(checked) =>
+            updateLightdashState({
+              case_sensitive: checked as boolean,
+            })
+          }
+          label="Case sensitive"
+        />
+        <Tooltip
+          content="When enabled, string comparisons and filters in Lightdash will be case-sensitive"
+          variant="outline"
+        />
+      </div>
+
+      <hr className="border-border mb-4" />
 
       {/* Metrics Section */}
       <LightdashMetrics

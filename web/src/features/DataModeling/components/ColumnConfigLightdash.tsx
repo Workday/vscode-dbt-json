@@ -384,8 +384,31 @@ export const ColumnConfigLightdash = () => {
     [],
   );
 
+  // Column-level case_sensitive override
+  const handleCaseSensitiveChange = useCallback(
+    (checked: boolean | React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        typeof checked === 'boolean' ? checked : checked.target.checked;
+      updateEditingColumnLightdash({ case_sensitive: value });
+    },
+    [updateEditingColumnLightdash],
+  );
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Column-level case sensitivity override */}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          checked={columnLightdashConfig.case_sensitive ?? false}
+          onChange={handleCaseSensitiveChange}
+          label="Case sensitive"
+        />
+        <Tooltip
+          content="Override the model-level case sensitivity setting for this column"
+          variant="outline"
+        />
+      </div>
+
       {/* Configuration Selection */}
       <div>
         <div className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">

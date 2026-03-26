@@ -1672,6 +1672,9 @@ export function frameworkModelProperties({
     }
   }
 
+  const modelCaseSensitive =
+    'lightdash' in modelJson ? modelJson.lightdash?.case_sensitive : undefined;
+
   // Persist columns on the model properties
   const modelPropertiesColumns: DbtModelPropertiesColumn[] = [];
   for (const c of columns) {
@@ -1786,6 +1789,13 @@ export function frameworkModelProperties({
       metrics,
     });
 
+    if (c.meta.case_sensitive !== undefined) {
+      column.meta = {
+        ...column.meta,
+        case_sensitive: c.meta.case_sensitive,
+      };
+    }
+
     // Remove any remaining empty column properties
     modelPropertiesColumns.push(removeEmpty(column));
   }
@@ -1891,6 +1901,14 @@ export function frameworkModelProperties({
   if (_.isEmpty(modelProperties.meta?.metrics)) {
     delete modelProperties.meta?.metrics;
   }
+
+  if ('lightdash' in modelJson && modelCaseSensitive !== undefined) {
+    modelProperties.meta = {
+      ...modelProperties.meta,
+      case_sensitive: modelCaseSensitive,
+    };
+  }
+
   if (_.isEmpty(modelProperties.meta)) {
     delete modelProperties.meta;
   }

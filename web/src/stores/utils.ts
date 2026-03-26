@@ -423,20 +423,26 @@ export const buildLightdashConfig = (
   const tableConfig = buildLightdashTableConfig(modelingState.lightdash.table);
   const hasLightdashData =
     (modelingState.lightdash.metrics?.length || 0) > 0 ||
-    (modelingState.lightdash.metrics_include?.length || 0) > 0 ||
-    (modelingState.lightdash.metrics_exclude?.length || 0) > 0 ||
+    // Use Array.isArray rather than .length so that an explicit [] (which
+    // means "block metric inheritance from upstream") counts as data.
+    Array.isArray(modelingState.lightdash.metrics_include) ||
+    Array.isArray(modelingState.lightdash.metrics_exclude) ||
+    modelingState.lightdash.case_sensitive !== undefined ||
     tableConfig !== null;
 
   if (!hasLightdashData) return null;
 
   const lightdashConfig: Record<string, unknown> = {};
 
+  if (modelingState.lightdash.case_sensitive !== undefined) {
+    lightdashConfig.case_sensitive = modelingState.lightdash.case_sensitive;
+  }
+
   if (tableConfig) {
     lightdashConfig.table = tableConfig;
   }
 
   if (modelingState.lightdash.metrics?.length) {
-    // Remove the 'id' property from metrics as it's only used for UI management
     lightdashConfig.metrics = modelingState.lightdash.metrics.map((metric) => {
       const { id: _id, ...metricWithoutId } = metric as typeof metric & {
         id?: string;
@@ -445,11 +451,11 @@ export const buildLightdashConfig = (
     });
   }
 
-  if (modelingState.lightdash.metrics_include?.length) {
+  if (Array.isArray(modelingState.lightdash.metrics_include)) {
     lightdashConfig.metrics_include = modelingState.lightdash.metrics_include;
   }
 
-  if (modelingState.lightdash.metrics_exclude?.length) {
+  if (Array.isArray(modelingState.lightdash.metrics_exclude)) {
     lightdashConfig.metrics_exclude = modelingState.lightdash.metrics_exclude;
   }
 

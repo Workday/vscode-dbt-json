@@ -22,6 +22,10 @@ export type SchemaModelName = string;
  */
 export type SchemaModelDescription = string;
 /**
+ * Whether this column should be treated as case-sensitive
+ */
+export type SchemaLightdashCaseSensitive = boolean;
+/**
  * Schema for lightdash AI hints
  */
 export type SchemaLightdashAIHint = string | string[];
@@ -796,6 +800,7 @@ export interface SchemaModelTypeIntSelectModel {
  * Validates schema for setting lightdash properties at the model level
  */
 export interface SchemaModelLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   table?: SchemaLightdashTable;
   metrics?: SchemaLightdashMetric[];
   metrics_exclude?: SchemaLightdashMetricName[];
@@ -983,6 +988,7 @@ export interface SchemaModelCTE {
   having?: SchemaModelHaving;
 }
 export interface SchemaColumnLightdash {
+  case_sensitive?: SchemaLightdashCaseSensitive;
   dimension?: SchemaLightdashDimension;
   /**
    * @minItems 1

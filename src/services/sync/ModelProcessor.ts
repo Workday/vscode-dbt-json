@@ -96,7 +96,7 @@ export class ModelProcessor {
       };
     }
 
-    const newJson = JSON.stringify(modelJson, null, '    ');
+    const newJson = jsonContent;
     const newJsonPath = `${newPrefix}.model.json`;
     const newJsonUri = vscode.Uri.file(newJsonPath);
     const newSqlPath = `${newPrefix}.sql`;
@@ -181,7 +181,9 @@ export class ModelProcessor {
     // up-to-date metadata for all resources, which is required for downstream inheritance.
     //
     // Note: Cache will be updated AFTER file writes succeed (in SyncEngine.execute())
-    const isContentUnchanged = newSql === oldSql && newYml === oldYml;
+    const isJsonUnchanged = newJson === jsonContent;
+    const isContentUnchanged =
+      isJsonUnchanged && newSql === oldSql && newYml === oldYml;
 
     if (isContentUnchanged && pathJson === newJsonPath) {
       // Content matches and path is same - no need to write files, but we DO return updatedProject
@@ -230,6 +232,9 @@ export class ModelProcessor {
       operations.push({ type: 'write', text: newYml, path: newYmlPath });
     } else {
       // Same path - only write if content changed
+      if (newJson !== jsonContent) {
+        operations.push({ type: 'write', text: newJson, path: newJsonPath });
+      }
       if (newSql !== oldSql) {
         operations.push({ type: 'write', text: newSql, path: newSqlPath });
       }

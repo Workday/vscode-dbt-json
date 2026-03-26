@@ -1,13 +1,60 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="256" height="256" rx="44" fill="#0A1628"/>
-    <!-- Left curly brace -->
-    <path d="M52 58 Q38 58 38 74 L38 114 Q38 128 24 128 Q38 128 38 142 L38 182 Q38 198 52 198" fill="none" stroke="#FC5B05" stroke-width="9" stroke-linecap="round"/>
-    <!-- Right curly brace -->
-    <path d="M204 58 Q218 58 218 74 L218 114 Q218 128 232 128 Q218 128 218 142 L218 182 Q218 198 204 198" fill="none" stroke="#FC5B05" stroke-width="9" stroke-linecap="round"/>
-    <!-- D letter -->
-    <path d="M76 88h18c18 0 32 14 32 32s-14 32-32 32H76V88z" fill="none" stroke="#0057AE" stroke-width="9" stroke-linejoin="round"/>
-    <!-- J letter stem and hook -->
-    <path d="M170 88v48c0 12-8 18-17 18" fill="none" stroke="#0057AE" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- J tittle (dot) -->
-    <circle cx="170" cy="78" r="5" fill="#FC5B05"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="256"
+   height="256"
+   viewBox="0 0 256 256"
+   fill="none"
+   version="1.1"
+   id="svg4"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+   <defs id="defs4" />
+   <rect
+      width="256"
+      height="256"
+      rx="44"
+      fill="#0A1628"
+      id="rect1"
+      style="stroke-width:12;stroke-dasharray:none" />
+   <path
+      d="m 45.541238,30.149429 q -17.770623,0 -17.770623,22.365845 v 55.914616 q 0,19.5701 -17.770615,19.5701 17.770615,0 17.770615,19.57012 v 55.91462 q 0,22.36584 17.770624,22.36584"
+      fill="none"
+      stroke="#fc5b05"
+      stroke-width="11.9485"
+      stroke-linecap="round"
+      id="path1-9"
+      style="stroke-width:10;stroke-dasharray:none" />
+   <path
+      d="m 210.459,30.149429 q 17.77064,0 17.77064,22.365846 V 108.4299 q 0,19.57009 17.77061,19.57009 -17.77061,0 -17.77061,19.57012 v 55.91462 q 0,22.36584 -17.77064,22.36584"
+      fill="none"
+      stroke="#fc5b05"
+      stroke-width="11.9485"
+      stroke-linecap="round"
+      id="path2-0"
+      style="stroke-width:10;stroke-dasharray:none" />
+   <path
+      d="m 67.858597,81.33415 h 28.146939 c 28.146914,0 50.038994,22.39899 50.038994,51.19769 0,28.79869 -21.89208,51.19769 -50.038993,51.19769 h -28.14694 z"
+      fill="none"
+      stroke="#0057ae"
+      stroke-width="13.9147"
+      stroke-linejoin="round"
+      id="path3-5"
+      style="stroke-width:10;stroke-dasharray:none" />
+   <path
+      d="M 187.89381,79.643127 V 156.5723 c 0,19.2323 -12.62362,28.84844 -26.8252,28.84844"
+      fill="none"
+      stroke="#0057ae"
+      stroke-width="13.9147"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      id="path4-6"
+      style="stroke-width:10;stroke-dasharray:none" />
+   <ellipse
+      cx="187.96529"
+      cy="60.89286"
+      fill="#fc5b05"
+      id="circle4-3"
+      rx="7.1937628"
+      ry="8.1458149"
+      style="stroke-width:10;stroke-dasharray:none" />
 </svg>

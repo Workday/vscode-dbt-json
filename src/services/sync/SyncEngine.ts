@@ -608,6 +608,7 @@ export class SyncEngine {
                   pathJson: resource.pathJson,
                   config: (params as any).autoGenerateTestsConfig,
                   projectPath: project.pathSystem,
+                  rawJsonContent: jsonContent,
                 });
 
                 if (!validation.valid) {

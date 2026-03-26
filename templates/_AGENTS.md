@@ -789,14 +789,14 @@ Reference CSV seeds with `"from": { "model": "seed__<topic>__<name>" }` in `stg_
 
 ## Common Pitfalls
 
-| Problem                          | Solution                                                                                  |
-| -------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Column Not Found**             | Verify columns exist in upstream `select`. Check `exclude` filters in `all_from_model`.   |
-| **Row Multiplication**           | Add `equal_row_count` test. Verify join conditions. Aggregate "many" side before joining. |
-| **Duplicate Column Names**       | Use `exclude` on one model or rename with `expr`.                                         |
-| **Aggregation Without Group By** | Always add `"group_by": [{ "type": "dims" }]` when using `agg`.                           |
-| **Invalid Source Reference**     | Use format `<database>__<schema>.<table_name>` (double underscore, then dot).             |
-| **Lightdash Case Sensitivity**   | Set `"case_sensitive": true` at model level if Lightdash properties need original casing. |
+| Problem                          | Solution                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Column Not Found**             | Verify columns exist in upstream `select`. Check `exclude` filters in `all_from_model`.                          |
+| **Row Multiplication**           | Add `equal_row_count` test. Verify join conditions. Aggregate "many" side before joining.                        |
+| **Duplicate Column Names**       | Use `exclude` on one model or rename with `expr`.                                                                |
+| **Aggregation Without Group By** | Always add `"group_by": [{ "type": "dims" }]` when using `agg`.                                                  |
+| **Invalid Source Reference**     | Use format `<database>__<schema>.<table_name>` (double underscore, then dot).                                    |
+| **Lightdash Case Sensitivity**   | Optionally set `"case_sensitive": true/false` at model or column level to override the Lightdash global default. |
 
 ---
 
@@ -914,7 +914,7 @@ You can also look at existing `.model.json` and `.source.json` files in the `mod
 8. **Tags** can be simple strings or objects with `{ "tag": "name", "type": "exclude" | "inherit" | "local" | "ai_hints" }`.
 9. When using `group_by`, the shorthand `[{ "type": "dims" }]` groups by all dimension columns automatically.
 10. The `expr` field on select columns lets you write arbitrary Trino SQL for computed columns.
-11. **Verify upstream columns before selecting them.** When creating or editing a downstream model, always open and read the upstream model's `.sql` file (there will be multiple in joins) or source `.yml` for staging models to confirm which columns are actually available. Determine the effective column name by inspecting each entry in the upstream `select`:
+11. **Verify upstream columns before selecting them.** When creating or editing a downstream model, always open and read the upstream model's `.sql` file (there will be multiple in joins) or source `.yml` for staging models to confirm which columns are actually available. Determine the effective column name by inspecting each entry in the upstream `select` directive.
 
     - **`"expr"` key exists** → the column is a computed expression, ensure that any column names referenced existing in one of the parent models.
     - **`"name"` key exists (no `"expr"`)** → use the `"name"` value as the column name.
