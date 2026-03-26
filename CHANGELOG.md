@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.1 (March 19, 2026)
+
+- Added a confirmation dialog when creating a model to resume a saved draft or start fresh
+
 ## 1.0.0 (March 2026)
 
 ### Visual Data Modeling
