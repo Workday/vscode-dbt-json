@@ -31,35 +31,68 @@
     "exclude_portal_source_count": {
       "$ref": "model.exclude_portal_source_count.schema.json"
     },
+    "ctes": { "$ref": "model.ctes.schema.json" },
     "select": {
       "type": "array",
       "minItems": 1,
       "items": {
         "anyOf": [
           { "$ref": "model.select.expr.schema.json" },
-          { "$ref": "model.select.model.schema.json" }
+          { "$ref": "model.select.model.schema.json" },
+          { "$ref": "model.select.cte.schema.json" }
         ]
       }
     },
     "from": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["model", "union"],
-      "properties": {
-        "model": { "$ref": "model.ref.schema.json" },
-        "union": {
+      "anyOf": [
+        {
           "type": "object",
           "additionalProperties": false,
-          "required": ["models"],
+          "required": ["model", "union"],
           "properties": {
-            "type": { "enum": ["all"] },
-            "models": {
-              "type": "array",
-              "items": { "$ref": "model.ref.schema.json" }
+            "model": { "$ref": "model.ref.schema.json" },
+            "union": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["models"],
+              "properties": {
+                "type": { "enum": ["all"] },
+                "models": {
+                  "type": "array",
+                  "items": { "$ref": "model.ref.schema.json" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cte", "union"],
+          "description": "CTE-based union: normalize columns via CTEs before unioning",
+          "properties": {
+            "cte": {
+              "type": "string",
+              "minLength": 1,
+              "description": "First CTE in the union"
+            },
+            "union": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ctes"],
+              "properties": {
+                "type": { "enum": ["all"] },
+                "ctes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 },
+                  "description": "Additional CTEs to union with"
+                }
+              }
             }
           }
         }
-      }
+      ]
     },
     "where": { "$ref": "model.where.schema.json" }
   }

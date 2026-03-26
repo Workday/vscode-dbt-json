@@ -1,5 +1,4 @@
-import { ApiRequest, ApiResponse } from '@shared/api/types';
-import { FrameworkEtlSource } from '@shared/framework/types';
+import type { FrameworkEtlSource } from '@shared/framework/types';
 
 export type TrinoApi =
   | {
@@ -62,38 +61,6 @@ export type TrinoApi =
       request: { catalog: string; schema: string };
       response: string[];
     };
-
-async function apiHandler(p: {
-  type: 'trino-fetch-catalogs';
-  request: ApiRequest<'trino-fetch-catalogs'>;
-}): Promise<ApiResponse<'trino-fetch-catalogs'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-columns';
-  request: ApiRequest<'trino-fetch-columns'>;
-}): Promise<ApiResponse<'trino-fetch-columns'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-schemas';
-  request: ApiRequest<'trino-fetch-schemas'>;
-}): Promise<ApiResponse<'trino-fetch-schemas'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-tables';
-  request: ApiRequest<'trino-fetch-tables'>;
-}): Promise<ApiResponse<'trino-fetch-tables'>>;
-async function apiHandler(p: {
-  type: 'trino-fetch-system-nodes';
-  request: ApiRequest<'trino-fetch-system-nodes'>;
-}): Promise<ApiResponse<'trino-fetch-system-nodes'>>;
-async function apiHandler(
-  p: Omit<TrinoApi, 'response' | 'service'>,
-): Promise<unknown> {
-  return null;
-}
-export type TrinoApiHandler = typeof apiHandler;
-
-export type TrinoJson = {
-  tables: { [tableId: string]: TrinoTable };
-  updated_at: string;
-};
 
 export type TrinoSystemNode = {
   http_uri: string;

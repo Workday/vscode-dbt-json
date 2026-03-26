@@ -1,38 +1,37 @@
-import type { VSCodeApi } from '@shared/coder/types';
-import { AppProvider } from '@web/context/app';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { useMount, useUnmount } from 'react-use';
+import type { VSCodeApi } from '@shared/types/config';
+import { AppProvider } from '@web/context';
+import { useEffect, useMemo, useState } from 'react';
+
 import { stateSync } from '../utils/stateSync';
+import {
+  type ColorMode,
+  type Environment,
+  EnvironmentContext,
+  type EnvironmentContextValue,
+  type ThemeKey,
+} from './EnvironmentContext';
 
-type ColorMode = 'dark' | 'light';
-type Environment = 'coder' | 'web';
-type ThemeKey = `${Environment}-${ColorMode}`;
+/** Media query for OS dark mode preference */
+const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-type EnvironmentContextValue = {
-  environment: Environment;
-  route: string | null;
-  themeKey: ThemeKey;
-  vscode: VSCodeApi | null;
-};
-const EnvironmentContext = createContext<EnvironmentContextValue | null>(null);
+/** Detect VS Code theme from body class (vscode-dark/vscode-light) */
+function getVSCodeTheme(): ColorMode | null {
+  const { classList } = document.body;
+  if (classList.contains('vscode-dark')) return 'dark';
+  if (classList.contains('vscode-light')) return 'light';
+  return null;
+}
+
+/** Get initial color mode: VS Code theme if available, else OS preference */
+function getInitialColorMode(): ColorMode {
+  return getVSCodeTheme() ?? (darkModeQuery.matches ? 'dark' : 'light');
+}
 
 export function EnvironmentProvider() {
   const [vscode, setVscode] = useState<VSCodeApi | null>(null);
+  const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
 
-  const [colorMode, setColorMode] = useState<ColorMode>(
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
-  );
-
-  const route: string | null = useMemo(
+  const route = useMemo(
     () =>
       document.getElementsByName('route')[0]?.getAttribute('content') || null,
     [],
@@ -48,61 +47,55 @@ export function EnvironmentProvider() {
     [colorMode, environment],
   );
 
-  const value: EnvironmentContextValue | null = useMemo(() => {
-    if (route && !vscode) {
-      return null;
-    }
-    const result = { environment, route, themeKey, vscode };
-
-    return result;
+  const value = useMemo<EnvironmentContextValue | null>(() => {
+    if (route && !vscode) return null;
+    return { environment, route, themeKey, vscode };
   }, [environment, route, themeKey, vscode]);
 
-  const handleColorModeChange = useCallback((e: MediaQueryListEvent) => {
-    setColorMode(e.matches ? 'dark' : 'light');
-  }, []);
-
-  // If the desired theme changes, update here
+  // Apply theme to document
   useEffect(() => {
-    console.log('SETTING THEME KEY', themeKey);
-    document.querySelector('html')?.setAttribute('data-theme', themeKey);
+    document.documentElement.setAttribute('data-theme', themeKey);
   }, [themeKey]);
 
-  useMount(() => {
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', handleColorModeChange);
+  // Set up theme change listeners based on environment
+  useEffect(() => {
+    const isVSCodeEnv = getVSCodeTheme() !== null;
 
-    // Get VS Code API from StateSyncManager instead of acquiring it again
-    const vsCodeApi = stateSync.getVSCodeApi();
-    if (vsCodeApi) {
-      setVscode(vsCodeApi);
+    if (isVSCodeEnv) {
+      // VS Code: watch body class changes
+      const observer = new MutationObserver(() => {
+        const theme = getVSCodeTheme();
+        if (theme) setColorMode(theme);
+      });
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      return () => observer.disconnect();
+    } else {
+      // Web: watch OS preference changes
+      const handler = (e: MediaQueryListEvent) =>
+        setColorMode(e.matches ? 'dark' : 'light');
+      darkModeQuery.addEventListener('change', handler);
+      return () => darkModeQuery.removeEventListener('change', handler);
     }
-  });
+  }, []);
 
-  useUnmount(() => {
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .removeEventListener('change', handleColorModeChange);
-  });
+  // Initialize VS Code API
+  useEffect(() => {
+    const vsCodeApi = stateSync.getVSCodeApi();
+    if (vsCodeApi) setVscode(vsCodeApi);
+  }, []);
 
   if (!value) {
     return null;
   }
 
   return (
-    <div className="bg-background text-background-contrast">
+    <div className="bg-background text-background-contrast max-h-full">
       <EnvironmentContext.Provider value={value}>
         <AppProvider />
       </EnvironmentContext.Provider>
     </div>
   );
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function useEnvironment() {
-  const environmentContext = useContext(EnvironmentContext);
-  if (!environmentContext) {
-    throw new Error('useEnvironment must be used within EnvironmentProvider');
-  }
-  return environmentContext;
 }

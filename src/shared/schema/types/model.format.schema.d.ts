@@ -8,4 +8,4 @@
 /**
  * Open table format for the model
  */
-export type SchemaModelFormat = "delta_lake" | "hive" | "iceberg";
+export type SchemaModelFormat = 'delta_lake' | 'hive' | 'iceberg';

@@ -1,7 +1,7 @@
 {
   "$id": "model.from.join.models.schema.json",
   "title": "Schema Model From Join Models",
-  "description": "Validates the join argument when joining multiple models",
+  "description": "Validates the join argument when joining multiple models or CTEs",
   "type": "array",
   "minItems": 1,
   "items": {
@@ -22,6 +22,63 @@
         "required": ["model", "on"],
         "properties": {
           "model": { "$ref": "model.ref.schema.json" },
+          "override_alias": { "$ref": "column.name.schema.json" },
+          "type": { "enum": ["full", "inner", "left", "right"] },
+          "on": {
+            "type": "object",
+            "description": "SQL for the join condition",
+            "additionalProperties": false,
+            "properties": {
+              "and": {
+                "type": "array",
+                "description": "Conditions to be combined by AND",
+                "items": {
+                  "anyOf": [
+                    { "$ref": "column.name.schema.json" },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["expr"],
+                      "properties": {
+                        "expr": {
+                          "description": "SQL for the condition",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cte"],
+        "description": "Cross join with a CTE defined in the same model",
+        "properties": {
+          "cte": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of a CTE defined in the ctes array"
+          },
+          "override_alias": { "$ref": "column.name.schema.json" },
+          "type": { "const": "cross" }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cte", "on"],
+        "description": "Conditional join with a CTE defined in the same model",
+        "properties": {
+          "cte": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of a CTE defined in the ctes array"
+          },
           "override_alias": { "$ref": "column.name.schema.json" },
           "type": { "enum": ["full", "inner", "left", "right"] },
           "on": {

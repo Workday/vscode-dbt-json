@@ -1,7 +1,25 @@
 import * as _ from 'lodash';
 import * as yaml from 'yaml';
 
-export type AppError = { message: string; details?: Record<string, any> };
+import type {
+  AppError,
+  DateIso,
+  DistributiveOmit,
+  LogLevel,
+  RecursivePartial,
+} from './types/common';
+
+/**
+ * Minimal DJ context for shared utilities.
+ * Shared utilities only access a subset of config.
+ * Extension uses the full CoderConfig from @services/types.
+ */
+export type DJ = {
+  config: {
+    aiHintTag?: string;
+    // Add other config properties as needed by shared utilities
+  };
+};
 
 const yamlParse = yaml.parse;
 const yamlStringify = (obj: object) =>
@@ -11,12 +29,11 @@ export { yamlParse, yamlStringify };
 export { parse as jsonParse } from 'jsonc-parser';
 
 /** Utility function to ensure we're handling all cases in switch statements */
-export function assertExhaustive<T extends any = any>(
-  x: never,
-  fallback?: any,
-) {
-  // throw new Error('Unexpected Case in Switch Statement: ' + x);
-  return (fallback || null) as T;
+export function assertExhaustive<T>(x: never, fallback?: any) {
+  if (fallback !== undefined) {
+    return fallback as T;
+  }
+  throw new Error(`Unexpected object: ${JSON.stringify(x)}`);
 }
 
 export function convertTemplate(
@@ -27,7 +44,7 @@ export function convertTemplate(
   const matches = template.matchAll(/{{ (\S+) }}/g);
   for (const match of matches) {
     const variable = match[1];
-    const value = values[variable] || '';
+    const value = values[variable] ?? '';
     converted = converted.replace(`{{ ${variable} }}`, value);
   }
   return converted;
@@ -39,10 +56,7 @@ export function dateAddDays(date: Date, days: number): Date {
   return _date;
 }
 
-export function dateAddDaysIso(
-  dateIso: string | DateIso,
-  days: number,
-): DateIso {
+export function dateAddDaysIso(dateIso: DateIso, days: number): DateIso {
   return dateToIso(dateAddDays(new Date(dateIso), days));
 }
 
@@ -76,9 +90,15 @@ export function mergeDeep<T extends Record<string, any>>(
   obj: T | null | undefined,
   add: RecursivePartial<T> | null | undefined,
 ): T {
-  if (!obj && !add) return {} as T;
-  if (obj && !add) return { ...obj } as T;
-  if (!obj && add) return { ...add } as T;
+  if (!obj && !add) {
+    return {} as T;
+  }
+  if (obj && !add) {
+    return { ...obj };
+  }
+  if (!obj && add) {
+    return { ...add } as T;
+  }
   let _obj = { ...obj } as T;
   for (const key in add) {
     const v = add[key] as T[keyof T];
@@ -91,7 +111,7 @@ export function mergeDeep<T extends Record<string, any>>(
       _obj = { ..._obj, [key]: v } as T;
     }
   }
-  return _obj as T;
+  return _obj;
 }
 
 // Utility function to order keys within an object
@@ -99,19 +119,23 @@ export function orderKeys<T extends Record<string, any>>(
   obj?: T,
   order?: (keyof T)[],
 ): T {
-  order = order || [];
-  const remaining = _.difference(Object.keys(obj || {}), order).sort();
+  order = order ?? [];
+  const remaining = _.difference(Object.keys(obj ?? {}), order).sort();
   order = [...order, ...remaining];
   let ordered: Record<string, any> = {};
   for (const key of order) {
-    if (obj && key in obj) ordered = { ...ordered, [key]: obj[key] };
+    if (obj && key in obj) {
+      ordered = { ...ordered, [key]: obj[key] };
+    }
   }
   return ordered as T;
 }
 
 // Utility function to remove empty keys from an object
 export function removeEmpty<T extends Record<string, any>>(_obj?: T): T {
-  if (!isObject(_obj)) return {} as T;
+  if (!isObject(_obj)) {
+    return {} as T;
+  }
   const obj = { ..._obj };
   for (const [k, v] of Object.entries(obj)) {
     if (
@@ -120,26 +144,22 @@ export function removeEmpty<T extends Record<string, any>>(_obj?: T): T {
       v === '' ||
       v === false
     ) {
-      if (obj) delete obj[k];
+      if (obj) {
+        delete obj[k];
+      }
     }
   }
   return obj as T;
 }
 
-export function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function textToStartCase(text: string): string {
-  return _.chain(text).split('_').map(_.upperFirst).join(' ').trim().value();
+  return _.chain(text)
+    .split('_')
+    .map((s) => _.upperFirst(s))
+    .join(' ')
+    .trim()
+    .value();
 }
 
-export type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never;
-
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
-
-export type DateIso = `${number}-${number}-${number}`;
+// Re-export types for convenience
+export type { AppError, DateIso, DistributiveOmit, LogLevel, RecursivePartial };

@@ -2,7 +2,6 @@ import { Field, Label } from '@headlessui/react';
 import type { TableProps } from '@web/elements';
 import { Button, Table } from '@web/elements';
 import React, { forwardRef, useMemo } from 'react';
-import { Controller, useFieldArray } from 'react-hook-form';
 import type {
   ArrayPath,
   Control,
@@ -11,6 +10,8 @@ import type {
   FieldValues,
   Path,
 } from 'react-hook-form';
+import { Controller, useFieldArray } from 'react-hook-form';
+
 import { FieldInputText } from './FieldInputText';
 import { FieldSelectSingle } from './FieldSelectSingle';
 

@@ -10,7 +10,10 @@
  *
  * @minItems 1
  */
-export type SchemaSourcePortalPartitionColumns = [SchemaColumnName, ...SchemaColumnName[]];
+export type SchemaSourcePortalPartitionColumns = [
+  SchemaColumnName,
+  ...SchemaColumnName[],
+];
 /**
  * Validate column name
  */

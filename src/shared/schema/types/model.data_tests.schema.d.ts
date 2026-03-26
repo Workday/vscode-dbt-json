@@ -8,7 +8,61 @@
 /**
  * Validate model data_tests
  */
-export type SchemaModelDataTests = {
-  type: "unique";
-  column_name: string;
-}[];
+export type SchemaModelDataTests = (
+  | {
+      /**
+       * Validates that all values in the specified column are unique (no duplicates).
+       */
+      type: 'unique';
+      /**
+       * Name of the column to test for uniqueness (e.g., 'id', 'email')
+       */
+      column_name: string;
+    }
+  | {
+      /**
+       * Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column.
+       */
+      type: 'equal_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types.
+       */
+      join_type?: string;
+    }
+  | {
+      /**
+       * Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data.
+       */
+      type: 'no_null_aggregates';
+      /**
+       * Name of the aggregate column to test (e.g., 'total_amount', 'record_count')
+       */
+      column_name: string;
+      /**
+       * Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified.
+       */
+      date_filter_column?: string;
+      /**
+       * Data type of the date filter column. Affects how date filtering is applied.
+       */
+      date_filter_type?: 'date' | 'timestamp' | 'string' | 'number';
+    }
+  | {
+      /**
+       * Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column.
+       */
+      type: 'equal_or_lower_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes.
+       */
+      join_type?: string;
+    }
+)[];

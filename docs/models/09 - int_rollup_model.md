@@ -4,7 +4,20 @@
 
 The `int_rollup_model` is designed for creating time-based aggregations that roll up granular data to higher-level time intervals. This model type is essential for creating summary tables, performance dashboards, and time-series analytics by aggregating detailed transactional data into meaningful time periods (hourly, daily, monthly, yearly).
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_rollup_model`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, add Rollup node, configure time interval (see time-series workflow example in Visual Editor guide)
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_rollup_model` are:
 
@@ -15,7 +28,7 @@ The primary purposes of the `int_rollup_model` are:
 - **Trend Analysis:** Enable time-series analysis at different granularities
 - **Reporting Efficiency:** Provide ready-to-use aggregated data for business reports
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_rollup_model` requires the following configuration parameters:
 
@@ -30,7 +43,7 @@ An `int_rollup_model` requires the following configuration parameters:
     - **`interval`:** Time interval for aggregation (enum: `"day"`, `"hour"`, `"month"`, `"year"`)
     - **`datetime_expr`:** Optional SQL expression for the datetime column to rollup by
 
-## 4. Rollup Process
+## 5. Rollup Process
 
 The `int_rollup_model` performs the following transformation:
 
@@ -40,7 +53,7 @@ The `int_rollup_model` performs the following transformation:
 4. **Time Truncation:** Truncates timestamps to the specified interval boundary
 5. **Result Generation:** Produces aggregated data at the target time granularity
 
-## 5. Basic Example: Daily Store Performance Rollup
+## 6. Basic Example: Daily Store Performance Rollup
 
 Let's create a daily rollup of detailed order data to analyze store performance patterns.
 
@@ -83,7 +96,7 @@ This example demonstrates:
 - **Date truncation:** order_datetime is truncated to day boundaries for daily summaries
 - **Incremental processing:** Efficient processing of new data as it arrives
 
-## 6. Advanced Example: Monthly Customer Analytics
+## 7. Advanced Example: Monthly Customer Analytics
 
 Let's create a comprehensive monthly rollup for customer analytics and retention analysis.
 
@@ -126,7 +139,7 @@ This example demonstrates:
 - **Date truncation:** analysis_date is truncated to month boundaries for monthly summaries
 - **Customer analytics:** Enables monthly customer behavior analysis and retention tracking
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Time Interval Selection
 
@@ -156,7 +169,7 @@ This example demonstrates:
 - **Test aggregation accuracy:** Validate rollup results against manual calculations
 - **Monitor data completeness:** Ensure all source records are included in rollups
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `int_rollup_model` serves as an aggregation layer in the data pipeline:
 

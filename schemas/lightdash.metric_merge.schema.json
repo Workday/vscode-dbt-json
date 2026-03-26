@@ -9,6 +9,10 @@
       "description": "The compact status that will be applied to the column in lightdash",
       "enum": ["thousands", "millions", "billions", "trillions"]
     },
+    "description": {
+      "description": "The description that will be applied to the metric in lightdash",
+      "type": "string"
+    },
     "format": {
       "enum": ["eur", "gbp", "id", "km", "mi", "percent", "usd"]
     },

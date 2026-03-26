@@ -1,4 +1,4 @@
-import type { VSCodeApi } from '@shared/coder/types';
+import type { VSCodeApi } from '@shared/types/config';
 import { v4 as uuid } from 'uuid';
 
 type FormData = Record<string, unknown>;
@@ -38,7 +38,7 @@ class StateSyncManager {
       const message = event.data;
       const _channelId = message?._channelId;
 
-      if (!_channelId || typeof _channelId !== 'string') return;
+      if (!_channelId) return;
 
       const pendingRequest = this.pendingRequests.get(_channelId);
       if (!pendingRequest) return;
@@ -48,8 +48,9 @@ class StateSyncManager {
 
       // Resolve or reject based on response
       if (message.err) {
-        const errorMessage = message.err.message ?? 'Unknown error';
-        pendingRequest.reject(new Error(errorMessage as string));
+        pendingRequest.reject(
+          new Error(message.err.message || 'Unknown error'),
+        );
       } else if (message.response) {
         pendingRequest.resolve(message.response);
       } else {
@@ -87,13 +88,20 @@ class StateSyncManager {
         this.vscode!.postMessage({ ...payload, _channelId });
       } catch (error) {
         this.pendingRequests.delete(_channelId);
-        reject(new Error(String(error)));
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }
 
   // Save state using API pattern
   async saveState(formType: string, data: FormData): Promise<void> {
+    // If VS Code API is not available, skip silently
+    if (!this.vscode) {
+      console.debug(
+        `[StateSyncManager] VS Code API not available, skipping state save for ${formType}`,
+      );
+      return;
+    }
     try {
       const response = (await this.sendApiMessage({
         type: 'state-save',
@@ -114,6 +122,14 @@ class StateSyncManager {
 
   // Load state using API pattern
   async loadState(formType: string): Promise<FormData | null> {
+    // If VS Code API is not available, return null immediately
+    if (!this.vscode) {
+      console.debug(
+        `[StateSyncManager] VS Code API not available, skipping state load for ${formType}`,
+      );
+      return null;
+    }
+
     try {
       const response = (await this.sendApiMessage({
         type: 'state-load',
@@ -132,6 +148,14 @@ class StateSyncManager {
 
   // Clear state using API pattern
   async clearState(formType: string): Promise<void> {
+    // If VS Code API is not available, skip silently
+    if (!this.vscode) {
+      console.debug(
+        `[StateSyncManager] VS Code API not available, skipping state clear for ${formType}`,
+      );
+      return;
+    }
+
     try {
       const response = (await this.sendApiMessage({
         type: 'state-clear',

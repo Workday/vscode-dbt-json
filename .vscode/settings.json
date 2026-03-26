@@ -23,5 +23,6 @@
       ],
       "url": ".dj/schemas/source.schema.json"
     }
-  ]
+  ],
+  "dj.dataExplorer.autoRefresh": false
 }

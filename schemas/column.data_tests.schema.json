@@ -5,7 +5,18 @@
   "type": "array",
   "items": {
     "anyOf": [
-      { "enum": ["not_null", "unique"] },
+      {
+        "type": "string",
+        "enum": [
+          "accepted_values",
+          "equal_or_lower_row_count",
+          "equal_row_count",
+          "no_null_aggregates",
+          "not_null",
+          "relationships",
+          "unique"
+        ]
+      },
       {
         "type": "object",
         "additionalProperties": false,
@@ -20,7 +31,11 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["where"],
-                "properties": { "where": { "$ref": "column.expr.schema.json" } }
+                "properties": {
+                  "where": {
+                    "$ref": "column.expr.schema.json"
+                  }
+                }
               }
             }
           }
@@ -29,32 +44,65 @@
       {
         "type": "object",
         "additionalProperties": false,
-        "required": ["accepted_values"],
+        "required": ["type", "column_name"],
         "properties": {
-          "accepted_values": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["values"],
-            "properties": {
-              "quote": { "type": "boolean" },
-              "values": { "type": "array", "items": { "type": "string" } }
-            }
+          "type": {
+            "const": "no_null_aggregates",
+            "description": "Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data."
+          },
+          "column_name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the aggregate column to test (e.g., 'total_amount', 'record_count')"
+          },
+          "date_filter_column": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified."
+          },
+          "date_filter_type": {
+            "enum": ["date", "timestamp", "string", "number"],
+            "description": "Data type of the date filter column. Affects how date filtering is applied."
           }
         }
       },
       {
         "type": "object",
         "additionalProperties": false,
-        "required": ["relationships"],
+        "required": ["type", "compare_model"],
         "properties": {
-          "relationships": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["field", "to"],
-            "properties": {
-              "field": { "$ref": "column.name.schema.json" },
-              "to": { "type": "string" }
-            }
+          "type": {
+            "const": "equal_row_count",
+            "description": "Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column."
+          },
+          "compare_model": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')"
+          },
+          "join_type": {
+            "type": "string",
+            "description": "Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types."
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "compare_model"],
+        "properties": {
+          "type": {
+            "const": "equal_or_lower_row_count",
+            "description": "Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column."
+          },
+          "compare_model": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')"
+          },
+          "join_type": {
+            "type": "string",
+            "description": "Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes."
           }
         }
       }

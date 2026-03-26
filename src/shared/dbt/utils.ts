@@ -1,17 +1,18 @@
+import type { DateIso } from '@shared';
 import {
   dateAddDaysIso,
   dateDiffDays,
-  DateIso,
   dateToIso,
   jsonParse,
   yamlParse,
 } from '@shared';
-import {
+import type {
   DbtProject,
   DbtProjectCatalog,
   DbtProjectManifest,
   DbtProjectProperties,
   DbtProperties,
+  DbtRunConfig,
 } from '@shared/dbt/types';
 import * as _ from 'lodash';
 
@@ -23,7 +24,9 @@ export function dbtEventDates({ project }: { project: DbtProject }): {
   const ranges: { end: string; start: string }[] = [];
   const varEventDates = project.variables?.event_dates;
 
-  if (!varEventDates) return { dates, ranges };
+  if (!varEventDates) {
+    return { dates, ranges };
+  }
 
   if (/d{4}-d{2}-d{2}~d{4}-d{2}-d{2}/.test(varEventDates)) {
     const [start, end] = varEventDates.split('~') as DateIso[];
@@ -144,4 +147,111 @@ export function getDbtProjectManifest(content: string) {
 
 export function getDbtProperties(content: string) {
   return yamlParse(content) as Partial<DbtProperties>;
+}
+
+/**
+ * Build DBT run command string from configuration
+ * @param config - The run configuration with flags and options (includes modelName and projectPath)
+ * @returns Complete DBT command string
+ */
+export function buildDbtRunCommand(config: DbtRunConfig): string {
+  const commandParts: string[] = [];
+
+  // Initial commands
+  if (config.cleanAndDeps) {
+    commandParts.push('dbt clean');
+    commandParts.push('dbt deps');
+  }
+  if (config.seed) {
+    commandParts.push('dbt seed');
+  }
+
+  // Main command (run or build)
+  const mainCommand = config.build ? 'dbt build' : 'dbt run';
+  let selectClause = '';
+
+  // Helper function to apply lineage to a model name
+  const applyLineage = (model: string, lineage?: string): string => {
+    switch (lineage) {
+      case 'model-only':
+        return model;
+      case 'upstream':
+        return `+${model}`;
+      case 'downstream':
+        return `${model}+`;
+      case 'full-lineage':
+        return `+${model}+`;
+      default:
+        return model;
+    }
+  };
+
+  // Build select clause based on scope
+  switch (config.scope) {
+    case 'single':
+      // Apply lineage configuration to the single model
+      if (config.modelName) {
+        selectClause = applyLineage(config.modelName, config.lineage);
+      }
+      break;
+    case 'multi-model':
+      // Build select clause with all selected models and their individual lineage
+      if (config.selectedModels && config.selectedModels.length > 0) {
+        selectClause = config.selectedModels
+          .map((model) => applyLineage(model.modelName, model.lineage))
+          .join(' ');
+      } else {
+        selectClause = ''; // No models to run
+      }
+      break;
+    case 'full-project':
+      selectClause = ''; // No select clause runs all models
+      break;
+    case 'modified':
+      // Build select clause with all modified models
+      if (config.modifiedModels && config.modifiedModels.length > 0) {
+        selectClause = config.modifiedModels
+          .map((model) => `${model}+`)
+          .join(' ');
+      } else {
+        selectClause = ''; // No models to run
+      }
+      break;
+  }
+
+  let finalCommand = mainCommand;
+  if (selectClause) {
+    finalCommand += ` --select "${selectClause}"`;
+  }
+
+  // Add advanced flags
+  if (config.fullRefresh) {
+    finalCommand += ' --full-refresh';
+  }
+  if (config.defer && config.statePath) {
+    finalCommand += ` --defer --state ${config.statePath}`;
+  }
+
+  // Add date variables if provided
+  const vars: Record<string, string> = {};
+
+  // Format: { event_dates: '2025-01-01' } or { event_dates: '2025-01-01~2025-01-31' }
+  if (config.startDate && config.endDate) {
+    vars.event_dates = `${config.startDate}~${config.endDate}`;
+  } else if (config.startDate) {
+    vars.event_dates = config.startDate;
+  }
+  if (vars.event_dates) {
+    finalCommand += ` --vars '${JSON.stringify(vars)}'`;
+  }
+
+  commandParts.push(finalCommand);
+
+  // Add project path navigation if provided
+  if (config.projectPath) {
+    return `cd ${config.projectPath} && ${commandParts.join(' && ')}`;
+  }
+
+  // Join all command parts
+  return commandParts.join(' && ');
 }

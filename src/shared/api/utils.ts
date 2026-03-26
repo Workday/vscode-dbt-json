@@ -1,4 +1,4 @@
-import { ApiType, ApiResponse } from '@shared/api/types';
+import type { ApiResponse, ApiType } from '@shared/api/types';
 
 export function apiResponse<T extends ApiType = never>(
   response: ApiResponse<T>,

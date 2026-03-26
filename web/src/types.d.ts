@@ -1,3 +1,3 @@
-import type { VSCodeApi } from '@shared/coder/types';
+import type { VSCodeApi } from '@shared/types/config';
 
 declare const acquireVsCodeApi: (() => VSCodeApi) | undefined;

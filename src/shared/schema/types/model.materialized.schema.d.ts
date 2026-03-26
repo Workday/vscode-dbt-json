@@ -8,4 +8,4 @@
 /**
  * Type of materialization
  */
-export type SchemaModelMaterialized = "ephemeral" | "incremental";
+export type SchemaModelMaterialized = 'ephemeral' | 'incremental';

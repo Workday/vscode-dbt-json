@@ -4,7 +4,20 @@
 
 The `int_join_models` is a powerful model type for combining data from multiple models through SQL joins. It enables you to create enriched datasets by bringing together related information from different staging or intermediate models, forming the backbone of dimensional modeling and analytical data preparation.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_join_models`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select nodes for models, add Join node, configure join types and conditions (see join workflow example in Visual Editor guide)
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_join_models` are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `int_join_models` are:
 - **Data Consolidation:** Merge data from disparate sources into unified analytical views
 - **Business Logic Implementation:** Apply complex business rules that require data from multiple sources
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_join_models` requires the following configuration parameters:
 
@@ -35,7 +48,7 @@ An `int_join_models` requires the following configuration parameters:
 
 **Note:** `topic` is optional for `int_join_models` (unlike other model types where it's required).
 
-## 4. Join Configuration
+## 5. Join Configuration
 
 Each join in the `join` array requires:
 
@@ -46,7 +59,7 @@ Each join in the `join` array requires:
     - **`expr`:** SQL expression for the join condition
 - **`override_alias`:** Optional alias for the joined model
 
-## 5. Basic Example: Orders Enriched with Customer and Store Data
+## 6. Basic Example: Orders Enriched with Customer and Store Data
 
 Let's create an enriched orders model by joining order data with customer and store information.
 
@@ -132,7 +145,7 @@ This example demonstrates:
 - **Data type conversion:** Converting cents to dollars with proper decimal casting
 - **Comprehensive documentation:** Each column includes business context
 
-## 6. Advanced Example: Supply Chain Cost Analysis
+## 7. Advanced Example: Supply Chain Cost Analysis
 
 Let's create a supply chain cost analysis model by joining supply inventory with product catalog data.
 
@@ -207,7 +220,7 @@ This example demonstrates:
 - **Cross-domain analysis:** Linking supply chain and product domains
 - **Risk assessment:** Understanding cost efficiency across products
 
-## 7. Join Types Reference
+## 8. Join Types Reference
 
 ### Inner Join
 
@@ -245,7 +258,7 @@ Use when you want all records from the base model, with optional data from the j
 }
 ```
 
-## 8. Best Practices
+## 9. Best Practices
 
 ### Performance Optimization
 
@@ -268,7 +281,7 @@ Use when you want all records from the base model, with optional data from the j
 - **Consistent naming:** Use clear, descriptive column names
 - **Comprehensive documentation:** Document each join's business purpose
 
-## 9. Integration with Data Pipeline
+## 10. Integration with Data Pipeline
 
 The `int_join_models` serves as a crucial bridge in your data pipeline:
 

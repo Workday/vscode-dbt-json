@@ -1,31 +1,35 @@
-import type { SchemaColumnAgg } from '@shared/schema/types/column.agg.schema';
-import type { SchemaColumnDataType } from '@shared/schema/types/column.data_type.schema';
-import type { SchemaColumnDataTests } from '@shared/schema/types/column.data_tests.schema';
-import type { SchemaLightdashMetric } from '@shared/schema/types/lightdash.metric.schema';
+// Framework API type definitions and handlers
+import type { ApiRequest, ApiResponse } from '@shared/api/types';
 import type {
-  SchemaModel,
-  SchemaModelSelectInterval,
-} from '@shared/schema/types/model.schema';
-import type { SchemaModelLightdash } from '@shared/schema/types/model.lightdash.schema';
-import type { SchemaModelHaving } from '@shared/schema/types/model.having.schema';
-import type { SchemaModelWhere } from '@shared/schema/types/model.where.schema';
-import type { SchemaModelSelectCol } from '@shared/schema/types/model.select.col.schema';
-import type { SchemaModelSelectColWithAgg } from '@shared/schema/types/model.select.col.with.agg.schema';
-import type { SchemaModelSelectExpr } from '@shared/schema/types/model.select.expr.schema';
-import type { SchemaModelSelectExprWithAgg } from '@shared/schema/types/model.select.expr.with.agg.schema';
-import type { SchemaModelSelectModel } from '@shared/schema/types/model.select.model.schema';
-import type { SchemaModelSelectModelWithAgg } from '@shared/schema/types/model.select.model.with.agg.schema';
-import type { SchemaModelSelectSource } from '@shared/schema/types/model.select.source.schema';
-import type { SchemaSourcePartition } from '@shared/schema/types/source.schema';
-import type { SchemaSource } from '@shared/schema/types/source.schema';
-
-import {
   LightdashDimension,
   LightdashMetric,
   LightdashMetrics,
   LightdashTable,
 } from '@shared/lightdash/types';
-import { ApiRequest, ApiResponse } from '@shared/api/types';
+import type { SchemaColumnAgg } from '@shared/schema/types/column.agg.schema';
+import type { SchemaColumnDataTests } from '@shared/schema/types/column.data_tests.schema';
+import type { SchemaColumnDataType } from '@shared/schema/types/column.data_type.schema';
+import type { SchemaLightdashMetric } from '@shared/schema/types/lightdash.metric.schema';
+import type { SchemaModelCTE } from '@shared/schema/types/model.cte.schema';
+import type { SchemaModelCTEs } from '@shared/schema/types/model.ctes.schema';
+import type { SchemaModelHaving } from '@shared/schema/types/model.having.schema';
+import type { SchemaModelLightdash } from '@shared/schema/types/model.lightdash.schema';
+import type { SchemaModelMaterialized } from '@shared/schema/types/model.materialized.schema';
+import type {
+  SchemaModel,
+  SchemaModelSelectInterval,
+} from '@shared/schema/types/model.schema';
+import type { SchemaModelSelectCol } from '@shared/schema/types/model.select.col.schema';
+import type { SchemaModelSelectColWithAgg } from '@shared/schema/types/model.select.col.with.agg.schema';
+import type { SchemaModelSelectCTE } from '@shared/schema/types/model.select.cte.schema';
+import type { SchemaModelSelectExpr } from '@shared/schema/types/model.select.expr.schema';
+import type { SchemaModelSelectExprWithAgg } from '@shared/schema/types/model.select.expr.with.agg.schema';
+import type { SchemaModelSelectModel } from '@shared/schema/types/model.select.model.schema';
+import type { SchemaModelSelectModelWithAgg } from '@shared/schema/types/model.select.model.with.agg.schema';
+import type { SchemaModelSelectSource } from '@shared/schema/types/model.select.source.schema';
+import type { SchemaModelWhere } from '@shared/schema/types/model.where.schema';
+import type { SchemaSourcePartition } from '@shared/schema/types/source.schema';
+import type { SchemaSource } from '@shared/schema/types/source.schema';
 
 export type FrameworkApi =
   | {
@@ -36,6 +40,79 @@ export type FrameworkApi =
         name: string;
         topic: string;
         type: FrameworkModel['type'];
+        projectName: string;
+        materialized?: SchemaModelMaterialized;
+        source?: string; // UI field, should be excluded from actual API request
+        description?: string;
+        tags?: string[];
+        incremental_strategy?: {
+          type: 'delete+insert' | 'merge';
+          unique_key?: string | [string, ...string[]];
+          merge_update_columns?: string[];
+          merge_exclude_columns?: string[];
+        };
+        sql_hooks?: {
+          pre?: string | [string, ...string[]];
+          post?: string | [string, ...string[]];
+        };
+        partitioned_by?: [string, ...string[]];
+        exclude_daily_filter?: boolean;
+        exclude_date_filter?: boolean;
+        exclude_portal_partition_columns?: boolean;
+        exclude_portal_source_count?: boolean;
+        from?: {
+          model?: string;
+          rollup?: {
+            interval: 'day' | 'hour' | 'month' | 'year';
+          };
+          join?: Array<{
+            model: string;
+            on: { and: Array<{ expr: string }> };
+            type: string;
+          }>;
+        };
+        select?: Array<{
+          type: string;
+          model: string;
+          include?: string[];
+        }>;
+        group_by?: Array<string | { expr: string } | { type: 'dims' }>;
+        where?:
+          | string
+          | {
+              and?: Array<string | { expr: string }>;
+              or?: Array<string | { expr: string }>;
+            };
+        lightdash?: {
+          table?: {
+            group_label?: string;
+            label?: string;
+            ai_hint?: string | string[];
+            group_details?: any;
+            required_attributes?: any;
+            required_filters?: any;
+            sql_filter?: string;
+            sql_where?: string;
+          };
+          metrics?: Array<{
+            id?: string;
+            name: string;
+            type: string;
+            label?: string;
+            group_label?: string;
+          }>;
+          metrics_exclude?: string[];
+          metrics_include?: string[];
+        };
+      };
+      response: string;
+    }
+  | {
+      type: 'framework-model-update';
+      service: 'framework';
+      request: {
+        originalModelPath: string; // Path to the current model.json file
+        modelJson: FrameworkModel; // Complete updated model JSON
         projectName: string;
       };
       response: string;
@@ -50,6 +127,189 @@ export type FrameworkApi =
         trinoTable: string;
       };
       response: string;
+    }
+  | {
+      type: 'framework-get-current-model-data';
+      service: 'framework';
+      request: null;
+      response: { modelData: any; editFormType: string; isEditMode: boolean };
+    }
+  | {
+      type: 'framework-get-model-data';
+      service: 'framework';
+      request: { modelName: string };
+      response: FrameworkModel | null;
+    }
+  | {
+      type: 'framework-close-panel';
+      service: 'framework';
+      request: { panelType: string };
+      response: { success: boolean };
+    }
+  | {
+      type: 'framework-show-message';
+      service: 'framework';
+      request: {
+        message: string;
+        type: 'info' | 'success' | 'warning' | 'error';
+        closePanel?: boolean;
+      };
+      response: { success: boolean };
+    }
+  | {
+      type: 'framework-open-external-url';
+      service: 'framework';
+      request: { url: string };
+      response: { success: boolean };
+    }
+  | {
+      type: 'framework-model-preview';
+      service: 'framework';
+      request: {
+        projectName: string;
+        modelJson: Record<string, any>;
+      };
+      response: {
+        json: string;
+        sql: string;
+        yaml: string;
+        columns: Array<{
+          name: string;
+          description: string;
+          type: 'dim' | 'fct';
+          dataType: string;
+        }>;
+      };
+    }
+  | {
+      type: 'framework-get-original-model-files';
+      service: 'framework';
+      request: {
+        originalModelPath: string;
+      };
+      response: {
+        json: string;
+        sql: string;
+        yaml: string;
+      };
+    }
+  | {
+      type: 'framework-column-lineage';
+      service: 'framework';
+      request: {
+        /** Action to perform */
+        action:
+          | 'validate'
+          | 'get-columns'
+          | 'compute'
+          | 'webview-ready'
+          | 'switch-to-model-column'
+          | 'switch-to-source-column'
+          | 'get-source-tables'
+          | 'get-source-columns'
+          | 'compute-source-lineage'
+          | 'export-lineage'
+          | 'export-source-lineage'
+          | 'save-csv';
+        /**
+         * Path to model/source file (.model.json, .source.json, .sql, or .yml).
+         * Required for validate/get-columns/compute/switch-to-model-column/switch-to-source-column/export-lineage/get-source-tables/get-source-columns/compute-source-lineage.
+         * */
+        filePath?: string;
+        /**
+         * Column name.
+         * Required for 'compute', 'switch-to-model-column', 'switch-to-source-column', 'compute-source-lineage'.
+         * Optional for 'export-lineage' (if omitted, exports all columns).
+         * */
+        columnName?: string;
+        /** Table name within source. Required for 'get-source-columns' and 'compute-source-lineage'. */
+        tableName?: string;
+        /** Number of upstream levels to trace (-1 for unlimited, default: 2) */
+        upstreamLevels?: number;
+        /** Number of downstream levels to trace (-1 for unlimited, default: 2) */
+        downstreamLevels?: number;
+        /** CSV content to save (required for 'save-csv' action) */
+        csvContent?: string;
+        /** Suggested filename for save dialog (required for 'save-csv' action) */
+        suggestedFilename?: string;
+        /** Skip opening the file in editor (for UI-triggered lineage). Used by 'switch-to-model-column' and 'switch-to-source-column'. */
+        skipOpenFile?: boolean;
+      };
+      response: {
+        success: boolean;
+        error?: string;
+        /** Model name (returned by 'validate' action) */
+        modelName?: string;
+        /** Source name (returned by 'get-source-tables' action) */
+        sourceName?: string;
+        /** Column list with metadata (returned by 'get-columns' and 'get-source-columns' action) */
+        columns?: FrameworkColumn[];
+        /** Table list with column counts (returned by 'get-source-tables' action) */
+        tables?: Array<{ name: string; columnCount: number }>;
+        /** Lineage DAG (returned by 'compute' and 'compute-source-lineage' action) */
+        dag?: {
+          targetColumn: string;
+          nodes: Array<{
+            id: string;
+            columnName: string;
+            modelName: string;
+            modelLayer: 'source' | 'staging' | 'intermediate' | 'mart';
+            modelType: string;
+            dataType?: string;
+            description?: string;
+            transformation: 'raw' | 'passthrough' | 'renamed' | 'derived';
+            expression?: string;
+            filePath?: string;
+          }>;
+          edges: Array<{
+            source: string;
+            target: string;
+            transformation: 'raw' | 'passthrough' | 'renamed' | 'derived';
+            expression?: string;
+          }>;
+          roots: string[];
+          leaves: string[];
+          /** Whether there are more upstream nodes beyond the current roots */
+          hasMoreUpstream: boolean;
+          /** Whether there are more downstream nodes beyond the current leaves */
+          hasMoreDownstream: boolean;
+        };
+        /** CSV content (returned by 'export-lineage' action) */
+        csvContent?: string;
+        /** Suggested filename (returned by 'export-lineage' action) */
+        suggestedFilename?: string;
+      };
+    }
+  | {
+      type: 'framework-preferences';
+      service: 'framework';
+      request: {
+        /** Action to perform */
+        action: 'get' | 'set';
+        /** Context for the preference (e.g., 'column-lineage', 'data-explorer') */
+        context: string;
+        /** Value for set action (boolean preference value) */
+        value?: boolean;
+      };
+      response: {
+        success: boolean;
+        error?: string;
+        /** Preference value (returned by 'get' action) */
+        value?: boolean;
+      };
+    }
+  | {
+      type: 'framework-check-model-exists';
+      service: 'framework';
+      request: {
+        projectName: string;
+        modelJson: Pick<FrameworkModel, 'group' | 'name' | 'topic' | 'type'>;
+      };
+      response: {
+        exists: boolean;
+        fileName: string;
+        filePath: string;
+      };
     };
 
 async function apiHandler(p: {
@@ -57,13 +317,53 @@ async function apiHandler(p: {
   request: ApiRequest<'framework-model-create'>;
 }): Promise<ApiResponse<'framework-model-create'>>;
 async function apiHandler(p: {
+  type: 'framework-model-update';
+  request: ApiRequest<'framework-model-update'>;
+}): Promise<ApiResponse<'framework-model-update'>>;
+async function apiHandler(p: {
   type: 'framework-source-create';
   request: ApiRequest<'framework-source-create'>;
 }): Promise<ApiResponse<'framework-source-create'>>;
-async function apiHandler(
-  p: Omit<FrameworkApi, 'response' | 'service'>,
+async function apiHandler(p: {
+  type: 'framework-get-current-model-data';
+  request: ApiRequest<'framework-get-current-model-data'>;
+}): Promise<ApiResponse<'framework-get-current-model-data'>>;
+async function apiHandler(p: {
+  type: 'framework-get-model-data';
+  request: ApiRequest<'framework-get-model-data'>;
+}): Promise<ApiResponse<'framework-get-model-data'>>;
+async function apiHandler(p: {
+  type: 'framework-close-panel';
+  request: ApiRequest<'framework-close-panel'>;
+}): Promise<ApiResponse<'framework-close-panel'>>;
+async function apiHandler(p: {
+  type: 'framework-show-message';
+  request: ApiRequest<'framework-show-message'>;
+}): Promise<ApiResponse<'framework-show-message'>>;
+async function apiHandler(p: {
+  type: 'framework-open-external-url';
+  request: ApiRequest<'framework-open-external-url'>;
+}): Promise<ApiResponse<'framework-open-external-url'>>;
+async function apiHandler(p: {
+  type: 'framework-model-preview';
+  request: ApiRequest<'framework-model-preview'>;
+}): Promise<ApiResponse<'framework-model-preview'>>;
+async function apiHandler(p: {
+  type: 'framework-get-original-model-files';
+  request: ApiRequest<'framework-get-original-model-files'>;
+}): Promise<ApiResponse<'framework-get-original-model-files'>>;
+async function apiHandler(p: {
+  type: 'framework-column-lineage';
+  request: ApiRequest<'framework-column-lineage'>;
+}): Promise<ApiResponse<'framework-column-lineage'>>;
+async function apiHandler(p: {
+  type: 'framework-check-model-exists';
+  request: ApiRequest<'framework-check-model-exists'>;
+}): Promise<ApiResponse<'framework-check-model-exists'>>;
+function apiHandler(
+  _p: Omit<FrameworkApi, 'response' | 'service'>,
 ): Promise<unknown> {
-  return null;
+  return Promise.resolve(null);
 }
 export type FrameworkApiHandler = typeof apiHandler;
 
@@ -120,8 +420,11 @@ export type FrameworkEtlSource = {
   source_id: string;
 };
 
+export type FrameworkCTE = SchemaModelCTE;
+export type FrameworkCTEs = SchemaModelCTEs;
 export type FrameworkModel = SchemaModel;
 export type FrameworkModelHaving = SchemaModelHaving;
+export type FrameworkSelectCTE = SchemaModelSelectCTE;
 export type FrameworkModelLightdash = SchemaModelLightdash;
 export type FrameworkModelMeta = LightdashTable & {
   local_tags?: string[];
@@ -156,12 +459,8 @@ export type FrameworkPartitionName =
   | 'portal_partition_hourly'
   | 'portal_partition_monthly';
 
-export type FrameworkProjectOption = {
-  label: string;
-  value: string;
-};
-
-export type FrameworkProjectOptions = Array<FrameworkProjectOption>;
+// Project names are dynamic based on user's dbt_project.yml configuration
+export type FrameworkProjectName = string;
 
 export type FrameworkSchemaBase = {
   $id?: string;
@@ -189,7 +488,6 @@ export type FrameworkSelected =
   | SchemaModelSelectModelWithAgg
   | SchemaModelSelectSource;
 
-// TODO: Populate from schema
 export type FrameworkSource = SchemaSource;
 
 export type FrameworkSourcePartition = SchemaSourcePartition;
@@ -259,12 +557,12 @@ export type FrameworkSyncOp =
       path: string;
     }
   | {
+      type: 'rename';
+      oldPath: string;
+      newPath: string;
+    }
+  | {
       type: 'write';
       text: string;
       path: string;
     };
-
-export type FrameworkSyncPayload = {
-  timestamp: string;
-  roots?: { id: string; pathJson: string }[];
-};

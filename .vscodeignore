@@ -6,24 +6,34 @@
 dist/**/shared/**
 dist/**/test/**
 dist/**/__tests__/**
+out/**
+
+# Assets
+assets/
+!assets/images/
 
 # Development files
+.claude
+.dj/
+.github/
+AGENTS.md
+docs/
 fixtures/
 scripts/
 src/
-web/
-docs/
-.dj/
 tests/
+web/
 
 # Development configs
 .eslintrc.json
+.eslintcache
 .gitignore
 .prettierrc
 .prettierignore
 
 Dockerfile
-esbuild.js
+esbuild.mjs
+eslint.config.mjs
 jest.config.ts
 tsconfig.json
 

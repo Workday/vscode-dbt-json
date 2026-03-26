@@ -1,5 +1,5 @@
 import { mergeDeep } from '@shared';
-import { FrameworkColumn } from '@shared/framework/types';
+import type { FrameworkColumn } from '@shared/framework/types';
 
 describe('mergeDeep', () => {
   test('merge-time-intervals', () => {

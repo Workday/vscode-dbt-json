@@ -17,7 +17,7 @@ export type SchemaModelSelectExpr =
       lightdash?: SchemaColumnLightdash;
       name: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type?: "dim";
+      type?: 'dim';
     }
   | {
       data_type?: SchemaColumnDataType;
@@ -26,27 +26,27 @@ export type SchemaModelSelectExpr =
       lightdash?: SchemaColumnLightdash;
       name: SchemaColumnName;
       data_tests?: SchemaColumnDataTests;
-      type: "fct";
+      type: 'fct';
     };
 /**
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * Description for the selected column
  */
@@ -64,6 +64,16 @@ export type SchemaColumnExpr = string;
  */
 export type SchemaLightdashAIHint = string | string[];
 /**
+ * Validate model tags
+ */
+export type SchemaModelTags = (
+  | string
+  | {
+      tag: string;
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
+    }
+)[];
+/**
  * Validate Lightdash metric name
  */
 export type SchemaLightdashMetricName = string;
@@ -75,7 +85,15 @@ export type SchemaColumnName = string;
  * Validate column data_tests
  */
 export type SchemaColumnDataTests = (
-  | ("not_null" | "unique")
+  | (
+      | 'accepted_values'
+      | 'equal_or_lower_row_count'
+      | 'equal_row_count'
+      | 'no_null_aggregates'
+      | 'not_null'
+      | 'relationships'
+      | 'unique'
+    )
   | {
       unique: {
         config: {
@@ -84,16 +102,50 @@ export type SchemaColumnDataTests = (
       };
     }
   | {
-      accepted_values: {
-        quote?: boolean;
-        values: string[];
-      };
+      /**
+       * Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data.
+       */
+      type: 'no_null_aggregates';
+      /**
+       * Name of the aggregate column to test (e.g., 'total_amount', 'record_count')
+       */
+      column_name: string;
+      /**
+       * Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified.
+       */
+      date_filter_column?: string;
+      /**
+       * Data type of the date filter column. Affects how date filtering is applied.
+       */
+      date_filter_type?: 'date' | 'timestamp' | 'string' | 'number';
     }
   | {
-      relationships: {
-        field: SchemaColumnName;
-        to: string;
-      };
+      /**
+       * Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column.
+       */
+      type: 'equal_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types.
+       */
+      join_type?: string;
+    }
+  | {
+      /**
+       * Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column.
+       */
+      type: 'equal_or_lower_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes.
+       */
+      join_type?: string;
     }
 )[];
 
@@ -103,11 +155,36 @@ export interface SchemaColumnLightdash {
    * @minItems 1
    */
   metrics?: [
-    ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum") | SchemaLightdashMetric,
-    ...(
-      | ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum")
+    (
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
       | SchemaLightdashMetric
-    )[]
+    ),
+    ...(
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
+      | SchemaLightdashMetric
+    )[],
   ];
   metrics_merge?: SchemaLightdashMetricMerge;
 }
@@ -128,36 +205,37 @@ export interface SchemaLightdashDimension {
   label?: string;
   required_attributes?: SchemaLightdashRequiredAttributes;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * SQL statement to determine the dimension
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The time intervals for the lightdash dimension
    */
   time_intervals?:
-    | "OFF"
+    | 'OFF'
     | (
-        | "DAY"
-        | "DAY_OF_WEEK_INDEX"
-        | "DAY_OF_WEEK_NAME"
-        | "DAY_OF_MONTH_NUM"
-        | "DAY_OF_YEAR_NUM"
-        | "HOUR"
-        | "MONTH"
-        | "MONTH_NAME"
-        | "MONTH_NUM"
-        | "QUARTER"
-        | "QUARTER_NAME"
-        | "QUARTER_NUM"
-        | "RAW"
-        | "WEEK"
-        | "WEEK_NUM"
-        | "YEAR"
-        | "YEAR_NUM"
+        | 'DAY'
+        | 'DAY_OF_WEEK_INDEX'
+        | 'DAY_OF_WEEK_NAME'
+        | 'DAY_OF_MONTH_NUM'
+        | 'DAY_OF_YEAR_NUM'
+        | 'HOUR'
+        | 'MONTH'
+        | 'MONTH_NAME'
+        | 'MONTH_NUM'
+        | 'QUARTER'
+        | 'QUARTER_NAME'
+        | 'QUARTER_NUM'
+        | 'RAW'
+        | 'WEEK'
+        | 'WEEK_NUM'
+        | 'YEAR'
+        | 'YEAR_NUM'
       )[];
-  type?: "boolean" | "date" | "number" | "string" | "timestamp";
+  type?: 'boolean' | 'date' | 'number' | 'string' | 'timestamp';
   /**
    * The URLs for the lightdash dimension
    */
@@ -196,7 +274,7 @@ export interface SchemaLightdashMetric {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
   /**
    * The description that will be applied to the column in lightdash
    */
@@ -207,27 +285,28 @@ export interface SchemaLightdashMetric {
   label?: string;
   name: SchemaLightdashMetricName;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The custom sql expression to generate the metric
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The type of metric
    */
   type:
-    | "average"
-    | "boolean"
-    | "count"
-    | "count_distinct"
-    | "date"
-    | "max"
-    | "median"
-    | "min"
-    | "number"
-    | "percentile"
-    | "string"
-    | "sum";
+    | 'average'
+    | 'boolean'
+    | 'count'
+    | 'count_distinct'
+    | 'date'
+    | 'max'
+    | 'median'
+    | 'min'
+    | 'number'
+    | 'percentile'
+    | 'string'
+    | 'sum';
 }
 /**
  * Values that can be merged in to override values on a metric
@@ -236,8 +315,12 @@ export interface SchemaLightdashMetricMerge {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
+  /**
+   * The description that will be applied to the metric in lightdash
+   */
+  description?: string;
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The group label that will be applied to the column in lightdash
    */

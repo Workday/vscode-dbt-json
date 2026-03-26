@@ -12,8 +12,12 @@ export interface SchemaLightdashMetricMerge {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
+  /**
+   * The description that will be applied to the metric in lightdash
+   */
+  description?: string;
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The group label that will be applied to the column in lightdash
    */

@@ -1,0 +1,37 @@
+{
+    "type": "int_lookback_model",
+    "group": "sales",
+    "topic": "analytics",
+    "name": "rolling_30day",
+    "from": {
+        "model": "int__sales__orders__enriched",
+        "lookback": {
+            "days": 30
+        }
+    },
+    "select": [
+        "store_id",
+        "store_name",
+        "order_date",
+        {
+            "model": "int__sales__orders__enriched",
+            "name": "order_total_dollars",
+            "aggs": ["sum", "min", "max"],
+            "type": "fct",
+            "description": "Revenue metrics for the last 30 days (sum, min, max)"
+        },
+        {
+            "model": "int__sales__orders__enriched",
+            "name": "order_id",
+            "agg": "count",
+            "type": "fct",
+            "description": "Number of orders in the last 30 days"
+        }
+    ],
+    "group_by": [
+        "store_id",
+        "store_name",
+        "order_date"
+    ],
+    "description": "30-day rolling window analysis of sales metrics partitioned by store for trend analysis"
+}

@@ -1,4 +1,5 @@
 import esbuild from 'esbuild';
+import process from 'process';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -37,6 +38,8 @@ async function main() {
     platform: 'node',
     outfile: 'dist/extension/extension.js',
     external: ['vscode'],
+    target: 'es2023',
+    tsconfig: 'tsconfig.json',
     loader: {
       // '.node': 'file',
     },

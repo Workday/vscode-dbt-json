@@ -10,7 +10,7 @@
  */
 export type ModelIncrementalStrategySchemaJson =
   | {
-      type: "delete+insert";
+      type: 'delete+insert';
       /**
        * Override the unique key(s) to use for merging
        */
@@ -18,7 +18,7 @@ export type ModelIncrementalStrategySchemaJson =
       [k: string]: unknown | undefined;
     }
   | {
-      type: "merge";
+      type: 'merge';
       /**
        * The unique key(s) to use for merging
        */

@@ -3,5 +3,5 @@
   "title": "Schema Model Group",
   "description": "Validate group reference",
   "type": "string",
-  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+  "pattern": "^(?!.*__.*)(?!_)(?!.*_$)([a-z]|[0-9]|_)+$"
 }

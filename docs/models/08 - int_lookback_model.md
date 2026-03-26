@@ -4,7 +4,20 @@
 
 The `int_lookback_model` is designed for time-based analysis that calculates aggregated values over a trailing time period (lookback window). This model type is essential for creating rolling metrics, trend analysis, and time-based business intelligence that considers historical data within a specified timeframe relative to each record's date.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_lookback_model`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, add Lookback node, configure time window and aggregations (see time-series workflow example in Visual Editor guide)
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_lookback_model` are:
 
@@ -15,7 +28,7 @@ The primary purposes of the `int_lookback_model` are:
 - **Business Intelligence:** Create metrics that consider recent historical context
 - **Seasonal Analysis:** Analyze patterns over specific time periods (7-day, 30-day, 90-day windows)
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_lookback_model` requires the following configuration parameters:
 
@@ -32,7 +45,7 @@ An `int_lookback_model` requires the following configuration parameters:
 - **`select`:** Array of column definitions with aggregation support
 - **`group_by`:** Optional grouping for aggregations
 
-## 4. Lookback Process
+## 5. Lookback Process
 
 The `int_lookback_model` performs the following transformation:
 
@@ -42,7 +55,7 @@ The `int_lookback_model` performs the following transformation:
 4. **Aggregation:** Applies aggregation functions (sum, avg, max, min, count) over the time window
 5. **Result Generation:** Produces aggregated metrics for each group over the trailing period
 
-## 5. Basic Example: Store Performance Trends
+## 6. Basic Example: Store Performance Trends
 
 Let's create a model that analyzes store performance over rolling 7-day windows to identify trends and patterns.
 
@@ -156,7 +169,7 @@ This example demonstrates:
 - **Unit conversions:** Cents to dollars for business-friendly reporting
 - **Percentage calculations:** Weekend order percentage for trend analysis
 
-## 6. Advanced Example: Customer Behavior Analysis
+## 7. Advanced Example: Customer Behavior Analysis
 
 Let's create a more complex example that analyzes customer behavior patterns over 30-day rolling windows with advanced business logic.
 
@@ -282,7 +295,7 @@ This example demonstrates:
 - **Segment consistency:** Tracking customer segment stability over time
 - **Boolean indicators:** Binary flags for customer classification
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Time Window Selection
 
@@ -305,7 +318,7 @@ This example demonstrates:
 - **Account for seasonality:** Be aware of seasonal patterns that might affect rolling metrics
 - **Test edge cases:** Validate behavior at the beginning and end of date ranges
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `int_lookback_model` serves as a time-based analytics layer:
 

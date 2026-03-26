@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import { glob } from 'glob';
 import * as path from 'path';
-import { DbtProjectManifest } from '../src/shared/dbt/types';
+
+import type { DbtProjectManifest } from '../src/shared/dbt/types';
 
 /**
  * Updates test fixtures from a dbt project
@@ -21,7 +22,7 @@ function main() {
   const dbtProjectPath = process.argv[2] ?? EXAMPLE_PROJECT_PATH;
 
   if (!process.argv[2]) {
-    console.log(`Using default project path: ${EXAMPLE_PROJECT_PATH}`);
+    console.warn(`Using default project path: ${EXAMPLE_PROJECT_PATH}`);
   }
 
   if (!fs.existsSync(dbtProjectPath)) {
@@ -36,17 +37,17 @@ function main() {
 
   if (!fs.existsSync(manifestPath)) {
     console.error(`Error: manifest.json not found at: ${manifestPath}`);
-    console.log('Run "dbt parse" or "dbt run" in the project first');
+    console.error('Run "dbt parse" or "dbt run" in the project first');
     process.exit(1);
   }
 
-  console.log(`Cleaning existing fixtures...`);
+  console.info(`Cleaning existing fixtures...`);
   try {
     fs.rmSync(fixturesDir, { recursive: true });
   } catch {}
   fs.mkdirSync(fixturesDir);
 
-  console.log(`Found ${modelJsonFiles.length} model files to copy...`);
+  console.info(`Found ${modelJsonFiles.length} model files to copy...`);
 
   for (const pathJson of modelJsonFiles) {
     const pathSql = pathJson.replace(/\.model\.json$/, '.sql');
@@ -68,14 +69,16 @@ function main() {
     );
   }
 
-  console.log(`Copying manifest.json...`);
-  const { macros, ...manifest } = JSON.parse(
+  console.info(`Copying manifest.json...`);
+  const { macros: _macros, ...manifest } = JSON.parse(
     fs.readFileSync(manifestPath, 'utf8'),
   ) as DbtProjectManifest;
 
   // Sanitize root_path fields to remove local system paths for privacy/security
   const sanitizeRootPaths = (obj: any): any => {
-    if (typeof obj !== 'object' || obj === null) return obj;
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
 
     if (Array.isArray(obj)) {
       return obj.map(sanitizeRootPaths);
@@ -102,10 +105,10 @@ function main() {
   );
 
   const totalFiles = fs.readdirSync(fixturesDir).length;
-  console.log(`Fixtures updated successfully!`);
-  console.log(`Total files: ${totalFiles}`);
-  console.log(`Location: ${fixturesDir}`);
-  console.log(`Run "npm run test" to validate`);
+  console.info(`Fixtures updated successfully!`);
+  console.info(`Total files: ${totalFiles}`);
+  console.info(`Location: ${fixturesDir}`);
+  console.info(`Run "npm run test" to validate`);
 }
 
 main();

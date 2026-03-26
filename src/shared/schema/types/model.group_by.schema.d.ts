@@ -17,7 +17,7 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
   ),
   ...(
@@ -26,7 +26,7 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
-  )[]
+  )[],
 ];

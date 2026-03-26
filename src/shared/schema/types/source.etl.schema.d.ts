@@ -34,7 +34,7 @@ export type SchemaSourceEtl =
        * SQL statement which will be run before a retry if the first attempt to query the source dates fails
        */
       sql_retry?: string;
-      type?: "event_count";
+      type?: 'event_count';
     }
   | {
       /**
@@ -45,5 +45,5 @@ export type SchemaSourceEtl =
        * SQL statement which will be run before a retry if the first attempt to query the source dates fails
        */
       sql_retry?: string;
-      type?: "run_schedule";
+      type?: 'run_schedule';
     };

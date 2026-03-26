@@ -1,4 +1,4 @@
-import {
+import type {
   FrameworkColumnAgg,
   FrameworkColumnDataTests,
   FrameworkDataType,
@@ -8,7 +8,10 @@ import {
   FrameworkSourceMeta,
   FrameworkSourceTableMeta,
 } from '@shared/framework/types';
-import { LightdashDimension, LightdashMetrics } from '@shared/lightdash/types';
+import type {
+  LightdashDimension,
+  LightdashMetrics,
+} from '@shared/lightdash/types';
 
 export type DbtApi =
   | {
@@ -26,6 +29,30 @@ export type DbtApi =
       response: DbtProject[];
     }
   | {
+      type: 'dbt-fetch-sources';
+      service: 'dbt';
+      request: null;
+      response: string[];
+    }
+  | {
+      type: 'dbt-fetch-available-models';
+      service: 'dbt';
+      request: {
+        projectName: string;
+      };
+      response: string[];
+    }
+  | {
+      type: 'dbt-get-model-info';
+      service: 'dbt';
+      request: null;
+      response: {
+        modelName: string | null;
+        projectName: string;
+        projectPath: string;
+      } | null;
+    }
+  | {
       type: 'dbt-parse-project';
       service: 'dbt';
       request: {
@@ -40,13 +67,97 @@ export type DbtApi =
   | {
       type: 'dbt-run-model';
       service: 'dbt';
-      request: { modelName: string; projectName: string };
+      request: {
+        config: DbtRunConfig;
+      };
       response: null;
     }
   | {
-      type: 'dbt-run-model-lineage';
+      type: 'dbt-fetch-models-with-tests';
       service: 'dbt';
-      request: { modelName: string; projectName: string };
+      request: { projectName: string };
+      response: {
+        modifiedModels: Array<{
+          name: string;
+          testCount: number;
+          testDetails: Array<{
+            name: string;
+            testType: string;
+            columnName?: string;
+          }>;
+          hasJoins: boolean;
+          hasAggregates: boolean;
+          hasPortalPartitionDaily: boolean;
+          modelType: string | null;
+          existingDataTests: Array<{ type: string; [key: string]: any }>;
+          fromModel: string | null;
+          firstJoinType: string | null;
+        }>;
+        availableModels: Array<{
+          name: string;
+          testCount: number;
+          testDetails: Array<{
+            name: string;
+            testType: string;
+            columnName?: string;
+          }>;
+          hasJoins: boolean;
+          hasAggregates: boolean;
+          hasPortalPartitionDaily: boolean;
+          modelType: string | null;
+          existingDataTests: Array<{ type: string; [key: string]: any }>;
+          fromModel: string | null;
+          firstJoinType: string | null;
+        }>;
+      };
+    }
+  | {
+      type: 'dbt-add-model-tests';
+      service: 'dbt';
+      request: {
+        projectName: string;
+        modelName: string;
+        autoDetect?: boolean;
+        tests?: Array<{
+          type: string;
+          compare_model?: string;
+          column_name?: string;
+          join_type?: string;
+        }>;
+      };
+      response: {
+        success: boolean;
+        addedTests: Array<{ type: string; [key: string]: any }>;
+      };
+    }
+  | {
+      type: 'dbt-remove-model-tests';
+      service: 'dbt';
+      request: {
+        projectName: string;
+        modelNames: string[];
+      };
+      response: {
+        success: boolean;
+        modelsUpdated: number;
+      };
+    }
+  | {
+      type: 'dbt-run-test';
+      service: 'dbt';
+      request: {
+        projectName: string;
+        models: Array<{
+          name: string;
+          config: {
+            upstream: boolean;
+            downstream: boolean;
+            fullLineage: boolean;
+            upLimit: number;
+            downLimit: number;
+          };
+        }>;
+      };
       response: null;
     };
 
@@ -61,6 +172,8 @@ export type DbtProperties = {
   semantic_models: DbtSemanticModelProperties[];
   sources: DbtSourceProperties[];
 };
+
+// Note: dbt groups are dynamic strings based on project structure, not a fixed type
 
 export type DbtMacroProperties = {
   arguments: { description: string; name: string; type: DbtArgumentType }[];
@@ -203,23 +316,23 @@ export type DbtProjectCatalogNode = {
   columns: { [name: string]: DbtProjectCatalogNodeColumn };
 };
 
-export type DbtProjectCatalogNodeColumn = {};
+export type DbtProjectCatalogNodeColumn = Record<string, unknown>;
 
 export type DbtProjectManifest = {
   child_map: { [id: string]: string[] | undefined };
-  disabled: {};
-  docs: {};
-  exposures: {};
-  group_map: {};
+  disabled: Record<string, unknown>;
+  docs: Record<string, unknown>;
+  exposures: Record<string, unknown>;
+  group_map: Record<string, unknown>;
   groups: { [id: string]: DbtProjectManifestGroup | undefined };
   macros: { [id: string]: DbtProjectManifestMacro };
   metadata: Partial<DbtProjectManifestMetadata>;
-  metrics: {};
+  metrics: Record<string, unknown>;
   nodes: { [id: string]: Partial<DbtProjectManifestNode> | undefined };
   parent_map: { [id: string]: string[] | undefined };
-  saved_queries: {};
-  selectors: {};
-  semantic_models: {};
+  saved_queries: Record<string, unknown>;
+  selectors: Record<string, unknown>;
+  semantic_models: Record<string, unknown>;
   sources: { [id: string]: Partial<DbtProjectManifestSource> | undefined };
 };
 
@@ -260,7 +373,7 @@ export type DbtProjectManifestMacro = {
   macro_sql: string;
   depends_on: { macros: string[] };
   description: string;
-  meta: {};
+  meta: Record<string, unknown>;
   docs: { show: boolean; node_color: null };
   patch_path: string | null;
   arguments: DbtArgument[];
@@ -304,7 +417,11 @@ export type DbtProjectManifestNode = {
   schema: string;
   sources: [];
   tags: string[];
-  test_metadata: { name: string; kwargs: {}; namespace: string };
+  test_metadata: {
+    name: string;
+    kwargs: Record<string, unknown>;
+    namespace: string;
+  };
   unique_id: string;
   unrendered_config: { alias: string };
 };
@@ -361,7 +478,7 @@ export type DbtProjectManifestSource = {
   tags: string[];
   config: { enabled: boolean };
   patch_path: null;
-  unrendered_config: {};
+  unrendered_config: Record<string, unknown>;
   relation_name: string;
   created_at: number;
 };
@@ -486,4 +603,47 @@ export type DbtSourceTableColumn = {
   // data_type: FrameworkDataType;
   data_type: string;
   meta?: FrameworkSourceColumnMeta;
+};
+
+export type DbtRunScope =
+  | 'single'
+  | 'multi-model'
+  | 'full-project'
+  | 'modified';
+
+export type DbtRunLineage =
+  | 'model-only'
+  | 'upstream'
+  | 'downstream'
+  | 'full-lineage';
+
+export type SelectedModel = {
+  modelName: string;
+  lineage: DbtRunLineage;
+};
+
+export type DbtRunConfig = {
+  // Initial Commands
+  cleanAndDeps: boolean;
+  seed: boolean;
+  // Advanced Flags
+  build: boolean;
+  defer: boolean;
+  fullRefresh: boolean;
+  // Run Scope
+  scope: DbtRunScope;
+  // Project and model context (for single scope)
+  projectName?: string;
+  projectPath?: string;
+  modelName?: string | null;
+  lineage?: DbtRunLineage;
+  // Selected models (for multi-model scope)
+  selectedModels?: SelectedModel[];
+  // Dates
+  startDate?: string;
+  endDate?: string;
+  // State Path (for defer)
+  statePath?: string;
+  // Modified models list (for modified scope)
+  modifiedModels?: string[];
 };

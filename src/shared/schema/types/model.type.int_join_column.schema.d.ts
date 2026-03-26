@@ -46,25 +46,79 @@ export type SchemaModelTags = (
   | string
   | {
       tag: string;
-      type?: "exclude" | "inherit" | "local";
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
     }
 )[];
 /**
  * Validate model data_tests
  */
-export type SchemaModelDataTests = {
-  type: "unique";
-  column_name: string;
-}[];
+export type SchemaModelDataTests = (
+  | {
+      /**
+       * Validates that all values in the specified column are unique (no duplicates).
+       */
+      type: 'unique';
+      /**
+       * Name of the column to test for uniqueness (e.g., 'id', 'email')
+       */
+      column_name: string;
+    }
+  | {
+      /**
+       * Validates that row count equals parent model (detects unintended 1-to-many relationships). Requires portal_partition_daily column.
+       */
+      type: 'equal_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Test only runs for specified join types.
+       */
+      join_type?: string;
+    }
+  | {
+      /**
+       * Validates that the SUM of an aggregate column is not NULL for any date partition. This catches partitions where all values are NULL or missing. Use for fact columns in rollup/aggregation models to ensure complete data.
+       */
+      type: 'no_null_aggregates';
+      /**
+       * Name of the aggregate column to test (e.g., 'total_amount', 'record_count')
+       */
+      column_name: string;
+      /**
+       * Column to use for date filtering. Defaults to 'portal_partition_daily' if not specified.
+       */
+      date_filter_column?: string;
+      /**
+       * Data type of the date filter column. Affects how date filtering is applied.
+       */
+      date_filter_type?: 'date' | 'timestamp' | 'string' | 'number';
+    }
+  | {
+      /**
+       * Validates that row count is less than or equal to parent model. Use for joins with filtering conditions. Requires portal_partition_daily column.
+       */
+      type: 'equal_or_lower_row_count';
+      /**
+       * Parent model to compare against. Use ref() syntax, e.g., ref('parent_model_name')
+       */
+      compare_model: string;
+      /**
+       * Type of join used (e.g., 'left', 'inner'). Optional, for documentation purposes.
+       */
+      join_type?: string;
+    }
+)[];
 /**
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
   | {
-      type: "ephemeral";
+      type: 'ephemeral';
     }
   | {
-      type: "incremental";
+      type: 'incremental';
       database?: SchemaModelDatabase;
       format?: SchemaModelFormat;
       partitions?: SchemaModelPartitions;
@@ -77,7 +131,7 @@ export type SchemaModelDatabase = string;
 /**
  * Open table format for the model
  */
-export type SchemaModelFormat = "delta_lake" | "hive" | "iceberg";
+export type SchemaModelFormat = 'delta_lake' | 'hive' | 'iceberg';
 /**
  * Validate column name
  */
@@ -91,7 +145,7 @@ export type SchemaModelPartitions = SchemaColumnName[];
  */
 export type ModelIncrementalStrategySchemaJson =
   | {
-      type: "delete+insert";
+      type: 'delete+insert';
       /**
        * Override the unique key(s) to use for merging
        */
@@ -99,7 +153,7 @@ export type ModelIncrementalStrategySchemaJson =
       [k: string]: unknown | undefined;
     }
   | {
-      type: "merge";
+      type: 'merge';
       /**
        * The unique key(s) to use for merging
        */
@@ -117,13 +171,16 @@ export type ModelIncrementalStrategySchemaJson =
 /**
  * Type of materialization
  */
-export type SchemaModelMaterialized = "ephemeral" | "incremental";
+export type SchemaModelMaterialized = 'ephemeral' | 'incremental';
 /**
  * Override the default partitioned_by configuration for this model
  *
  * @minItems 1
  */
-export type SchemaModelPartitionedBy = [SchemaColumnName, ...SchemaColumnName[]];
+export type SchemaModelPartitionedBy = [
+  SchemaColumnName,
+  ...SchemaColumnName[],
+];
 /**
  * Exclude Daily Filter
  */
@@ -152,7 +209,7 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
   ),
   ...(
@@ -161,9 +218,9 @@ export type SchemaModelGroupBy = [
         expr: string;
       }
     | {
-        type: "dims";
+        type: 'dims';
       }
-  )[]
+  )[],
 ];
 /**
  * SQL WHERE
@@ -194,21 +251,21 @@ export type SchemaColumnExpr = string;
  * Validate data_type scehma for columns
  */
 export type SchemaColumnDataType =
-  | "bigint"
-  | "boolean"
-  | "date"
-  | "datetime"
-  | "double"
-  | "integer"
-  | "number"
-  | "row(date)"
-  | "row(varchar)"
-  | "string"
-  | "timestamp"
-  | "timestamp(0)"
-  | "timestamp(3)"
-  | "timestamp(6)"
-  | "varchar";
+  | 'bigint'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'double'
+  | 'integer'
+  | 'number'
+  | 'row(date)'
+  | 'row(varchar)'
+  | 'string'
+  | 'timestamp'
+  | 'timestamp(0)'
+  | 'timestamp(3)'
+  | 'timestamp(6)'
+  | 'varchar';
 /**
  * Description for the selected column
  */
@@ -222,7 +279,7 @@ export type SchemaModelRef = string;
  * Validates schema for int models which cross join on an unnested column
  */
 export interface SchemaModelTypeIntJoinColumn {
-  type: "int_join_column";
+  type: 'int_join_column';
   group: SchemaModelGroup;
   topic: SchemaModelTopic;
   name: SchemaModelName;
@@ -255,7 +312,7 @@ export interface SchemaModelTypeIntJoinColumn {
           expr?: SchemaColumnExpr;
           lightdash?: SchemaColumnLightdash;
           name: SchemaColumnName;
-          type?: "dim" | "fct";
+          type?: 'dim' | 'fct';
         }
     ),
     ...(
@@ -266,9 +323,9 @@ export interface SchemaModelTypeIntJoinColumn {
           expr?: SchemaColumnExpr;
           lightdash?: SchemaColumnLightdash;
           name: SchemaColumnName;
-          type?: "dim" | "fct";
+          type?: 'dim' | 'fct';
         }
-    )[]
+    )[],
   ];
   from: {
     model: SchemaModelRef;
@@ -337,7 +394,7 @@ export interface SchemaLightdashMetric {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
   /**
    * The description that will be applied to the column in lightdash
    */
@@ -348,27 +405,28 @@ export interface SchemaLightdashMetric {
   label?: string;
   name: SchemaLightdashMetricName;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The custom sql expression to generate the metric
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The type of metric
    */
   type:
-    | "average"
-    | "boolean"
-    | "count"
-    | "count_distinct"
-    | "date"
-    | "max"
-    | "median"
-    | "min"
-    | "number"
-    | "percentile"
-    | "string"
-    | "sum";
+    | 'average'
+    | 'boolean'
+    | 'count'
+    | 'count_distinct'
+    | 'date'
+    | 'max'
+    | 'median'
+    | 'min'
+    | 'number'
+    | 'percentile'
+    | 'string'
+    | 'sum';
 }
 /**
  * SQL statements to run before or after models
@@ -389,11 +447,36 @@ export interface SchemaColumnLightdash {
    * @minItems 1
    */
   metrics?: [
-    ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum") | SchemaLightdashMetric,
-    ...(
-      | ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum")
+    (
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
       | SchemaLightdashMetric
-    )[]
+    ),
+    ...(
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
+      | SchemaLightdashMetric
+    )[],
   ];
   metrics_merge?: SchemaLightdashMetricMerge;
 }
@@ -414,36 +497,37 @@ export interface SchemaLightdashDimension {
   label?: string;
   required_attributes?: SchemaLightdashRequiredAttributes;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * SQL statement to determine the dimension
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The time intervals for the lightdash dimension
    */
   time_intervals?:
-    | "OFF"
+    | 'OFF'
     | (
-        | "DAY"
-        | "DAY_OF_WEEK_INDEX"
-        | "DAY_OF_WEEK_NAME"
-        | "DAY_OF_MONTH_NUM"
-        | "DAY_OF_YEAR_NUM"
-        | "HOUR"
-        | "MONTH"
-        | "MONTH_NAME"
-        | "MONTH_NUM"
-        | "QUARTER"
-        | "QUARTER_NAME"
-        | "QUARTER_NUM"
-        | "RAW"
-        | "WEEK"
-        | "WEEK_NUM"
-        | "YEAR"
-        | "YEAR_NUM"
+        | 'DAY'
+        | 'DAY_OF_WEEK_INDEX'
+        | 'DAY_OF_WEEK_NAME'
+        | 'DAY_OF_MONTH_NUM'
+        | 'DAY_OF_YEAR_NUM'
+        | 'HOUR'
+        | 'MONTH'
+        | 'MONTH_NAME'
+        | 'MONTH_NUM'
+        | 'QUARTER'
+        | 'QUARTER_NAME'
+        | 'QUARTER_NUM'
+        | 'RAW'
+        | 'WEEK'
+        | 'WEEK_NUM'
+        | 'YEAR'
+        | 'YEAR_NUM'
       )[];
-  type?: "boolean" | "date" | "number" | "string" | "timestamp";
+  type?: 'boolean' | 'date' | 'number' | 'string' | 'timestamp';
   /**
    * The URLs for the lightdash dimension
    */
@@ -465,8 +549,12 @@ export interface SchemaLightdashMetricMerge {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
+  /**
+   * The description that will be applied to the metric in lightdash
+   */
+  description?: string;
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The group label that will be applied to the column in lightdash
    */
@@ -486,7 +574,7 @@ export interface SchemaLightdashMetricMerge {
  * Validates the join argument when joining to a column
  */
 export interface SchemaModelFromJoinColumn {
-  type?: "cross_join_unnest";
+  type?: 'cross_join_unnest';
   column: SchemaColumnExpr;
   /**
    * @minItems 1

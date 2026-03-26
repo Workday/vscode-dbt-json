@@ -1,24 +1,25 @@
 {
-  "name": "portal-dbt",
+  "name": "dj-framework",
   "author": "Workday",
   "displayName": "DJ (dbt-json) Framework",
   "description": "An extension for managing dbt projects using Workday's dbt-json (DJ) framework",
-  "icon": "assets/images/icon.png",
+  "icon": "assets/images/dj-logo.png",
   "license": "Apache-2.0",
   "publisher": "workday",
   "repository": {
     "type": "git",
-    "url": "https://github.com/workday/vscode-portal-dbt.git"
+    "url": "https://github.com/Workday/vscode-dbt-json.git"
   },
-  "version": "0.1.0",
+  "version": "1.0.0",
   "workspaces": [
     "web"
   ],
   "engines": {
-    "vscode": "^1.87.0"
+    "vscode": "^1.90.0"
   },
   "categories": [
     "Data Science",
+    "Visualization",
     "Other"
   ],
   "keywords": [
@@ -35,12 +36,61 @@
     "business intelligence",
     "data transformation"
   ],
-  "activationEvents": [
-    "workspaceContains:**/dbt_project.yml"
+  "badges": [
+    {
+      "url": "https://img.shields.io/badge/License-Apache%202.0-blue.svg",
+      "href": "https://opensource.org/licenses/Apache-2.0",
+      "description": "License: Apache 2.0"
+    },
+    {
+      "url": "https://img.shields.io/github/v/release/Workday/vscode-dbt-json",
+      "href": "https://github.com/Workday/vscode-dbt-json/releases",
+      "description": "GitHub Release"
+    },
+    {
+      "url": "https://img.shields.io/badge/dbt-Core-orange.svg",
+      "href": "https://www.getdbt.com/",
+      "description": "dbt Core"
+    },
+    {
+      "url": "https://api.scorecard.dev/projects/github.com/Workday/vscode-dbt-json/badge",
+      "href": "https://scorecard.dev/viewer/?uri=github.com/Workday/vscode-dbt-json",
+      "description": "OpenSSF Scorecard"
+    }
   ],
+  "galleryBanner": {
+    "color": "#022043",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "qna": "https://github.com/Workday/vscode-dbt-json/discussions",
+  "bugs": {
+    "url": "https://github.com/Workday/vscode-dbt-json/issues"
+  },
+  "activationEvents": [
+    "workspaceContains:**/dbt_project.yml",
+    "onView:dj.view.projectNavigator",
+    "onView:dj.view.modelLineage",
+    "onView:dj.view.columnLineage"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Some features like running dbt commands and executing queries are disabled in untrusted workspaces.",
+      "restrictedConfigurations": [
+        "dj.pythonVenvPath",
+        "dj.trinoPath"
+      ]
+    },
+    "virtualWorkspaces": false
+  },
   "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "dj.command.columnLineage",
+        "title": "DJ: Column Lineage"
+      },
       {
         "command": "dj.command.columnOrigin",
         "title": "DJ: Find Column Origin"
@@ -48,7 +98,7 @@
       {
         "command": "dj.command.jsonSync",
         "icon": "$(sync)",
-        "title": "DJ: Regenerate SQL and YML"
+        "title": "DJ: Sync to SQL and YML"
       },
       {
         "command": "dj.command.lightdashPreview",
@@ -56,17 +106,37 @@
         "title": "DJ: Start Lightdash Preview"
       },
       {
-        "command": "dj.command.modelInspectConfig",
-        "title": "DJ: Inspect Current Model Config"
-      },
-      {
         "command": "dj.command.modelNavigate",
         "title": "DJ: Navigate to Model"
       },
       {
+        "command": "dj.command.modelCreate",
+        "title": "DJ: Create Model"
+      },
+      {
         "command": "dj.command.modelCompile",
-        "title": "Compile Model",
-        "icon": "./assets/images/icon.svg"
+        "title": "DJ: Compile Model",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "dj.command.modelEdit",
+        "title": "DJ: Edit Model",
+        "icon": "$(extensions-manage)"
+      },
+      {
+        "command": "dj.command.modelClone",
+        "title": "DJ: Clone Model",
+        "icon": "$(extensions-manage)"
+      },
+      {
+        "command": "dj.command.discardEditDraft",
+        "title": "DJ: Discard Edit Draft",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dj.command.openEditDraft",
+        "title": "DJ: Open Edit Draft",
+        "icon": "$(edit)"
       },
       {
         "command": "dj.command.modelRun",
@@ -77,8 +147,17 @@
         "title": "DJ: Run Model Lineage"
       },
       {
+        "command": "dj.command.modelTest",
+        "title": "DJ: Run DBT Test"
+      },
+      {
         "command": "dj.command.projectClean",
         "title": "DJ: Clean Project"
+      },
+      {
+        "command": "dj.command.refreshProjects",
+        "title": "DJ: Refresh Projects",
+        "icon": "$(refresh)"
       },
       {
         "command": "dj.command.deferRun",
@@ -90,18 +169,94 @@
         "title": "DJ: Find Source Origin"
       },
       {
+        "command": "dj.command.sourceCreate",
+        "title": "DJ: Create Source"
+      },
+      {
+        "command": "dj.command.sourceNavigate",
+        "title": "DJ: Navigate to Source"
+      },
+      {
+        "command": "dj.command.sourceRefresh",
+        "title": "DJ: Refresh Source"
+      },
+      {
+        "command": "dj.command.clearSyncCache",
+        "title": "DJ: Clear JSON Sync Cache",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dj.command.modelLineage",
+        "icon": "$(graph)",
+        "title": "DJ: Model Lineage"
+      },
+      {
+        "command": "dj.command.modelPreview",
+        "icon": "$(play-circle)",
+        "title": "DJ: Preview Model"
+      },
+      {
+        "command": "dj.command.openTargetCompiledSql",
+        "title": "DJ: Open Target Compiled SQL"
+      },
+      {
+        "command": "dj.command.openTargetRunSql",
+        "title": "DJ: Open Target Run SQL"
+      },
+      {
+        "command": "dj.command.frameworkJumpJson",
+        "title": "DJ: Jump to JSON"
+      },
+      {
+        "command": "dj.command.frameworkJumpModel",
+        "title": "DJ: Jump to Model SQL"
+      },
+      {
+        "command": "dj.command.frameworkJumpYaml",
+        "title": "DJ: Jump to YAML"
+      },
+      {
+        "command": "dj.command.queryView",
+        "title": "DJ: Query View"
+      },
+      {
+        "command": "dj.command.openDataExplorerWithModel",
+        "title": "DJ: Open Data Explorer with Model"
+      },
+      {
         "command": "dj.command.testTrinoConnection",
         "title": "DJ: Test Trino Connection"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "dj.submenu.editor",
+        "label": "DJ",
+        "icon": "$(play-circle)"
+      },
+      {
+        "id": "dj.submenu.jsonActions",
+        "label": "Model Actions",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "id": "dj.submenu.dataExplorer",
+        "label": "Data Explorer",
+        "icon": "$(play-circle)"
       }
     ],
     "configuration": {
       "title": "DJ (dbt-json framework)",
       "type": "object",
       "properties": {
+        "dj.aiHintTag": {
+          "type": "string",
+          "description": "(Optional) Adds a standard tag to any resource with an AI Hint specified. Requires 'DJ: Sync to SQL and YML' to take effect."
+        },
         "dj.airflowGenerateDags": {
           "type": "boolean",
-          "default": true,
-          "description": "Enable writing Airflow DAG files provided by the extension."
+          "default": false,
+          "description": "Enable writing Airflow DAG files provided by the extension. Requires 'DJ: Refresh Projects' command or workspace reload to take effect."
         },
         "dj.airflowTargetVersion": {
           "type": "string",
@@ -112,12 +267,21 @@
             "2.10"
           ],
           "default": "2.7",
-          "description": "Target Airflow version to use when generating the DAG."
+          "description": "Target Airflow version to use when generating the DAG. Requires 'DJ: Refresh Projects' command or workspace reload to take effect."
         },
         "dj.airflowDagsPath": {
           "type": "string",
-          "description": "Folder where the extension writes Airflow DAGs or the default of 'dags/_ext_'.",
+          "description": "Folder where the extension writes Airflow DAGs or the default of 'dags/_ext_'. Requires 'DJ: Refresh Projects' command or workspace reload to take effect.",
           "default": "dags/_ext_"
+        },
+        "dj.codingAgent": {
+          "type": "string",
+          "enum": [
+            "github-copilot",
+            "claude-code",
+            "cline"
+          ],
+          "description": "Coding Agent to work with. Requires 'DJ: Refresh Projects' command or workspace reload to take effect."
         },
         "dj.dbtProjectNames": {
           "type": "array",
@@ -125,30 +289,162 @@
             "type": "string"
           },
           "default": [],
-          "description": "The list of valid dbt project names to be recognized by the extension. If empty, all projects will be allowed. This setting helps filter which dbt projects the extension should process.",
+          "description": "The list of valid dbt project names to be recognized by the extension. If empty, all projects will be allowed. This setting helps filter which dbt projects the extension should process. Requires 'DJ: Refresh Projects' command or workspace reload to take effect.",
           "scope": "resource"
         },
         "dj.dbtMacroPath": {
           "type": "string",
-          "description": "Folder where the extension writes macros, relative to the macro-paths in dbt_project.yml or the default of 'macros'.",
+          "description": "Folder where the extension writes macros, relative to the macro-paths in dbt_project.yml or the default of 'macros'. Requires 'DJ: Refresh Projects' command or workspace reload to take effect.",
           "default": "_ext_"
         },
         "dj.pythonVenvPath": {
           "type": "string",
-          "description": "Path to the local Python virtual environment."
+          "description": "Path to the local Python virtual environment. Takes effect on next command execution."
         },
         "dj.trinoPath": {
           "type": "string",
-          "default": "",
-          "description": "Path to the Trino CLI executable. If not set, will try to find 'trino-cli' in PATH."
+          "default": "trino-cli",
+          "description": "Path to Trino CLI. Supports: command name ('trino', 'trino-cli'), full path ('/usr/local/bin/trino'), or directory ('/usr/local/bin' → checks for 'trino-cli' then 'trino'). Defaults to 'trino-cli' from PATH. Takes effect on next command execution."
         },
         "dj.lightdashProjectPath": {
           "type": "string",
-          "description": "Custom path to the dbt project directory for Lightdash preview (relative to workspace root). If not set, will auto-detect from available dbt projects."
+          "description": "Custom path to the dbt project directory for Lightdash preview (relative to workspace root). If not set, will auto-detect from available dbt projects. Takes effect on next command execution."
         },
         "dj.lightdashProfilesPath": {
           "type": "string",
-          "description": "Custom path to the dbt profiles directory for Lightdash preview (relative to workspace root). If not set, will use the project directory or workspace root."
+          "description": "Custom path to the dbt profiles directory for Lightdash preview (relative to workspace root). If not set, will use the project directory or workspace root. Takes effect on next command execution."
+        },
+        "dj.columnLineage.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh Column Lineage when switching between supported files."
+        },
+        "dj.dataExplorer.autoRefresh": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically refresh Data Explorer lineage when switching between supported files."
+        },
+        "dj.syncDebounceMs": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "Debounce delay in milliseconds before triggering DJ Sync after a model or source file change. Higher values prevent sync during rapid edits or auto-save but increase latency. Set to 0 to disable debouncing."
+        },
+        "dj.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Logging level for DJ extension diagnostics."
+        },
+        "dj.autoGenerateTests": {
+          "type": "object",
+          "description": "(Experimental) Configuration for automatically generating tests on models. This feature is currently in development. For new models: takes effect immediately. For existing models in targetFolders: requires workspace reload.",
+          "default": {
+            "enabled": false,
+            "tests": {
+              "equalRowCount": {
+                "enabled": false,
+                "applyTo": [
+                  "left"
+                ],
+                "targetFolders": []
+              },
+              "equalOrLowerRowCount": {
+                "enabled": false,
+                "applyTo": [],
+                "targetFolders": []
+              }
+            }
+          },
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Master switch to enable/disable the entire auto-generate tests feature"
+            },
+            "tests": {
+              "type": "object",
+              "description": "Configure which tests to auto-generate for join models",
+              "properties": {
+                "equalRowCount": {
+                  "type": "object",
+                  "description": "Test for LEFT joins where row count must equal parent (detects multiplication)",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Enable auto-generation of equal_row_count tests"
+                    },
+                    "applyTo": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "left",
+                          "inner",
+                          "right",
+                          "full",
+                          "cross"
+                        ]
+                      },
+                      "default": [
+                        "left"
+                      ],
+                      "description": "Join types to apply this test to"
+                    },
+                    "targetFolders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "List of relative folder paths (e.g., 'models/intermediate/ibp') to bulk-add this test to existing models on workspace load."
+                    }
+                  }
+                },
+                "equalOrLowerRowCount": {
+                  "type": "object",
+                  "description": "Test for joins with filtering where row count must be <= parent",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Enable auto-generation of equal_or_lower_row_count tests"
+                    },
+                    "applyTo": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "left",
+                          "inner",
+                          "right",
+                          "full",
+                          "cross"
+                        ]
+                      },
+                      "default": [],
+                      "description": "Join types to apply this test to"
+                    },
+                    "targetFolders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "default": [],
+                      "description": "List of relative folder paths (e.g., 'models/intermediate/ibp') to bulk-add this test to existing models on workspace load."
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -185,14 +481,148 @@
         "key": "cmd+shift+y",
         "command": "dj.command.frameworkJumpYaml",
         "when": "resourceFilename =~ /[.]((model)[.](json)|(source)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "cmd+shift+l",
+        "command": "dj.command.modelLineage",
+        "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "command": "dj.command.modelPreview",
+        "when": "editorFocus && dj.active && resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+      },
+      {
+        "key": "ctrl+'",
+        "mac": "cmd+'",
+        "command": "dj.command.openTargetCompiledSql",
+        "when": "editorFocus && dj.active && resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
       }
     ],
     "menus": {
-      "editor/title/run": [
+      "editor/title": [
+        {
+          "submenu": "dj.submenu.editor",
+          "group": "navigation@-2",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "submenu": "dj.submenu.jsonActions",
+          "group": "navigation@-1",
+          "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        }
+      ],
+      "dj.submenu.editor": [
+        {
+          "command": "dj.command.modelLineage",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dj.command.columnLineage",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dj.command.modelPreview",
+          "group": "navigation@3"
+        },
         {
           "command": "dj.command.modelCompile",
+          "group": "navigation@4"
+        }
+      ],
+      "dj.submenu.jsonActions": [
+        {
+          "command": "dj.command.modelEdit",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dj.command.modelClone",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/title/run": [],
+      "dj.submenu.dataExplorer": [
+        {
+          "command": "dj.command.modelLineage",
+          "group": "1_main@1",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.modelCompile",
+          "group": "1_main@2",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.modelPreview",
+          "group": "1_main@3",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.columnLineage",
+          "group": "1_main@4",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|(source)[.](json)|sql|yml)$/"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dj.command.modelEdit",
           "group": "navigation",
           "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        },
+        {
+          "command": "dj.command.modelClone",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        },
+        {
+          "submenu": "dj.submenu.dataExplorer",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|(source)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.openTargetCompiledSql",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.openTargetRunSql",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dj.command.modelEdit",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        },
+        {
+          "command": "dj.command.modelClone",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.](model)[.](json)$/"
+        },
+        {
+          "submenu": "dj.submenu.dataExplorer",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|(source)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.openTargetCompiledSql",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        },
+        {
+          "command": "dj.command.openTargetRunSql",
+          "group": "navigation",
+          "when": "resourceFilename =~ /[.]((model)[.](json)|sql|yml)$/"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dj.command.discardEditDraft",
+          "group": "inline",
+          "when": "view == dj.view.editDrafts && viewItem == editDraft"
         }
       ]
     },
@@ -217,32 +647,81 @@
           "id": "dj.view.modelActions",
           "name": "Actions",
           "icon": "$(play)"
+        },
+        {
+          "id": "dj.view.editDrafts",
+          "name": "Edit Drafts",
+          "icon": "$(edit)"
+        }
+      ],
+      "dj-lineage": [
+        {
+          "type": "webview",
+          "id": "dj.view.modelLineage",
+          "name": "Lineage Graph",
+          "icon": "$(graph)"
+        }
+      ],
+      "dj-column-lineage": [
+        {
+          "id": "dj.view.columnLineage",
+          "type": "webview",
+          "name": "Column Lineage",
+          "icon": "$(type-hierarchy)"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "dj.view.modelLineage",
+        "contents": "Open a open a model file (.sql, .model.json, or .yml) to view its lineage.\n[Detect Active Model](command:dj.command.modelLineage)"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "dj",
           "title": "DJ (dbt-json) Framework",
-          "icon": "assets/images/icon.svg"
+          "icon": "assets/images/dj-icon-white.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "dj-lineage",
+          "title": "Data Explorer",
+          "icon": "$(graph)"
+        },
+        {
+          "id": "dj-column-lineage",
+          "title": "Column Lineage",
+          "icon": "$(type-hierarchy)"
         }
       ]
     }
   },
   "scripts": {
-    "compile": "tsc -p . --outDir dist/extension",
+    "compile": "tsc -p .",
     "compile:web": "npm run build --prefix ./web",
     "dev": "npm-run-all -p dev:* ",
     "dev:extension": "npm run watch",
     "dev:web": "npm run dev --prefix ./web",
     "lint": "eslint src --ext ts --cache --cache-location .eslintcache",
-    "fixtures:update": "npx ts-node tests/update-fixtures.ts",
+    "lint:web": "npm run lint --prefix ./web",
+    "lint:all": "npm run lint && npm run lint:web",
+    "lint:fix": "eslint src --ext ts --cache --cache-location .eslintcache --fix",
+    "lint:fix:web": "npm run lint:fix --prefix ./web",
+    "lint:fix:all": "npm run lint:fix && npm run lint:fix:web",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"web/src/**/*.{ts,tsx,js,jsx,json,css}\" \"schemas/*.json\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"web/src/**/*.{ts,tsx,js,jsx,json,css}\" \"schemas/*.json\"",
+    "fixtures:update": "npx tsx tests/update-fixtures.ts",
     "package": "vsce package",
     "schema": "npx rimraf src/shared/schema/types && cd schemas && npx json2ts -i '*.schema.json' -o ../src/shared/schema/types --strictIndexSignatures && cd ../",
+    "update-test-schemas": "npx tsx tests/update-test-schemas.ts",
     "test": "npx jest",
-    "vscode:prepublish": "npx rimraf dist && npm run compile:web && npm run compile && npm run lint && node esbuild.mjs --production",
+    "vscode:prepublish": "npx rimraf dist && npm run compile:web && npm run compile && npm run lint:all && node esbuild.mjs --production",
+    "esbuild:production": "node esbuild.mjs --production",
     "watch": "npm-run-all -p watch:*",
+    "watch:compile": "tsc --watch --project tsconfig.json",
     "watch:esbuild": "node esbuild.mjs --watch",
     "watch:web": "npm run watch --prefix ./web",
     "watch:web-build": "npm run watch:build --prefix ./web",
@@ -258,27 +737,33 @@
     "jsonc-parser": "^3.3.1",
     "lodash": "^4.17.21",
     "sql-formatter": "^15.3.1",
+    "tailwind-merge": "^3.3.1",
     "uuid": "^10.0.0",
     "yaml": "^2.4.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/jest": "^29.5.12",
     "@types/node": "20.x",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.87.0",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
-    "@vscode/vsce": "^3.2.1",
+    "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.25.9",
     "eslint": "^9.37.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "globals": "^16.5.0",
     "jest": "^29.7.0",
     "json-schema-to-typescript": "^15.0.0",
     "npm-run-all2": "^7.0.2",
     "prettier": "3.2.5",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.4.2"
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2",
+    "typescript-eslint": "^8.50.1"
   }
 }

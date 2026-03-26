@@ -20,7 +20,7 @@ export interface SchemaSourceTableFunction {
   /**
    * The schema of the table function
    */
-  dialect: "bigquery";
+  dialect: 'bigquery';
   /**
    * The ref for the source table we are selecting from inside the table function
    */

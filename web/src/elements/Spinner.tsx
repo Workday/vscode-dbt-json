@@ -1,12 +1,25 @@
+import { makeClassName } from '@web';
+
 export type SpinnerProps = {
   label?: string;
   size?: number;
   stroke?: number;
+  inline?: boolean;
 };
 
-export function Spinner({ label, size = 24, stroke = 5 }: SpinnerProps) {
+export function Spinner({
+  label,
+  size = 24,
+  stroke = 5,
+  inline = false,
+}: SpinnerProps) {
   return (
-    <div className="flex flex-row items-center overflow-x-scroll p-3 rounded-lg">
+    <div
+      className={makeClassName(
+        'flex flex-row items-center',
+        !inline && 'overflow-x-auto p-3 rounded-lg',
+      )}
+    >
       <svg
         className="text-primary-contrast animate-spin"
         fill="none"

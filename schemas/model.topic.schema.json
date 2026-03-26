@@ -3,5 +3,5 @@
   "title": "Schema Model Topic",
   "description": "Validate model topic",
   "type": "string",
-  "pattern": "^(?!.*__)([a-z]|[0-9]|_|/)+$"
+  "pattern": "^(?!.*__.*)(?!_)(?!.*_$)([a-z]|[0-9]|_)+$"
 }

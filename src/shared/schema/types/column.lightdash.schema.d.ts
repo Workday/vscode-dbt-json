@@ -10,6 +10,16 @@
  */
 export type SchemaLightdashAIHint = string | string[];
 /**
+ * Validate model tags
+ */
+export type SchemaModelTags = (
+  | string
+  | {
+      tag: string;
+      type?: 'ai_hints' | 'exclude' | 'inherit' | 'local';
+    }
+)[];
+/**
  * Validate Lightdash metric name
  */
 export type SchemaLightdashMetricName = string;
@@ -20,11 +30,36 @@ export interface SchemaColumnLightdash {
    * @minItems 1
    */
   metrics?: [
-    ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum") | SchemaLightdashMetric,
-    ...(
-      | ("avg" | "count" | "distinctcount" | "max" | "min" | "p50" | "p90" | "p95" | "p98" | "sum")
+    (
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
       | SchemaLightdashMetric
-    )[]
+    ),
+    ...(
+      | (
+          | 'avg'
+          | 'count'
+          | 'distinctcount'
+          | 'max'
+          | 'min'
+          | 'p50'
+          | 'p90'
+          | 'p95'
+          | 'p98'
+          | 'sum'
+        )
+      | SchemaLightdashMetric
+    )[],
   ];
   metrics_merge?: SchemaLightdashMetricMerge;
 }
@@ -45,36 +80,37 @@ export interface SchemaLightdashDimension {
   label?: string;
   required_attributes?: SchemaLightdashRequiredAttributes;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * SQL statement to determine the dimension
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The time intervals for the lightdash dimension
    */
   time_intervals?:
-    | "OFF"
+    | 'OFF'
     | (
-        | "DAY"
-        | "DAY_OF_WEEK_INDEX"
-        | "DAY_OF_WEEK_NAME"
-        | "DAY_OF_MONTH_NUM"
-        | "DAY_OF_YEAR_NUM"
-        | "HOUR"
-        | "MONTH"
-        | "MONTH_NAME"
-        | "MONTH_NUM"
-        | "QUARTER"
-        | "QUARTER_NAME"
-        | "QUARTER_NUM"
-        | "RAW"
-        | "WEEK"
-        | "WEEK_NUM"
-        | "YEAR"
-        | "YEAR_NUM"
+        | 'DAY'
+        | 'DAY_OF_WEEK_INDEX'
+        | 'DAY_OF_WEEK_NAME'
+        | 'DAY_OF_MONTH_NUM'
+        | 'DAY_OF_YEAR_NUM'
+        | 'HOUR'
+        | 'MONTH'
+        | 'MONTH_NAME'
+        | 'MONTH_NUM'
+        | 'QUARTER'
+        | 'QUARTER_NAME'
+        | 'QUARTER_NUM'
+        | 'RAW'
+        | 'WEEK'
+        | 'WEEK_NUM'
+        | 'YEAR'
+        | 'YEAR_NUM'
       )[];
-  type?: "boolean" | "date" | "number" | "string" | "timestamp";
+  type?: 'boolean' | 'date' | 'number' | 'string' | 'timestamp';
   /**
    * The URLs for the lightdash dimension
    */
@@ -113,7 +149,7 @@ export interface SchemaLightdashMetric {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
   /**
    * The description that will be applied to the column in lightdash
    */
@@ -124,27 +160,28 @@ export interface SchemaLightdashMetric {
   label?: string;
   name: SchemaLightdashMetricName;
   round?: number;
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The custom sql expression to generate the metric
    */
   sql?: string;
+  tags?: SchemaModelTags;
   /**
    * The type of metric
    */
   type:
-    | "average"
-    | "boolean"
-    | "count"
-    | "count_distinct"
-    | "date"
-    | "max"
-    | "median"
-    | "min"
-    | "number"
-    | "percentile"
-    | "string"
-    | "sum";
+    | 'average'
+    | 'boolean'
+    | 'count'
+    | 'count_distinct'
+    | 'date'
+    | 'max'
+    | 'median'
+    | 'min'
+    | 'number'
+    | 'percentile'
+    | 'string'
+    | 'sum';
 }
 /**
  * Values that can be merged in to override values on a metric
@@ -153,8 +190,12 @@ export interface SchemaLightdashMetricMerge {
   /**
    * The compact status that will be applied to the column in lightdash
    */
-  compact?: "thousands" | "millions" | "billions" | "trillions";
-  format?: "eur" | "gbp" | "id" | "km" | "mi" | "percent" | "usd";
+  compact?: 'thousands' | 'millions' | 'billions' | 'trillions';
+  /**
+   * The description that will be applied to the metric in lightdash
+   */
+  description?: string;
+  format?: 'eur' | 'gbp' | 'id' | 'km' | 'mi' | 'percent' | 'usd';
   /**
    * The group label that will be applied to the column in lightdash
    */

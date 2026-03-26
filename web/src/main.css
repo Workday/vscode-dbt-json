@@ -7,63 +7,219 @@
     min-height: 100vh;
   }
 
-  html[data-theme='coder-dark'] {
-    --color-background: #242424;
-    --color-background-contrast: #ffffff;
-    --color-error: #b00020;
-    --color-error-contrast: #ffffff;
-    --color-primary: #0e639c;
+  @media (min-width: 768px) {
+    main.model-container {
+      --header-height: 56px;
+      --stepper-height: 61px;
+      max-height: calc(100vh - var(--header-height) - var(--stepper-height));
+      overflow-y: hidden;
+
+      .live-preview {
+        --heading-height: 36px;
+        --select-button-height: 52px;
+        --gap-height: 16px;
+        max-height: calc(
+          100% - var(--heading-height) - var(--select-button-height) -
+            var(--gap-height) * 2
+        );
+      }
+    }
+  }
+
+  /* Override VSCode default code tag styles in SyntaxHighlighter */
+  .live-preview pre code,
+  .final-preview pre code,
+  .dbt-run-preview pre code,
+  .compiled-sql-preview pre code {
+    font-family: monospace !important;
+    color: inherit !important;
+    background-color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  /* Split view grid layout */
+  .diff-view-split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr;
+    height: 100%;
+    overflow: hidden;
+
+    .diff-view-split-header {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .diff-view-split-content {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      /* Prevent individual scrolling in split view SyntaxHighlighters */
+      pre {
+        overflow: visible !important;
+        margin: 0 !important;
+      }
+    }
+  }
+
+  .diff-view-unified pre code,
+  .diff-view-split pre code {
+    /* This is necessary to have <code> take up the full width of the parent container 
+    so the children dont overflow the parent container */
+    display: inline-grid;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Common colors across all themes */
+  html[data-theme] {
+    --color-primary: #1484ff;
     --color-primary-contrast: #ffffff;
     --color-secondary: #ef8903;
     --color-secondary-contrast: #ffffff;
     --color-success: #25891c;
     --color-success-contrast: #ffffff;
-    --color-surface: #242424;
-    --color-surface-contrast: #ffffff;
-  }
-
-  html[data-theme='coder-light'] {
-    --color-background: #ffffff;
-    --color-background-contrast: #242424;
     --color-error: #b00020;
     --color-error-contrast: #ffffff;
-    --color-primary: #0e639c;
-    --color-primary-contrast: #ffffff;
-    --color-secondary: #ef8903;
-    --color-secondary-contrast: #ffffff;
-    --color-success: #25891c;
-    --color-success-contrast: #ffffff;
-    --color-surface: #ffffff;
-    --color-surface-contrast: #242424;
   }
 
+  /* All dark themes */
+  html[data-theme='coder-dark'],
   html[data-theme='web-dark'] {
-    --color-background: #242424;
+    --color-background: #1e1e1e;
     --color-background-contrast: #ffffff;
-    --color-error: #ee1039;
-    --color-error-contrast: #ffffff;
-    --color-primary: #005cb9;
-    --color-primary-contrast: #ffffff;
-    --color-secondary: #ef8903;
-    --color-secondary-contrast: #ffffff;
-    --color-success: #25891c;
-    --color-success-contrast: #ffffff;
-    --color-surface: #242424;
-    --color-surface-contrast: #ffffff;
+    --color-surface: #3c3c3c;
+    --color-surface-contrast: #e5e7eb;
+    --color-card: #252526;
+    --color-border: #383838;
+    --color-border-contrast: #cccccc;
+    --color-error: #ef4444;
+
+    /* Apply dark color-scheme to date inputs in dark mode */
+    input[type='date'] {
+      color-scheme: dark;
+    }
+
+    /* Messages */
+    --color-message-info: rgb(23 37 84 / 85%);
+    --color-message-info-contrast: #3b82f6;
+    --color-message-info-border: #003474;
+    --color-message-error: rgb(51 24 24 / 85%);
+    --color-message-error-contrast: #ef4444;
+    --color-message-error-border: #4a0a0a;
+    --color-message-success: #112217;
+    --color-message-success-contrast: #1aab4c;
+    --color-message-success-border: #0e4423;
+
+    /* List Item hover */
+    --color-list-item-hover: #302f2f;
+
+    /* Tags */
+    --color-tag: #1a4e86;
+    --color-tag-contrast: #cee5ff;
+
+    /* Tabs */
+    --color-tab: #252426;
+    --color-tab-contrast: #1a1a1a;
+    --color-tab-active: #8265bd;
+
+    /* Switches */
+    --color-switch-on: #1e40af;
+    --color-switch-off: #6b7280;
+
+    /* Column Lineage */
+    --color-hierarchy: #d0bcff;
+
+    /* Layer badges */
+    --color-layer-source: #2d5a3d;
+    --color-layer-source-contrast: #d4edda;
+    --color-layer-staging: #774c1e;
+    --color-layer-staging-contrast: #decebb;
+    --color-layer-intermediate: #535964;
+    --color-layer-intermediate-contrast: #e5e7eb;
+    --color-layer-mart: #735813;
+    --color-layer-mart-contrast: #dcd1af;
+
+    /* Transformation badges */
+    --color-transform-raw: #1e4a7a;
+    --color-transform-raw-contrast: #c5d9f1;
+    --color-transform-passthrough: #1e4a7a;
+    --color-transform-passthrough-contrast: #c5d9f1;
+    --color-transform-renamed: #92610a;
+    --color-transform-renamed-contrast: #fde8c4;
+    --color-transform-derived: #5b4b8a;
+    --color-transform-derived-contrast: #d8d1e8;
   }
 
+  /* All light themes */
+  html[data-theme='coder-light'],
   html[data-theme='web-light'] {
     --color-background: #ffffff;
     --color-background-contrast: #242424;
-    --color-error: #b00020;
-    --color-error-contrast: #ffffff;
-    --color-primary: #005cb9;
-    --color-primary-contrast: #ffffff;
-    --color-secondary: #ef8903;
-    --color-secondary-contrast: #ffffff;
-    --color-success: #25891c;
-    --color-success-contrast: #ffffff;
-    --color-surface: #edecec;
+    --color-surface: #f1f1f3;
     --color-surface-contrast: #242424;
+    --color-card: #f9fafb;
+    --color-border: #cccccc;
+    --color-border-contrast: #383838;
+
+    /* Messages */
+    --color-message-info: #eff6ff;
+    --color-message-info-contrast: #2563eb;
+    --color-message-info-border: #8aa2d8;
+    --color-message-error: rgb(254 226 226 / 75%);
+    --color-message-error-contrast: #bc2121;
+    --color-message-error-border: #f89191;
+    --color-message-success: #edfdf2;
+    --color-message-success-contrast: #027e2d;
+    --color-message-success-border: #6ae594;
+
+    /* List Item hover */
+    --color-list-item-hover: #ededed;
+
+    /* Tags */
+    --color-tag: #cee5ff;
+    --color-tag-contrast: #1a4e86;
+
+    /* Tabs */
+    --color-tab: #faf8ff;
+    --color-tab-contrast: #f1f1f166;
+    --color-tab-active: #8265bd;
+
+    /* Switches */
+    --color-switch-on: #1484ff;
+    --color-switch-off: #d1d5db;
+
+    /* Column Lineage */
+    --color-hierarchy: #432c7a;
+
+    /* Layer badges */
+    --color-layer-source: #d4edda;
+    --color-layer-source-contrast: #1b4332;
+    --color-layer-staging: #d5b899;
+    --color-layer-staging-contrast: #532d05;
+    --color-layer-intermediate: #c4c9d1;
+    --color-layer-intermediate-contrast: #282828;
+    --color-layer-mart: #f3dc68;
+    --color-layer-mart-contrast: #43390b;
+
+    /* Transformation badges */
+    --color-transform-raw: #c5d9f1;
+    --color-transform-raw-contrast: #2c5282;
+    --color-transform-passthrough: #c5d9f1;
+    --color-transform-passthrough-contrast: #143b61;
+    --color-transform-renamed: #fde8c4;
+    --color-transform-renamed-contrast: #4d3505;
+    --color-transform-derived: #d8d1e8;
+    --color-transform-derived-contrast: #553c9a;
+
+    /* VS Code */
+    --vscode-editor-background: #eee !important;
   }
 }

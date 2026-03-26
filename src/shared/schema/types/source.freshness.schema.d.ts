@@ -17,7 +17,7 @@ export interface SchemaSourceFreshness {
     /**
      * The time period used in the freshness calculation
      */
-    period: "day" | "hour" | "minute";
+    period: 'day' | 'hour' | 'minute';
   };
   /**
    * Add a where clause to the query run by dbt source freshness in order to limit data scanned
@@ -31,6 +31,6 @@ export interface SchemaSourceFreshness {
     /**
      * The time period used in the freshness calculation
      */
-    period: "day" | "hour" | "minute";
+    period: 'day' | 'hour' | 'minute';
   };
 }

@@ -17,7 +17,7 @@ This guide covers setting up your development environment for contributing to th
 
 ### General Environment
 
-For general environment setup (Trino, Java, dbt, etc.), see the **[Setup Guide](docs/SETUP.md)**.
+For general environment setup (Trino, Java, dbt, etc.), see the **[Setup Guide](docs/setup/setup.md)**.
 
 ### Development Tools
 
@@ -32,8 +32,8 @@ For development, you'll also need:
 1. **Clone and install dependencies:**
 
 ```bash
-git clone https://github.com/workday/vscode-portal-dbt.git
-cd vscode-portal-dbt
+git clone https://github.com/Workday/vscode-dbt-json.git
+cd vscode-dbt-json
 npm install
 ```
 
@@ -63,7 +63,7 @@ npm install
 2. Install the generated VSIX file:
 
    ```bash
-   code --install-extension portal-dbt-*.vsix
+   code --install-extension dj-framework-*.vsix
    ```
 
 ### Development Scripts

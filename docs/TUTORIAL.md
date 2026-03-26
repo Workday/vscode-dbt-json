@@ -10,7 +10,62 @@ A simple customer analytics pipeline:
 Raw Customer Data → Clean Data → Customer Metrics → Analytics Dashboard
 ```
 
-**Prerequisites**: Complete the [Setup Guide](SETUP.md) first.
+**Prerequisites**: Complete the [Setup Guide](setup/setup.md) first.
+
+## Tutorial Modes
+
+DJ offers two ways to experience this tutorial, both accessible from within the Model Create wizard:
+
+### Play Tutorial (Recommended for First-Time Users)
+
+Interactive guided mode that walks you through creating specific model types:
+
+1. Open the Model Create wizard (`DJ: Create Model` from Command Palette, or "Create Model" in Actions tree view)
+2. Click the help icon (?) in the wizard header
+3. Select **"Play Tutorial"**
+4. Choose a tutorial: Select, Join, Union, Rollup, or Lookback
+5. Follow on-screen prompts and highlights
+6. Tutorial automatically fills in example data and advances through steps
+
+<video width="100%" controls>
+  <source src="https://github.com/Workday/vscode-dbt-json/raw/main/assets/videos/tutorial-modes.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+> Demonstrating the "Play Tutorial" mode: accessing the tutorial, selecting a model type, and watching the guided walkthrough
+
+**Benefits:**
+
+- Pre-filled example data for each model type
+- Step-by-step guided walkthrough
+- Automatic navigation through wizard steps
+- Highlighted UI elements
+- No risk of getting lost
+
+### Assist Me Mode
+
+Contextual help while you work on any model:
+
+1. Open the Model Create wizard
+2. Click the help icon (?) in the wizard header
+3. Select **"Assist Me"** to toggle on
+4. Work at your own pace following this guide
+5. Get contextual hints and guidance for each step
+6. Access on-demand help for complex features
+
+**Benefits:**
+
+- Work at your own pace
+- Non-intrusive contextual guidance
+- Builds muscle memory
+- Easy to experiment
+- Toggle on/off as needed
+
+### Manual Mode
+
+Follow this guide without interactive assistance (current experience).
+
+---
 
 ## Step 1: Set Up the Example Project
 
@@ -431,8 +486,8 @@ Browse the **[Model Types Documentation](models/README.md)** for:
 ## Need Help?
 
 - **Model-specific questions**: Check the [Model Types Documentation](models/README.md)
-- **Setup issues**: Review the [Setup Guide](SETUP.md)
+- **Setup issues**: Review the [Setup Guide](setup/setup.md)
 
 ---
 
-**Ready to build more?** → [Model Types Documentation](models/README.md) | **Having issues?** → [Setup Guide](SETUP.md)
+**Ready to build more?** → [Model Types Documentation](models/README.md) | **Having issues?** → [Setup Guide](setup/setup.md)

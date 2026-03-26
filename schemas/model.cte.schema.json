@@ -1,0 +1,113 @@
+{
+  "$id": "model.cte.schema.json",
+  "title": "Schema Model CTE",
+  "description": "Defines a Common Table Expression (CTE) within a model. CTEs are lightweight intermediate transformations that generate SQL WITH clauses.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "from"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Unique name for this CTE within the model"
+    },
+    "from": {
+      "description": "Data source for the CTE: a model ref, CTE ref, or union of CTEs/models",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model"],
+          "properties": {
+            "model": { "$ref": "model.ref.schema.json" },
+            "join": { "$ref": "model.from.join.models.schema.json" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cte"],
+          "properties": {
+            "cte": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Reference to a CTE defined earlier in the ctes array"
+            },
+            "join": { "$ref": "model.from.join.models.schema.json" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cte", "union"],
+          "description": "UNION ALL between CTEs",
+          "properties": {
+            "cte": {
+              "type": "string",
+              "minLength": 1,
+              "description": "First CTE in the union"
+            },
+            "union": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ctes"],
+              "properties": {
+                "type": { "const": "all" },
+                "ctes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 },
+                  "description": "Additional CTEs to union with"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "union"],
+          "description": "UNION ALL between models",
+          "properties": {
+            "model": { "$ref": "model.ref.schema.json" },
+            "union": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["models"],
+              "properties": {
+                "type": { "const": "all" },
+                "models": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "model.ref.schema.json" },
+                  "description": "Additional models to union with"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "select": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "$ref": "column.name.schema.json" },
+          { "$ref": "model.select.col.schema.json" },
+          { "$ref": "model.select.col.with.agg.schema.json" },
+          { "$ref": "model.select.expr.schema.json" },
+          { "$ref": "model.select.expr.with.agg.schema.json" },
+          { "$ref": "model.select.interval.schema.json" },
+          { "$ref": "model.select.model.schema.json" },
+          { "$ref": "model.select.model.with.agg.schema.json" },
+          { "$ref": "model.select.cte.schema.json" }
+        ]
+      }
+    },
+    "where": { "$ref": "model.where.schema.json" },
+    "group_by": { "$ref": "model.group_by.schema.json" },
+    "having": { "$ref": "model.having.schema.json" }
+  }
+}

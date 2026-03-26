@@ -8,4 +8,4 @@
 /**
  * Validate column type
  */
-export type SchemaColumnType = "dim" | "fct";
+export type SchemaColumnType = 'dim' | 'fct';

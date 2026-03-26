@@ -1,13 +1,14 @@
 import { sqlFormat, sqlToHtml } from '@shared/sql/utils';
 import type { TrinoSystemQuery, TrinoSystemTask } from '@shared/trino/types';
-import { useError, useMount, useUnmount } from '@web';
-import { useApp } from '@web/context/app';
+import { useApp } from '@web/context';
 import { Alert, Box, Progress, Spinner, Text } from '@web/elements';
 import Tooltip from '@web/elements/Tooltip';
+import { useError, useMount, useUnmount } from '@web/hooks';
+import DOMPurify from 'dompurify';
+import parse from 'html-react-parser';
 import React, { useState } from 'react';
 import { useParams } from 'react-router';
-import parse from 'html-react-parser';
-import DOMPurify from 'dompurify';
+
 import { getQueryErrorMessage } from '../utils/errors';
 
 export type QueryViewParams = {
@@ -107,7 +108,7 @@ export function QueryView() {
   }
 
   useMount(() => {
-    void (async () => {
+    const initSystemQuery = async () => {
       if (!queryId) return;
       try {
         // Handle initial query status, will set timeout on response
@@ -118,7 +119,9 @@ export function QueryView() {
       } catch (err) {
         console.error('ERROR FETCHING SYSTEM QUERY', err);
       }
-    })();
+    };
+
+    void initSystemQuery();
   });
 
   useUnmount(() => {

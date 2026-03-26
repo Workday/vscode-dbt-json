@@ -10,10 +10,10 @@
  */
 export type SchemaModelMaterialization =
   | {
-      type: "ephemeral";
+      type: 'ephemeral';
     }
   | {
-      type: "incremental";
+      type: 'incremental';
       database?: SchemaModelDatabase;
       format?: SchemaModelFormat;
       partitions?: SchemaModelPartitions;
@@ -26,7 +26,7 @@ export type SchemaModelDatabase = string;
 /**
  * Open table format for the model
  */
-export type SchemaModelFormat = "delta_lake" | "hive" | "iceberg";
+export type SchemaModelFormat = 'delta_lake' | 'hive' | 'iceberg';
 /**
  * Validate column name
  */
@@ -40,7 +40,7 @@ export type SchemaModelPartitions = SchemaColumnName[];
  */
 export type ModelIncrementalStrategySchemaJson =
   | {
-      type: "delete+insert";
+      type: 'delete+insert';
       /**
        * Override the unique key(s) to use for merging
        */
@@ -48,7 +48,7 @@ export type ModelIncrementalStrategySchemaJson =
       [k: string]: unknown | undefined;
     }
   | {
-      type: "merge";
+      type: 'merge';
       /**
        * The unique key(s) to use for merging
        */

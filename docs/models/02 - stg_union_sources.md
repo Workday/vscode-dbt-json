@@ -4,7 +4,20 @@
 
 The `stg_union_sources` model is designed to combine data from multiple similar source tables into a single unified staging model. This model type performs a SQL `UNION ALL` operation on the specified sources, making it ideal for scenarios where related data is split across multiple tables or systems but needs to be analyzed together.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `stg_union_sources`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select nodes for each source, add Union node, connect and configure
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `stg_union_sources` model are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `stg_union_sources` model are:
 - **Simplified Downstream Processing:** Create a single source of truth from fragmented data sources
 - **Performance Optimization:** Reduce the need for complex joins in downstream models
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 A `stg_union_sources` model requires the following configuration parameters:
 
@@ -30,7 +43,7 @@ A `stg_union_sources` model requires the following configuration parameters:
     - **`sources`:** Array of additional source table identifiers to union with the primary source
 - **`select`:** Array of column definitions (same as `stg_select_source`)
 
-## 4. When to Use stg_union_sources
+## 5. When to Use stg_union_sources
 
 ### Ideal Use Cases
 
@@ -46,7 +59,7 @@ A `stg_union_sources` model requires the following configuration parameters:
 - Column names and data types must match across all sources
 - If schemas differ, use intermediate `stg_select_source` models to standardize them first
 
-## 5. Basic Example: Multi-Region Store Data
+## 6. Basic Example: Multi-Region Store Data
 
 Let's create a unified view of store locations from different regional databases following our jaffle shop patterns.
 
@@ -120,7 +133,7 @@ This example demonstrates:
 - **Business logic:** Determining active status from raw status values
 - **Unified naming:** Following established naming conventions
 
-## 6. Advanced Example: Multi-System Order Integration
+## 7. Advanced Example: Multi-System Order Integration
 
 A more complex scenario involves combining order data from different systems that have been integrated over time.
 
@@ -219,7 +232,7 @@ This example demonstrates:
 - **Incremental processing:** Using incremental materialization for large datasets
 - **Complex transformations:** Handling multiple data format differences in a single model
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Schema Compatibility
 
@@ -242,7 +255,7 @@ This example demonstrates:
 - **Handle duplicates:** Consider deduplication strategies if sources might overlap
 - **Test thoroughly:** Validate that all expected data appears in the union result
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `stg_union_sources` model serves as a consolidation layer:
 

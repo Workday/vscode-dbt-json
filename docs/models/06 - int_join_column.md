@@ -4,7 +4,20 @@
 
 The `int_join_column` model is a specialized model type designed for unnesting and flattening complex column structures such as arrays, JSON objects, or other nested data types. It performs a cross join with an unnested column, creating separate rows for each element within the nested structure, making semi-structured data more accessible for analysis.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `int_join_column`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, add Join Column node for array unnesting
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `int_join_column` model are:
 
@@ -14,7 +27,7 @@ The primary purposes of the `int_join_column` model are:
 - **Enhanced Analytics:** Make nested data accessible for standard SQL operations and reporting
 - **Performance Optimization:** Pre-process complex data structures to improve downstream query performance
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 An `int_join_column` requires the following configuration parameters:
 
@@ -33,7 +46,7 @@ An `int_join_column` requires the following configuration parameters:
 - **`where`:** Optional filtering conditions
 - **`group_by`:** Optional grouping for aggregations
 
-## 4. Unnesting Process
+## 5. Unnesting Process
 
 The `int_join_column` model performs the following transformation:
 
@@ -43,7 +56,7 @@ The `int_join_column` model performs the following transformation:
 4. **Result Combination:** Combines extracted fields with other selected columns from the source model
 5. **Output Generation:** Produces a flattened, tabular result set
 
-## 5. Basic Example: Order Item Details Analysis
+## 6. Basic Example: Order Item Details Analysis
 
 Let's create a realistic example where order items are stored as JSON objects and we need to unnest them for detailed analysis.
 
@@ -149,7 +162,7 @@ This example demonstrates:
 - **Calculated fields:** Computing item totals from quantity and price
 - **Unit conversion:** Converting cents to dollars for business-friendly reporting
 
-## 6. Advanced Example: Customer Preferences Analysis
+## 7. Advanced Example: Customer Preferences Analysis
 
 Let's create a more complex example where customer preferences are stored as nested JSON objects with multiple levels.
 
@@ -243,7 +256,7 @@ This example demonstrates:
 - **Advanced calculations:** Using json_array_length for array-based logic
 - **Customer intelligence:** Creating actionable insights from preference data
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### JSON and Array Processing
 
@@ -266,7 +279,7 @@ This example demonstrates:
 - **Index considerations:** Ensure parent models have appropriate indexes
 - **Monitor performance:** Track query execution times for complex unnesting operations
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `int_join_column` model serves as a data normalization layer:
 

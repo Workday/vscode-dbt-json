@@ -1,13 +1,19 @@
 # Dependencies
 node_modules/
 web/node_modules/
+web/package-lock.json
 
 # Build outputs
 dist/
+out/
 web/dist/
 
 # VS Code extension package
 *.vsix
+
+# Agent files
+.claude
+.cursor
 
 # OS files
 .DS_Store

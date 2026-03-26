@@ -14,32 +14,55 @@
     "lightdash": { "$ref": "model.lightdash.schema.json" },
     "tags": { "$ref": "model.tags.schema.json" },
     "group_by": { "$ref": "model.group_by.schema.json" },
+    "having": { "$ref": "model.having.schema.json" },
     "exclude_portal_partition_columns": {
       "$ref": "model.exclude_portal_partition_columns.schema.json"
     },
     "exclude_portal_source_count": {
       "$ref": "model.exclude_portal_source_count.schema.json"
     },
+    "ctes": { "$ref": "model.ctes.schema.json" },
     "select": {
       "type": "array",
       "minItems": 1,
       "items": {
         "anyOf": [
+          { "$ref": "model.select.col.with.agg.schema.json" },
           { "$ref": "model.select.expr.schema.json" },
+          { "$ref": "model.select.expr.with.agg.schema.json" },
           { "$ref": "model.select.interval.schema.json" },
-          { "$ref": "model.select.model.schema.json" }
+          { "$ref": "model.select.model.schema.json" },
+          { "$ref": "model.select.model.with.agg.schema.json" },
+          { "$ref": "model.select.cte.schema.json" }
         ]
       }
     },
     "where": { "$ref": "model.where.schema.json" },
     "from": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["join", "model"],
-      "properties": {
-        "join": { "$ref": "model.from.join.models.schema.json" },
-        "model": { "$ref": "model.ref.schema.json" }
-      }
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["join", "model"],
+          "properties": {
+            "join": { "$ref": "model.from.join.models.schema.json" },
+            "model": { "$ref": "model.ref.schema.json" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cte"],
+          "properties": {
+            "cte": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Reference to a CTE defined in the ctes array"
+            },
+            "join": { "$ref": "model.from.join.models.schema.json" }
+          }
+        }
+      ]
     }
   }
 }

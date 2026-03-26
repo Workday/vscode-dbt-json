@@ -1,17 +1,22 @@
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { useRef, type FC, type ReactNode } from 'react';
+import { InformationCircleIcon as OutlineInformationCircleIcon } from '@heroicons/react/24/outline';
+import { InformationCircleIcon as SolidInformationCircleIcon } from '@heroicons/react/24/solid';
+import { type FC, type ReactNode, useRef } from 'react';
 
 export type TooltipProps = {
   children?: ReactNode;
   content: ReactNode;
   align?: 'center' | 'start';
+  iconSize?: number;
+  iconColor?: string;
+  variant?: 'solid' | 'outline';
 };
 
 export const Tooltip: FC<TooltipProps> = ({
   children,
   content,
   align = 'start',
+  variant = 'outline',
 }) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,33 +47,34 @@ export const Tooltip: FC<TooltipProps> = ({
     }, 200); // small delay before closing allows moving mouse to the panel
   };
 
-  const positionClasses = {
-    center: 'left-1/2 -translate-x-1/2',
-    start: '-left-8 sm:-left-12',
-  };
+  const Icon =
+    variant === 'solid'
+      ? SolidInformationCircleIcon
+      : OutlineInformationCircleIcon;
 
   return (
-    <Popover as="div" className="relative inline-block">
+    <Popover as="div" className="relative inline-block w-max">
       {({ open, close }) => (
         <div
           onMouseEnter={() => onMouseEnter(open)}
           onMouseLeave={() => onMouseLeave(close)}
         >
           <PopoverButton ref={buttonRef} className="flex focus:outline-none">
-            {children ? (
-              children
-            ) : (
-              <InformationCircleIcon className="h-5 w-5" />
-            )}
+            {children ? children : <Icon className="h-[18px] w-[18px]" />}
           </PopoverButton>
 
           {open && (
             <PopoverPanel
               static
-              className={`absolute z-10 px-4 mt-2 sm:px-0 w-64 sm:w-64 md:w-80 lg:w-96 max-w-[calc(100vw-7.5rem)] ${positionClasses[align]}`}
+              portal
+              anchor={{
+                to: align === 'center' ? 'bottom' : 'bottom start',
+                gap: 8,
+              }}
+              className="z-[9999] w-max max-w-[20rem]"
             >
               <div className="rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
-                <div className="bg-gray-800 text-white text-sm p-3 rounded-lg break-words">
+                <div className="bg-gray-800 text-white text-xs p-1.5 rounded-lg break-words font-normal max-w-[20rem]">
                   {content}
                 </div>
               </div>

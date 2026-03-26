@@ -2,6 +2,7 @@
 
 ## Current Features
 
+- Intuitive UI for complete dbt model development
 - JSON-first approach to dbt model development with a focus on governance and collaboration
 - Auto-generation of dbt SQL and YAML files from JSON configurations
 - IntelliSense for models, sources, columns, and SQL expressions
@@ -13,7 +14,6 @@
 
 ## Future Features
 
-- Intuitive UI for complete dbt model development
 - Support for more query engines
   - Snowflake
   - BigQuery
@@ -22,7 +22,7 @@
 
 ## Suggestions
 
-Suggestions are welcome! Please feel free to suggest features or report issues in the [GitHub Issues](https://github.com/workday/vscode-portal-dbt/issues).
+Suggestions are welcome! Please feel free to suggest features or report issues in the [GitHub Issues](https://github.com/Workday/vscode-dbt-json/issues).
 
 ## Contributing
 

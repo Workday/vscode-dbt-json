@@ -4,7 +4,20 @@
 
 The `mart_select_model` is designed for creating analytics-ready datasets that serve as the final layer in the data pipeline. These models select and transform data from intermediate models to create business-focused tables optimized for reporting, dashboards, and business intelligence applications. Mart models represent the "presentation layer" of your data warehouse, providing clean, well-structured data for end-users.
 
-## 2. Purpose
+## 2. Creating with Visual Editor
+
+You can create this model type using the visual canvas:
+
+1. Run `DJ: Create Model` from Command Palette, or select "Create Model" under Actions in tree view
+2. Step 1 - Basic Information: Select model type `mart_select_model`, enter group, topic, and name
+3. Step 2 - Data Modeling: Use the visual editor
+4. Add Select node, configure final dimensions and metrics
+
+See [Visual Editor Guide](../VISUAL_EDITOR.md) for complete canvas documentation and workflow examples.
+
+---
+
+## 3. Purpose
 
 The primary purposes of the `mart_select_model` are:
 
@@ -15,7 +28,7 @@ The primary purposes of the `mart_select_model` are:
 - **Data Governance:** Implement consistent business logic and definitions across the organization
 - **Self-Service Analytics:** Enable business users to access clean, reliable data independently
 
-## 3. Model Configuration
+## 4. Model Configuration
 
 A `mart_select_model` requires the following configuration parameters:
 
@@ -28,7 +41,7 @@ A `mart_select_model` requires the following configuration parameters:
 - **`select`:** Array of column definitions specifying which data to include and how to present it
 - **`group_by`:** Optional grouping for aggregations
 
-## 4. Mart Process
+## 5. Mart Process
 
 The `mart_select_model` performs the following transformation:
 
@@ -39,7 +52,7 @@ The `mart_select_model` performs the following transformation:
 5. **Optimization:** Structures data for optimal analytical performance
 6. **Documentation:** Provides clear business context and definitions
 
-## 5. Basic Example: Customer Dashboard Analytics
+## 6. Basic Example: Customer Dashboard Analytics
 
 Let's create a customer analytics mart for dashboard reporting using our jaffle shop customer data.
 
@@ -105,7 +118,7 @@ This example demonstrates:
 - **Comprehensive documentation:** Each field includes business context
 - **Dashboard optimization:** Simple, clean structure for reporting tools
 
-## 6. Advanced Example: Sales Revenue Reporting
+## 7. Advanced Example: Sales Revenue Reporting
 
 Let's create a comprehensive sales revenue mart with time dimensions and business classifications.
 
@@ -217,7 +230,7 @@ This example demonstrates:
 - **Weekend analysis:** Boolean flags for temporal analysis
 - **Comprehensive reporting:** All key dimensions and facts for sales analysis
 
-## 7. Best Practices
+## 8. Best Practices
 
 ### Business-Friendly Design
 
@@ -240,7 +253,7 @@ This example demonstrates:
 - **Validate calculations:** Ensure derived metrics are accurate
 - **Test thoroughly:** Verify data accuracy and completeness
 
-## 8. Integration with Data Pipeline
+## 9. Integration with Data Pipeline
 
 The `mart_select_model` serves as the final presentation layer:
 
