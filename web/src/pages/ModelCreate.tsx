@@ -878,6 +878,13 @@ export function ModelCreate({ mode = 'create' }: ModelCreateProps) {
   }
 
   if ((isEditMode || isCloningModel) && ctes.length > 0) {
+    const handleCteClose = () => {
+      if (!isEditMode) {
+        void stateSync.clearState('model-create');
+        resetStore();
+      }
+      onClose();
+    };
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
         <div className="rounded-lg border border-surface bg-card p-8 max-w-lg">
@@ -894,7 +901,7 @@ export function ModelCreate({ mode = 'create' }: ModelCreateProps) {
             </code>{' '}
             file directly.
           </p>
-          <Button label="Close" variant="neutral" onClick={onClose} />
+          <Button label="Close" variant="neutral" onClick={handleCteClose} />
         </div>
       </div>
     );

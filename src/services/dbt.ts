@@ -2598,7 +2598,29 @@ ${macro.macro_sql}`;
   private registerModelCommands(context: vscode.ExtensionContext) {
     // Model Create Command
     context.subscriptions.push(
-      vscode.commands.registerCommand(COMMAND_ID.MODEL_CREATE, () => {
+      vscode.commands.registerCommand(COMMAND_ID.MODEL_CREATE, async () => {
+        const existingDraft =
+          await this.coder.stateManager.getFormState('model-create');
+
+        if (existingDraft) {
+          const choice = await vscode.window.showInformationMessage(
+            'You have a saved model draft from a previous session.',
+            {
+              modal: true,
+              detail: 'Would you like to resume it or start fresh?',
+            },
+            'Resume Draft',
+            'Start Fresh',
+          );
+
+          if (!choice) {
+            return;
+          }
+          if (choice === 'Start Fresh') {
+            await this.coder.stateManager.clearFormState('model-create');
+          }
+        }
+
         const panel = vscode.window.createWebviewPanel(
           VIEW_ID.MODEL_CREATE,
           DBT_MSG.CREATE_MODEL,
