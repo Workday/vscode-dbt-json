@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 
 interface ModelSelectorProps {
   mode: 'single' | 'multi-model';
+  title?: string;
   // Single model props - the model from active editor
   currentLineage?: DbtRunLineage;
   onLineageChange?: (lineage: DbtRunLineage) => void;
@@ -22,6 +23,7 @@ interface ModelSelectorProps {
 export const ModelSelector = React.memo<ModelSelectorProps>(
   ({
     mode,
+    title,
     currentLineage = 'model-only',
     onLineageChange,
     activeModelName,
@@ -127,7 +129,9 @@ export const ModelSelector = React.memo<ModelSelectorProps>(
 
     return (
       <div className="flex flex-col gap-4 p-4 border-2 border-neutral rounded-lg bg-background">
-        <h3 className="text-lg font-semibold">Multi-Model Selection</h3>
+        <h3 className="text-lg font-semibold">
+          {title ?? 'Multi-Model Selection'}
+        </h3>
 
         {/* Model Selection */}
         <SelectMulti

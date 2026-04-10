@@ -252,6 +252,68 @@ describe('CTE support', () => {
       expect(sql).not.toContain("ref('lookup')");
     });
 
+    test('CTE-to-CTE join with subquery in ON clause', () => {
+      const cteBase: FrameworkCTE = {
+        name: 'base_data',
+        from: { model: 'model_a' },
+        select: ['col_a', 'col_b'],
+      } as any;
+      const cteLookup: FrameworkCTE = {
+        name: 'lookup',
+        from: { model: 'model_a' },
+        select: ['col_b'],
+      } as any;
+      const cteJoined: FrameworkCTE = {
+        name: 'joined',
+        from: {
+          cte: 'base_data',
+          join: [
+            {
+              cte: 'lookup',
+              on: {
+                and: [
+                  'col_b',
+                  {
+                    subquery: {
+                      operator: 'in',
+                      column: 'col_a',
+                      select: ['col_a'],
+                      from: { cte: 'base_data' },
+                      where: "col_b = 'active'",
+                    },
+                  },
+                ],
+              },
+              type: 'left',
+            },
+          ],
+        },
+        select: ['col_a', 'col_b'],
+      } as any;
+
+      const registry: Map<string, any[]> = new Map();
+      registry.set('base_data', [
+        { name: 'col_a', meta: { type: 'dim' } },
+        { name: 'col_b', meta: { type: 'dim' } },
+      ]);
+      registry.set('lookup', [{ name: 'col_b', meta: { type: 'dim' } }]);
+
+      const sql = frameworkGenerateCteSql({
+        cte: cteJoined,
+        project,
+        cteRegistry: registry,
+      });
+
+      expect(sql).toContain('from base_data');
+      expect(sql).toContain('left join lookup');
+      expect(sql).toContain('base_data.col_b = lookup.col_b');
+      expect(sql).toContain(
+        "col_a IN (SELECT col_a FROM base_data WHERE col_b = 'active')",
+      );
+      expect(sql).not.toContain("ref('base_data')");
+      expect(sql).not.toContain("ref('lookup')");
+    });
+
     test('model with CTEs generates SQL with WITH clause prepended', () => {
       const modelJson: FrameworkModel = {
         type: 'int_select_model',

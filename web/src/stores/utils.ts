@@ -72,8 +72,13 @@ const formattedJoinConditions = (
   // Type guard: ensure model names are strings
   const baseModelStr =
     typeof baseModelName === 'string' ? baseModelName : String(baseModelName);
-  const joinModelStr =
-    typeof joinModelName === 'string' ? joinModelName : String(joinModelName);
+  // Use override_alias for the join side when available so that qualified
+  // expressions match the SQL alias used in the JOIN line.
+  const joinAliasStr = joinItem.override_alias
+    ? String(joinItem.override_alias)
+    : typeof joinModelName === 'string'
+      ? joinModelName
+      : String(joinModelName);
 
   // Pattern for same column names: table.column = table.column OR column = column
   const sameColumnPattern = {
@@ -157,7 +162,7 @@ const formattedJoinConditions = (
           const operator = unqualifiedMatch[2];
           const rightCol = unqualifiedMatch[3];
           return {
-            expr: `${baseModelStr}.${leftCol} ${operator} ${joinModelStr}.${rightCol}`,
+            expr: `${baseModelStr}.${leftCol} ${operator} ${joinAliasStr}.${rightCol}`,
           };
         }
       }

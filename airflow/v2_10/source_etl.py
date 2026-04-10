@@ -278,6 +278,7 @@ def source_etl_dag():
     @task(
         task_id="fetch_source_dates",
         max_active_tis_per_dagrun=source_date_tasks,
+        map_index_template="{{ source.id.split('.', 2)[2] }}",
     )
     def fetch_source_dates(source: SourceExtended, ti=None, **context):
         """
@@ -537,6 +538,7 @@ def source_etl_dag():
         task_id="run_sources",
         max_active_tis_per_dagrun=1,
         trigger_rule=TriggerRule.ALL_DONE,  # We'll run the ones that were successful, even if some failed
+        map_index_template="{{ source_run.event_dates[0] if source_run.event_dates | length == 1 else (source_run.event_dates | min) ~ '~' ~ (source_run.event_dates | max) }}",
     )
     def run_sources(source_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -627,6 +629,7 @@ def source_etl_dag():
     @task(
         task_id="fetch_model_dates",
         max_active_tis_per_dagrun=model_date_tasks,
+        map_index_template="{{ source_models.source_id.split('.', 2)[2] }}",
     )
     def fetch_model_dates(source_models: dict, ti=None):
         source_id = source_models["source_id"]
@@ -733,6 +736,7 @@ def source_etl_dag():
         task_id="run_models",
         max_active_tis_per_dagrun=1,
         trigger_rule=TriggerRule.ALL_DONE,  # We'll run the ones that were successful, even if some failed
+        map_index_template="{{ model_run.event_dates[0] if model_run.event_dates | length == 1 else (model_run.event_dates | min) ~ '~' ~ (model_run.event_dates | max) }}",
     )
     def run_models(model_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -804,6 +808,7 @@ def source_etl_dag():
     @task(
         task_id="run_errors",
         max_active_tis_per_dagrun=1,
+        map_index_template="{{ error_run.event_dates[0] if error_run.event_dates | length == 1 else (error_run.event_dates | min) ~ '~' ~ (error_run.event_dates | max) }}",
     )
     def run_errors(error_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -895,6 +900,7 @@ def source_etl_dag():
     @task(
         task_id="run_optimize",
         max_active_tis_per_dagrun=optimize_run_tasks,
+        map_index_template="{{ optimize_run.id.split('.', 2)[2] }}",
     )
     def run_optimize(optimize_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -1026,6 +1032,7 @@ def source_etl_dag():
     @task(
         task_id="run_vacuum",
         max_active_tis_per_dagrun=vacuum_run_tasks,
+        map_index_template="{{ vacuum_run.id.split('.', 2)[2] }}",
     )
     def run_vacuum(vacuum_run: dict, ti=None, **context):
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")

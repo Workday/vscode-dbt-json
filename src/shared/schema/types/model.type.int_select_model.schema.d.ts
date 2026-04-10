@@ -241,6 +241,7 @@ export type SchemaModelHaving =
          */
         expr?: string;
         group?: SchemaModelHaving;
+        subquery?: SchemaModelSubquery;
       }[];
       /**
        * Conditions to be combined by OR
@@ -251,8 +252,44 @@ export type SchemaModelHaving =
          */
         expr?: string;
         group?: SchemaModelHaving;
+        subquery?: SchemaModelSubquery;
       }[];
     };
+/**
+ * Validate model ids
+ */
+export type SchemaModelRef = string;
+/**
+ * Validate source ids
+ */
+export type SchemaRefSourceId = string;
+/**
+ * SQL WHERE
+ */
+export type SchemaModelWhere =
+  | SchemaColumnExpr
+  | {
+      /**
+       * Conditions to be combined by AND
+       */
+      and?: {
+        expr?: SchemaColumnExpr;
+        group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
+      }[];
+      /**
+       * Conditions to be combined by OR
+       */
+      or?: {
+        expr?: SchemaColumnExpr;
+        group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
+      }[];
+    };
+/**
+ * SQL expression to be used when selecting the column (name will be the alias
+ */
+export type SchemaColumnExpr = string;
 /**
  * Validate model limit
  */
@@ -289,10 +326,6 @@ export type SchemaModelOrderBy = [
  */
 export type SchemaModelCTEs = [SchemaModelCTE, ...SchemaModelCTE[]];
 /**
- * Validate model ids
- */
-export type SchemaModelRef = string;
-/**
  * Validates the join argument when joining multiple models or CTEs
  *
  * @minItems 1
@@ -323,6 +356,9 @@ export type SchemaModelFromJoinModels = [
                  */
                 expr: string;
               }
+            | {
+                subquery: SchemaModelSubquery;
+              }
           )[];
         };
       }
@@ -355,6 +391,9 @@ export type SchemaModelFromJoinModels = [
                  * SQL for the condition
                  */
                 expr: string;
+              }
+            | {
+                subquery: SchemaModelSubquery;
               }
           )[];
         };
@@ -385,6 +424,9 @@ export type SchemaModelFromJoinModels = [
                  */
                 expr: string;
               }
+            | {
+                subquery: SchemaModelSubquery;
+              }
           )[];
         };
       }
@@ -417,6 +459,9 @@ export type SchemaModelFromJoinModels = [
                  * SQL for the condition
                  */
                 expr: string;
+              }
+            | {
+                subquery: SchemaModelSubquery;
               }
           )[];
         };
@@ -472,10 +517,6 @@ export type SchemaColumnDescription = string;
  * Exclude this dimension from group by when we are aggregating
  */
 export type SchemaColumnExcludeFromGroupBy = boolean;
-/**
- * SQL expression to be used when selecting the column (name will be the alias
- */
-export type SchemaColumnExpr = string;
 /**
  * Validate column data_tests
  */
@@ -708,27 +749,6 @@ export type SchemaModelSelectCTE =
        */
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
-/**
- * SQL WHERE
- */
-export type SchemaModelWhere =
-  | SchemaColumnExpr
-  | {
-      /**
-       * Conditions to be combined by AND
-       */
-      and?: {
-        expr?: SchemaColumnExpr;
-        group?: SchemaModelWhere;
-      }[];
-      /**
-       * Conditions to be combined by OR
-       */
-      or?: {
-        expr?: SchemaColumnExpr;
-        group?: SchemaModelWhere;
-      }[];
-    };
 
 /**
  * Validates schema for int models selecting from a single model
@@ -788,6 +808,7 @@ export interface SchemaModelTypeIntSelectModel {
   from:
     | {
         model: SchemaModelRef;
+        rollup?: SchemaModelFromRollup;
       }
     | {
         /**
@@ -905,6 +926,52 @@ export interface ModelSqlHooksSchemaJson {
    * Statement(s) to run before model
    */
   pre?: string | [string, ...string[]];
+}
+/**
+ * Defines an inline subquery for use in WHERE or HAVING conditions. Supports IN, NOT IN, EXISTS, NOT EXISTS, and scalar comparison operators.
+ */
+export interface SchemaModelSubquery {
+  /**
+   * How the subquery result is compared against the column
+   */
+  operator:
+    | 'in'
+    | 'not_in'
+    | 'exists'
+    | 'not_exists'
+    | 'eq'
+    | 'neq'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte';
+  /**
+   * Column to compare against the subquery result. Required for all operators except exists/not_exists.
+   */
+  column?: string;
+  /**
+   * Columns or expressions to select in the subquery
+   *
+   * @minItems 1
+   */
+  select: [string, ...string[]];
+  /**
+   * Data source for the subquery
+   */
+  from:
+    | {
+        model: SchemaModelRef;
+      }
+    | {
+        source: SchemaRefSourceId;
+      }
+    | {
+        /**
+         * Reference to a CTE defined in the ctes array
+         */
+        cte: string;
+      };
+  where?: SchemaModelWhere;
 }
 /**
  * Defines a Common Table Expression (CTE) within a model. CTEs are lightweight intermediate transformations that generate SQL WITH clauses.
@@ -1125,4 +1192,14 @@ export interface SchemaModelSelectInterval {
   name: 'datetime';
   data_tests?: SchemaColumnDataTests;
   type?: 'dim';
+}
+/**
+ * Rollup configuration for time-grain re-aggregation
+ */
+export interface SchemaModelFromRollup {
+  datetime_expr?: string;
+  /**
+   * The interval for the rollup
+   */
+  interval: 'day' | 'hour' | 'month' | 'year';
 }

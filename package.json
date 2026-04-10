@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/Workday/vscode-dbt-json.git"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "workspaces": [
     "web"
   ],
@@ -68,10 +68,7 @@
     "url": "https://github.com/Workday/vscode-dbt-json/issues"
   },
   "activationEvents": [
-    "workspaceContains:**/dbt_project.yml",
-    "onView:dj.view.projectNavigator",
-    "onView:dj.view.modelLineage",
-    "onView:dj.view.columnLineage"
+    "workspaceContains:**/dbt_project.yml"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -275,13 +272,23 @@
           "default": "dags/_ext_"
         },
         "dj.codingAgent": {
-          "type": "string",
-          "enum": [
-            "github-copilot",
-            "claude-code",
-            "cline"
+          "oneOf": [
+            {
+              "type": "boolean",
+              "description": "Set to true to enable AI agent integration (AGENTS.md and skill files)."
+            },
+            {
+              "type": "string",
+              "enum": [
+                "github-copilot",
+                "claude-code",
+                "cline"
+              ],
+              "deprecationMessage": "String values are deprecated. Use true instead — skills are now agent-agnostic."
+            }
           ],
-          "description": "Coding Agent to work with. Requires 'DJ: Refresh Projects' command or workspace reload to take effect."
+          "default": false,
+          "markdownDescription": "Enable AI agent integration. When enabled, writes `AGENTS.md` and skill files to the workspace root's `.dj/` directory (typically in `.gitignore`). Set to `true` (recommended) or a legacy agent name. Requires 'DJ: Refresh Projects' command or workspace reload to take effect."
         },
         "dj.dbtProjectNames": {
           "type": "array",

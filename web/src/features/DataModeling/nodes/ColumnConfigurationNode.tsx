@@ -184,13 +184,13 @@ export const ColumnConfigurationNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="bg-background border-2 border-border rounded-lg shadow-lg min-w-[800px] max-w-[800px] cursor-default"
+      className="bg-background border-2 border-neutral rounded-lg shadow-lg min-w-[800px] max-w-[800px] cursor-default"
       data-tutorial-id="column-configuration-node"
     >
       <Handle type="target" position={Position.Left} id="left-input" />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-6">
+      <div className="flex items-center justify-between border-b border-neutral p-6">
         <div className="flex items-center gap-2">
           <h3 className="text-xl font-semibold text-foreground">
             Column Configuration
@@ -232,7 +232,7 @@ export const ColumnConfigurationNode: React.FC<NodeProps> = () => {
       )}
 
       {/* Footer with action buttons */}
-      <div className="border-t border-border p-6">
+      <div className="border-t border-neutral p-6">
         <div className="flex justify-end gap-3">
           <Button label="Cancel" variant="link" onClick={handleClose} />
           <Button label="Update" variant="primary" onClick={handleUpdate} />

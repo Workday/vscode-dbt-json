@@ -21,7 +21,8 @@
               },
               "group": {
                 "$ref": "model.having.schema.json"
-              }
+              },
+              "subquery": { "$ref": "model.subquery.schema.json" }
             }
           }
         },
@@ -38,7 +39,8 @@
               },
               "group": {
                 "$ref": "model.having.schema.json"
-              }
+              },
+              "subquery": { "$ref": "model.subquery.schema.json" }
             }
           }
         }

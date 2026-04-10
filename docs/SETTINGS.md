@@ -134,11 +134,13 @@ Complete guide to configuring the DJ VS Code extension.
 **`dj.codingAgent`** - Enable coding agent integration
 
 ```json
-{ "dj.codingAgent": "github-copilot" }
+{ "dj.codingAgent": true }
 ```
 
-- Options: `"github-copilot"` | `"claude-code"` | `"cline"`
-- Generates agent-specific instruction files in project root
+- Set to `true` (recommended) to enable AI agent integration
+- Writes `AGENTS.md` and skill files to the workspace root's `.dj/` directory (typically in `.gitignore`)
+- Legacy string values (`"github-copilot"`, `"claude-code"`, `"cline"`) still accepted but deprecated
+- Skills are agent-agnostic markdown files usable by any AI coding tool
 
 ---
 

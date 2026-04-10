@@ -1374,12 +1374,12 @@ export class Coder {
           // This ensures settings changes (Airflow, macros, tests, agents) are reflected
           progress.report({ message: 'Updating extension files...' });
           await this.framework.dbt.writeAirflowDags();
-          await this.framework.dbt.writeAgentPromptFiles();
           for (const project of this.framework.dbt.projects.values()) {
             await this.framework.dbt.writeMacroFiles(project);
             await this.framework.dbt.writeGenericTests(project);
-            await this.framework.dbt.writeAgentsMd(project);
           }
+          await this.framework.dbt.writeAgentsMd();
+          await this.framework.dbt.writeSkillFiles();
 
           this.updateProjectViews();
 

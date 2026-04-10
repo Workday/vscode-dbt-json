@@ -20,30 +20,17 @@ import React, {
 } from 'react';
 
 import { ModelColumns } from '../components/ModelColumns';
-import type { SelectionTypeValues } from '../types';
-import { SelectionType, supportsColumnName, supportsExprOnly } from '../types';
+import type { Column, SelectionType, SelectionTypeValues } from '../types';
+import { supportsColumnName, supportsExprOnly } from '../types';
+import { extractColumnsFromNode } from '../utils/manifestColumns';
+import { buildUpdatedSelections } from '../utils/selectionUtils';
 
 export interface AvailableModel {
   label: string;
   value: string;
 }
 
-export interface Column {
-  name: string;
-  dataType: string;
-  type: 'dimension' | 'fact';
-  description?: string;
-}
-
-interface ManifestNodeColumn {
-  data_type?: string;
-  description?: string;
-  meta?: { type?: string };
-}
-
-interface ManifestNodeShape {
-  columns?: { [name: string]: ManifestNodeColumn | undefined };
-}
+export type { Column };
 
 export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
   const { api } = useApp();
@@ -62,27 +49,6 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
   const isTypeSource =
     (basicFields.type as string) === 'stg_select_source' ||
     (basicFields.type as string) === 'stg_union_sources';
-
-  const extractColumns = useCallback(
-    (node: ManifestNodeShape | undefined): Column[] => {
-      const cols: Column[] = [];
-      if (node?.columns) {
-        Object.entries(node.columns).forEach(([columnName, columnData]) => {
-          const columnInfo = columnData as ManifestNodeColumn;
-          const columnType: 'dimension' | 'fact' =
-            columnInfo.meta?.type === 'fct' ? 'fact' : 'dimension';
-          cols.push({
-            name: columnName,
-            dataType: columnInfo.data_type || 'string',
-            type: columnType,
-            description: columnInfo.description,
-          });
-        });
-      }
-      return cols;
-    },
-    [],
-  );
 
   const [selectedModel, setSelectedModel] = useState<AvailableModel | null>(
     null,
@@ -168,7 +134,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
       // Get model/source-based selection (all_from_model, dims_from_model, etc.)
       const modelSelection = modelingState.select.find((s) => {
         // Skip string column names
-        if (typeof s === 'string') return false;
+        if (typeof s === 'string') {
+          return false;
+        }
 
         let value;
         if (isTypeSource) {
@@ -237,180 +205,26 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
   // Memoize the selection change handler to prevent unnecessary re-renders
   const handleSelectionChange = useCallback(
     (
-      selectionType: SelectionType | '', // Allow empty string for individual column selection
+      selectionType: SelectionType | '',
       selection: { include?: string[]; exclude?: string[] },
       shouldClear?: boolean,
     ) => {
       if (!selectedModel) return;
 
-      // Update the ModelStore directly with column selection
-      // Get the latest state from the store to avoid stale closure
-      const currentSelections = useModelStore.getState().modelingState.select;
-
-      // Get list of columns available from this model to know which string columns to replace
-      const modelColumnNames = columns.map((col) => col.name);
-
-      // When switching to filter mode (selectionType !== ''), be more aggressive
-      // about removing simple { name, expr } columns since filter mode replaces individual selections
-      const isFilterMode = selectionType !== '';
-
-      // Filter out: 1) current model's selection, 2) string column names that are FROM THIS MODEL
-      // 3) simple { name, expr } columns when switching to filter mode
-      const filteredSelections = currentSelections.filter(
-        (existingSelection) => {
-          // Remove string column names that are from the current model's columns
-          // But keep string columns from other sources (like JoinColumnNode fields)
-          if (typeof existingSelection === 'string') {
-            return !modelColumnNames.includes(existingSelection);
-          }
-          // Remove expr-based columns that are simple column references (where expr === name)
-          // These are columns created from individual selection mode
-          if (
-            'name' in existingSelection &&
-            'expr' in existingSelection &&
-            !('model' in existingSelection) &&
-            !('source' in existingSelection) &&
-            existingSelection.expr === existingSelection.name
-          ) {
-            // In filter mode, remove ALL simple { name, expr } columns
-            // In individual mode, only remove those from the current model's columns
-            if (isFilterMode) {
-              return false;
-            }
-            return !modelColumnNames.includes(existingSelection.name);
-          }
-          // Remove current model's selection
-          if ('model' in existingSelection || 'source' in existingSelection) {
-            const existingModel =
-              'model' in existingSelection
-                ? existingSelection.model
-                : 'source' in existingSelection
-                  ? existingSelection.source
-                  : undefined;
-            return existingModel !== selectedModel.value;
-          }
-          // Keep everything else (complex expr-based columns, etc.)
-          return true;
-        },
-      );
-
-      // If shouldClear is true, don't add anything back - just remove the model from select
-      // If selectionType is empty string, handle based on schema support:
-      // 1. Models supporting SchemaColumnName: store as plain strings
-      // 2. Models supporting only SchemaModelSelectExpr: store as { name, expr } objects
-      // 3. Other models: use type determination (all_from_model, dims_from_model, etc.)
-      if (!shouldClear) {
-        if (selectionType === '') {
-          const modelType = useModelStore.getState().basicFields.type;
-          const columnNames = selection.include || [];
-          const columnsToAdd = columnNames.filter((colName) => {
-            // Check if there's already a derived/expr-based column with this name
-            const hasDerivedColumn = filteredSelections.some(
-              (item) =>
-                typeof item !== 'string' &&
-                'name' in item &&
-                item.name === colName,
-            );
-            return !hasDerivedColumn;
-          });
-
-          if (columnsToAdd.length > 0) {
-            // Check schema support for this model type
-            if (supportsColumnName(modelType)) {
-              // Store as plain column names (SchemaColumnName) - no type determination needed
-              columnsToAdd.forEach((colName) => {
-                filteredSelections.push(colName as never);
-              });
-            } else if (supportsExprOnly(modelType)) {
-              // Store as { name, expr } objects (SchemaModelSelectExpr)
-              columnsToAdd.forEach((colName) => {
-                filteredSelections.push({
-                  name: colName,
-                  expr: colName,
-                } as never);
-              });
-            } else {
-              // Fall back to type determination for models not supporting either format
-              // Look up column types from the columns state
-              const selectedColumnsWithTypes = columnsToAdd.map((colName) => {
-                const columnInfo = columns.find((c) => c.name === colName);
-                return {
-                  name: colName,
-                  type: columnInfo?.type || 'dimension',
-                };
-              });
-
-              // Check if we have dimensions, facts, or both
-              const hasDimensions = selectedColumnsWithTypes.some(
-                (c) => c.type === 'dimension',
-              );
-              const hasFacts = selectedColumnsWithTypes.some(
-                (c) => c.type === 'fact',
-              );
-
-              // Determine the appropriate selection type
-              // For source models, always use ALL_FROM_SOURCE since DIMS/FCTS are disabled
-              let determinedType: SelectionTypeValues;
-              if (isTypeSource) {
-                // Source models only support ALL_FROM_SOURCE (dims/fcts are disabled)
-                determinedType = SelectionType.ALL_FROM_SOURCE;
-              } else {
-                if (hasDimensions && hasFacts) {
-                  determinedType = SelectionType.ALL_FROM_MODEL;
-                } else if (hasFacts) {
-                  determinedType = SelectionType.FCTS_FROM_MODEL;
-                } else {
-                  determinedType = SelectionType.DIMS_FROM_MODEL;
-                }
-              }
-
-              // Create proper selection object with type, model/source, and include
-              const baseSelection = isTypeSource
-                ? {
-                    source: selectedModel.value,
-                    type: determinedType,
-                  }
-                : {
-                    model: selectedModel.value,
-                    type: determinedType,
-                  };
-
-              const newSelection = {
-                ...baseSelection,
-                include: columnsToAdd,
-              };
-
-              filteredSelections.push(newSelection as never);
-            }
-          }
-        } else {
-          // Add model/source-based selection with type
-          const baseSelection = isTypeSource
-            ? {
-                source: selectedModel.value,
-                type: selectionType as SelectionTypeValues,
-              }
-            : {
-                model: selectedModel.value,
-                type: selectionType as SelectionTypeValues,
-              };
-
-          // Build the selection object with optional include/exclude
-          const newSelection = {
-            ...baseSelection,
-            ...(selection.include && selection.include.length > 0
-              ? { include: selection.include }
-              : {}),
-            ...(selection.exclude && selection.exclude.length > 0
-              ? { exclude: selection.exclude }
-              : {}),
-          };
-
-          filteredSelections.push(newSelection as never);
-        }
-      }
-
-      updateSelectState(filteredSelections);
+      const { basicFields, modelingState: ms } = useModelStore.getState();
+      const hasJoins = Array.isArray(ms.join) ? ms.join.length > 0 : !!ms.join;
+      const updated = buildUpdatedSelections(ms.select, {
+        qualifier: hasJoins ? selectedModel.value : '',
+        modelColumnNames: new Set(columns.map((c) => c.name)),
+        modelType: basicFields.type,
+        selectionType,
+        selection,
+        shouldClear: shouldClear ?? false,
+        selectedModelValue: selectedModel.value,
+        isTypeSource,
+        columns,
+      });
+      updateSelectState(updated);
     },
     [selectedModel, updateSelectState, isTypeSource, columns],
   );
@@ -561,7 +375,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
         if (sourceKey && currentProject.manifest.sources[sourceKey]) {
           allColumns.push(
-            ...extractColumns(currentProject.manifest.sources[sourceKey]),
+            ...extractColumnsFromNode(
+              currentProject.manifest.sources[sourceKey],
+            ),
           );
         }
 
@@ -588,7 +404,7 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
         if (modelKey && currentProject.manifest.nodes[modelKey]) {
           allColumns.push(
-            ...extractColumns(currentProject.manifest.nodes[modelKey]),
+            ...extractColumnsFromNode(currentProject.manifest.nodes[modelKey]),
           );
         }
 
@@ -614,12 +430,23 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
         updateSelectState([...currentSelections, newSelection as SchemaSelect]);
       }
+      if (option?.value && !isTypeSource && dataExplorerOpenedRef.current) {
+        api
+          .post({
+            type: 'data-explorer-open-with-model',
+            request: {
+              projectName: currentProject?.name || '',
+              modelName: option.value,
+            },
+          })
+          .catch(console.error);
+      }
     },
     [
+      api,
       currentProject,
       updateFromState,
       isTypeSource,
-      extractColumns,
       selectedModel,
       updateSelectState,
     ],
@@ -627,6 +454,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
   // Use ref to track if we've already prepopulated to prevent infinite loops
   const hasPrefilledRef = useRef(false);
+
+  // Track if Data Explorer has been opened for this component
+  const dataExplorerOpenedRef = useRef(false);
 
   useEffect(() => {
     const identifierToUse = isTypeSource
@@ -678,7 +508,12 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
   // Handler for opening Data Explorer with the selected model
   const handleOpenDataExplorer = useCallback(() => {
-    if (!selectedModel || !currentProject) return;
+    if (!selectedModel || !currentProject) {
+      return;
+    }
+
+    // Mark that Data Explorer has been opened
+    dataExplorerOpenedRef.current = true;
 
     void api.post({
       type: 'data-explorer-open-with-model',
@@ -692,7 +527,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
   // Handler for opening Column Lineage with a specific column
   const handleColumnLineageClick = useCallback(
     (columnName: string) => {
-      if (!selectedModel || !currentProject?.manifest) return;
+      if (!selectedModel || !currentProject?.manifest) {
+        return;
+      }
 
       // Find the model/source in manifest to get file path
       let relativePath: string | undefined;
@@ -704,7 +541,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
           currentProject.manifest.sources || {},
         ).find((key) => {
           const source = currentProject.manifest.sources[key];
-          if (!source?.source_name || !source?.name) return false;
+          if (!source?.source_name || !source?.name) {
+            return false;
+          }
           const fullSourceName = `${source.source_name}.${source.name}`;
           return fullSourceName === selectedModel.value;
         });
@@ -779,7 +618,7 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
 
   return (
     <div
-      className={`flex flex-col gap-4 py-4 shadow-lg rounded-lg bg-background border-2 min-w-[400px] border-surface`}
+      className={`flex flex-col gap-4 py-4 shadow-lg rounded-lg bg-background border-2 min-w-[400px] border-neutral`}
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       data-tutorial-id="select-node"
@@ -814,7 +653,7 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
         </div>
 
         <div
-          className="flex items-center gap-2 border border-border rounded pl-2"
+          className="flex items-center gap-2 border border-neutral rounded pl-2"
           ref={selectWrapperRef}
         >
           <CircleStackIcon className="w-4 h-4 text-foreground flex-shrink-0" />

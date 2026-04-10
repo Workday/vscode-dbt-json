@@ -29,8 +29,8 @@ export type SelectSingleProps = {
   tooltipText?: string;
   placeholder?: string;
   className?: string;
-  wrapperClass?: string;
   labelClass?: string;
+  showClearButton?: boolean;
   inputClassName?: string;
   /** Custom function to display the selected value in the input (defaults to showing the label) */
   selectedDisplayValue?: (option: Option | null) => string;
@@ -56,8 +56,8 @@ export function SelectSingle({
   tooltipText,
   placeholder = '',
   className,
-  wrapperClass: _wrapperClass,
   labelClass,
+  showClearButton = true,
   inputClassName = '',
   selectedDisplayValue,
   title,
@@ -157,7 +157,7 @@ export function SelectSingle({
             onBlur={onBlur}
             title={title}
           />
-          {value && (
+          {value && showClearButton && (
             <button
               type="button"
               className={makeClassName(

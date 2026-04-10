@@ -238,6 +238,7 @@ export type SchemaModelWhere =
       and?: {
         expr?: SchemaColumnExpr;
         group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
       }[];
       /**
        * Conditions to be combined by OR
@@ -245,12 +246,21 @@ export type SchemaModelWhere =
       or?: {
         expr?: SchemaColumnExpr;
         group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
       }[];
     };
 /**
  * SQL expression to be used when selecting the column (name will be the alias
  */
 export type SchemaColumnExpr = string;
+/**
+ * Validate model ids
+ */
+export type SchemaModelRef = string;
+/**
+ * Validate source ids
+ */
+export type SchemaRefSourceId = string;
 /**
  * Validate data_type scehma for columns
  */
@@ -274,10 +284,6 @@ export type SchemaColumnDataType =
  * Description for the selected column
  */
 export type SchemaColumnDescription = string;
-/**
- * Validate model ids
- */
-export type SchemaModelRef = string;
 
 /**
  * Validates schema for int models which cross join on an unnested column
@@ -445,6 +451,52 @@ export interface ModelSqlHooksSchemaJson {
    * Statement(s) to run before model
    */
   pre?: string | [string, ...string[]];
+}
+/**
+ * Defines an inline subquery for use in WHERE or HAVING conditions. Supports IN, NOT IN, EXISTS, NOT EXISTS, and scalar comparison operators.
+ */
+export interface SchemaModelSubquery {
+  /**
+   * How the subquery result is compared against the column
+   */
+  operator:
+    | 'in'
+    | 'not_in'
+    | 'exists'
+    | 'not_exists'
+    | 'eq'
+    | 'neq'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte';
+  /**
+   * Column to compare against the subquery result. Required for all operators except exists/not_exists.
+   */
+  column?: string;
+  /**
+   * Columns or expressions to select in the subquery
+   *
+   * @minItems 1
+   */
+  select: [string, ...string[]];
+  /**
+   * Data source for the subquery
+   */
+  from:
+    | {
+        model: SchemaModelRef;
+      }
+    | {
+        source: SchemaRefSourceId;
+      }
+    | {
+        /**
+         * Reference to a CTE defined in the ctes array
+         */
+        cte: string;
+      };
+  where?: SchemaModelWhere;
 }
 export interface SchemaColumnLightdash {
   case_sensitive?: SchemaLightdashCaseSensitive;

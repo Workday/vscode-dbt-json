@@ -164,6 +164,12 @@ export default function ModelLineage() {
         void executeQuery(message.modelName, message.projectName);
       } else if (message.type === 'select-model') {
         // Triggered from Data Modeling SelectNode "DATA EXPLORER" button
+        // Clear all stale data and reset UI state when model changes
+        clearResults();
+        clearModelColumns();
+        clearCompiledSql();
+        setShowResults(false);
+        setShowColumns(false);
         // Set the active model
         setActiveModel({
           modelName: message.modelName,

@@ -13,7 +13,6 @@ assets/
 !assets/images/
 
 # Development files
-.claude
 .dj/
 .github/
 AGENTS.md
@@ -45,6 +44,10 @@ tsconfig.json
 
 # IDE
 .vscode/
+
+# Agent files
+.claude
+.cursor
 
 # Python
 .venv

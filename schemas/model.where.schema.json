@@ -17,7 +17,8 @@
             "additionalProperties": false,
             "properties": {
               "expr": { "$ref": "column.expr.schema.json" },
-              "group": { "$ref": "model.where.schema.json" }
+              "group": { "$ref": "model.where.schema.json" },
+              "subquery": { "$ref": "model.subquery.schema.json" }
             }
           }
         },
@@ -29,7 +30,8 @@
             "additionalProperties": false,
             "properties": {
               "expr": { "$ref": "column.expr.schema.json" },
-              "group": { "$ref": "model.where.schema.json" }
+              "group": { "$ref": "model.where.schema.json" },
+              "subquery": { "$ref": "model.subquery.schema.json" }
             }
           }
         }

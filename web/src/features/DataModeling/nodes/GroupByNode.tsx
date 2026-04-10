@@ -16,7 +16,7 @@ export const GroupByNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="bg-background border-2 rounded-lg border-surface shadow-lg p-4 flex flex-col gap-4 w-[32rem] cursor-default"
+      className="bg-background border-2 rounded-lg border-neutral shadow-lg p-4 flex flex-col gap-4 w-[32rem] cursor-default"
       data-tutorial-id="groupby-node"
     >
       <Handle type="target" position={Position.Top} id="input" />

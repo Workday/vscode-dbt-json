@@ -84,7 +84,7 @@ export const RollupNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className={`px-2 py-4 shadow-lg rounded-lg bg-background border-2 min-w-[400px] border-surface`}
+      className={`px-2 py-4 shadow-lg rounded-lg bg-background border-2 min-w-[400px] border-neutral`}
       data-tutorial-id="rollup-node"
     >
       <div className="flex items-center mb-2">
@@ -118,7 +118,7 @@ export const RollupNode: React.FC<NodeProps> = () => {
           <ErrorMessage type="rollup_interval" />
         </div>
       )}
-      <hr className="border-border mb-4" />
+      <hr className="border-neutral mb-4" />
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-foreground mb-2">
@@ -128,7 +128,7 @@ export const RollupNode: React.FC<NodeProps> = () => {
           value={dateExpression}
           onChange={(e) => handleDateExpressionChange(e.target.value)}
           placeholder="Enter your date-time expression..."
-          className="w-full h-24 px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground placeholder-muted-foreground resize-none focus:outline-none"
+          className="w-full h-24 px-3 py-2 text-sm border border-neutral rounded-md bg-background text-foreground placeholder-muted-foreground resize-none focus:outline-none"
           onMouseDown={(e) => {
             e.stopPropagation();
           }}

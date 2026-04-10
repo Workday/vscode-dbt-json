@@ -51,7 +51,7 @@ export const LookbackNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="px-4 py-6 rounded-lg border-2 min-w-[400px] border-surface bg-background shadow-lg"
+      className="px-4 py-6 rounded-lg border-2 min-w-[400px] border-neutral bg-background shadow-lg"
       data-tutorial-id="lookback-node"
     >
       <div className="flex items-center mb-4">

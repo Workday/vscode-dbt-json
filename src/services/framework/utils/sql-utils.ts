@@ -57,6 +57,7 @@ import type {
   SchemaModelTypeStgSelectSource,
   SchemaModelTypeStgUnionSources,
 } from '@shared/schema/types/model.schema';
+import type { SchemaModelSubquery } from '@shared/schema/types/model.subquery.schema';
 import { sqlCleanLine, sqlFormat } from '@shared/sql/utils';
 import * as _ from 'lodash';
 
@@ -76,6 +77,7 @@ import {
   frameworkGetModelLayer,
   frameworkGetModelMeta,
   frameworkGetModelName,
+  resolveCteRootFrom,
 } from './model-utils';
 import {
   frameworkGetSource,
@@ -88,6 +90,52 @@ import {
 // ========================================================================
 // SQL Clause Generators
 // ========================================================================
+
+/**
+ * Converts a structured subquery definition into a SQL condition string.
+ * Handles IN, NOT IN, EXISTS, NOT EXISTS, and scalar comparison operators.
+ */
+export function buildSubquerySql(subquery: SchemaModelSubquery): string {
+  const selectSql = subquery.select.join(', ');
+
+  let fromSql: string;
+  if ('model' in subquery.from) {
+    fromSql = `{{ ref('${subquery.from.model}') }}`;
+  } else if ('source' in subquery.from) {
+    fromSql = `{{ source('${subquery.from.source.split('.').join("','")}') }}`;
+  } else {
+    fromSql = subquery.from.cte;
+  }
+
+  let innerSql = `SELECT ${selectSql} FROM ${fromSql}`;
+  if (subquery.where) {
+    const whereSql = buildConditionsSql(subquery.where);
+    if (whereSql) {
+      innerSql += ` WHERE ${whereSql}`;
+    }
+  }
+
+  const operatorMap: Record<string, string> = {
+    in: 'IN',
+    not_in: 'NOT IN',
+    eq: '=',
+    neq: '!=',
+    gt: '>',
+    gte: '>=',
+    lt: '<',
+    lte: '<=',
+  };
+
+  if (subquery.operator === 'exists') {
+    return `EXISTS (${innerSql})`;
+  }
+  if (subquery.operator === 'not_exists') {
+    return `NOT EXISTS (${innerSql})`;
+  }
+
+  const sqlOp = operatorMap[subquery.operator] || subquery.operator;
+  return `${subquery.column} ${sqlOp} (${innerSql})`;
+}
 
 /**
  * Builds SQL for join/where/having conditions with support for nested OR groups.
@@ -103,12 +151,16 @@ export function buildConditionsSql(
   const resolveCondition = (c: {
     expr?: string;
     group?: FrameworkModelWhere | FrameworkModelHaving;
+    subquery?: SchemaModelSubquery;
   }): string | null => {
     if (c.expr) {
       return c.expr;
     }
     if (c.group) {
       return `(${buildConditionsSql(c.group)})`;
+    }
+    if (c.subquery) {
+      return buildSubquerySql(c.subquery);
     }
     return null;
   };
@@ -205,12 +257,14 @@ export function frameworkModelFrom({
       const alias = joinTo.override_alias || target;
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       appendSql(`${joinTo.type || 'inner'} join ${tableExpr} ${alias}`);
-      if ('on' in joinTo && 'and' in joinTo.on) {
+      if ('on' in joinTo && joinTo.on?.and) {
         appendSql('on');
         const sqlJoinOnAnd = [];
-        for (const on of joinTo.on?.and || []) {
+        for (const on of joinTo.on.and) {
           if (typeof on === 'string') {
-            sqlJoinOnAnd.push(`${baseCte}.${on}=${target}.${on}`);
+            sqlJoinOnAnd.push(`${baseCte}.${on}=${alias}.${on}`);
+          } else if ('subquery' in on && on.subquery) {
+            sqlJoinOnAnd.push(buildSubquerySql(on.subquery));
           } else if ('expr' in on) {
             sqlJoinOnAnd.push(on.expr);
           }
@@ -239,12 +293,14 @@ export function frameworkModelFrom({
       const alias = joinTo.override_alias || target;
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       appendSql(`${joinTo.type || 'inner'} join ${tableExpr} ${alias}`);
-      if ('on' in joinTo && 'and' in joinTo.on) {
+      if ('on' in joinTo && joinTo.on?.and) {
         appendSql('on');
         const sqlJoinOnAnd = [];
-        for (const on of joinTo.on?.and ?? []) {
+        for (const on of joinTo.on.and) {
           if (typeof on === 'string') {
-            sqlJoinOnAnd.push(`${baseModel}.${on}=${target}.${on}`);
+            sqlJoinOnAnd.push(`${baseModel}.${on}=${alias}.${on}`);
+          } else if ('subquery' in on && on.subquery) {
+            sqlJoinOnAnd.push(buildSubquerySql(on.subquery));
           } else if ('expr' in on) {
             sqlJoinOnAnd.push(on.expr);
           }
@@ -445,7 +501,10 @@ export function frameworkModelSelect({
       const metaAgg = ('agg' in c.meta && c.meta.agg) || '';
       const newAgg =
         metaAgg ||
-        ('rollup' in modelJson.from && c.meta.type === 'fct' && suffixAgg);
+        ('rollup' in modelJson.from &&
+          c.meta.type === 'fct' &&
+          !c.meta.expr &&
+          suffixAgg);
       const shouldAlias = !!c.meta.expr || !!newAgg;
       const prefix = !c.meta.expr && c.meta.prefix ? `${c.meta.prefix}.` : '';
       const nameWithSuffix = frameworkColumnName({ column: c, modelJson });
@@ -1084,11 +1143,16 @@ export function frameworkGenerateCteSql({
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       parts.push(`${joinType} join ${tableExpr} ${alias}`);
       if ('on' in j && j.on?.and) {
-        const onParts = j.on.and.map((on) =>
-          typeof on === 'string'
-            ? `${baseAlias}.${on} = ${target}.${on}`
-            : on.expr,
-        );
+        const onParts: string[] = [];
+        for (const on of j.on.and) {
+          if (typeof on === 'string') {
+            onParts.push(`${baseAlias}.${on} = ${alias}.${on}`);
+          } else if ('subquery' in on && on.subquery) {
+            onParts.push(buildSubquerySql(on.subquery));
+          } else if ('expr' in on) {
+            onParts.push(on.expr);
+          }
+        }
         parts.push(`on ${onParts.join(' and ')}`);
       }
     }
@@ -1262,9 +1326,17 @@ export function frameworkGenerateModelOutput({
   sql: string;
   yml: string;
 } {
+  const modelName = frameworkGetModelName(modelJson);
+  const projectName = project.name;
+  const modelId = getDbtModelId({ modelName, projectName });
+
   const cteColumnRegistry: CteColumnRegistry | undefined =
     'ctes' in modelJson && modelJson.ctes?.length
-      ? frameworkBuildCteColumnRegistry({ ctes: modelJson.ctes, project })
+      ? frameworkBuildCteColumnRegistry({
+          ctes: modelJson.ctes,
+          modelId,
+          project,
+        })
       : undefined;
 
   const { columns, datetimeInterval } = frameworkBuildColumns({
@@ -1273,10 +1345,6 @@ export function frameworkGenerateModelOutput({
     project,
     cteColumnRegistry,
   });
-
-  const modelName = frameworkGetModelName(modelJson);
-  const projectName = project.name;
-  const modelId = getDbtModelId({ modelName, projectName });
 
   const partitionColumnNames = frameworkGetPartitionColumnNames({
     modelJson,
@@ -1630,6 +1698,30 @@ export function frameworkModelProperties({
       model: modelJson.from.model,
     }) as any;
     portalPartitionColumns = modelMeta?.portal_partition_columns || null;
+  } else if (
+    'cte' in modelJson.from &&
+    'ctes' in modelJson &&
+    modelJson.ctes?.length
+  ) {
+    const rootFrom = resolveCteRootFrom(
+      (modelJson.from as { cte: string }).cte,
+      modelJson.ctes,
+    );
+    if (rootFrom) {
+      if ('source' in rootFrom) {
+        const sourceMeta = frameworkGetSourceMeta({
+          project,
+          ...rootFrom,
+        }) as FrameworkSourceMeta;
+        portalPartitionColumns = sourceMeta?.portal_partition_columns || null;
+      } else {
+        const modelMeta = frameworkGetModelMeta({
+          project,
+          ...rootFrom,
+        }) as any;
+        portalPartitionColumns = modelMeta?.portal_partition_columns || null;
+      }
+    }
   }
   if (portalPartitionColumns) {
     // This property will continue to be inherited by direct child models
@@ -1931,9 +2023,18 @@ export function frameworkModelManifestMerge({
   project: DbtProject;
 }): DbtProjectManifest {
   let manifest = { ...project.manifest };
+  const mergeModelName = frameworkGetModelName(modelJson);
+  const mergeModelId = getDbtModelId({
+    modelName: mergeModelName,
+    projectName: project.name,
+  });
   const cteRegistry: CteColumnRegistry | undefined =
     'ctes' in modelJson && modelJson.ctes?.length
-      ? frameworkBuildCteColumnRegistry({ ctes: modelJson.ctes, project })
+      ? frameworkBuildCteColumnRegistry({
+          ctes: modelJson.ctes,
+          modelId: mergeModelId,
+          project,
+        })
       : undefined;
   const modelProperties = frameworkModelProperties({
     dj,
@@ -2327,6 +2428,7 @@ export function frameworkMakeModelTemplate(
         from: {
           model: from?.model ?? '',
           join: [] as unknown as SchemaModelFromJoinModels,
+          ...(from?.rollup && { rollup: from.rollup }),
         } as SchemaModelTypeIntJoinModels['from'],
         select: getSelect(
           [] as unknown as SchemaModelTypeIntJoinModels['select'],
@@ -2337,9 +2439,9 @@ export function frameworkMakeModelTemplate(
       if (from?.join && from.join.length > 0) {
         try {
           baseModel.from.join = from.join.map((joinItem) => ({
-            model: joinItem.model,
-            on: joinItem.on as any, // Type cast to match schema
-            type: joinItem.type as any, // Type cast to match schema
+            ...joinItem,
+            on: joinItem.on as any,
+            type: joinItem.type as any,
           })) as any;
         } catch {
           // Fall back to empty array if type casting fails
@@ -2453,12 +2555,14 @@ export function frameworkMakeModelTemplate(
       return baseModel;
     }
     case 'int_select_model': {
+      const fromObj: SchemaModelTypeIntSelectModel['from'] = {
+        model: from?.model ?? '',
+        ...(from?.rollup && { rollup: from.rollup }),
+      };
       const baseModel: SchemaModelTypeIntSelectModel = {
         ...base,
         type,
-        from: {
-          model: from?.model ?? '',
-        },
+        from: fromObj,
         select: getSelect(
           [] as unknown as SchemaModelTypeIntSelectModel['select'],
         ),
@@ -2576,9 +2680,9 @@ export function frameworkMakeModelTemplate(
       if (from?.join && from.join.length > 0) {
         try {
           baseModel.from.join = from.join.map((joinItem) => ({
-            model: joinItem.model,
-            on: joinItem.on as any, // Type cast to match schema
-            type: joinItem.type as any, // Type cast to match schema
+            ...joinItem,
+            on: joinItem.on as any,
+            type: joinItem.type as any,
           })) as any;
         } catch {
           // Fall back to empty array if type casting fails

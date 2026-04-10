@@ -33,7 +33,7 @@ export const LightdashNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="nopan px-4 py-4 shadow-lg rounded-md bg-background border-2 min-w-[750px] border-surface relative"
+      className="nopan px-4 py-4 shadow-lg rounded-md bg-background border-2 min-w-[750px] border-neutral relative"
       data-tutorial-id="lightdash-node"
     >
       {/* Handles */}
@@ -93,7 +93,7 @@ export const LightdashNode: React.FC<NodeProps> = () => {
         />
       </div>
 
-      <hr className="border-border mb-4" />
+      <hr className="border-neutral mb-4" />
 
       {/* Metrics Section */}
       <LightdashMetrics
@@ -101,7 +101,7 @@ export const LightdashNode: React.FC<NodeProps> = () => {
         updateLightdashState={updateLightdashState}
       />
 
-      <hr className="border-border mb-4" />
+      <hr className="border-neutral mb-4" />
 
       {/* Table Properties Section */}
       <LightdashTableProperties
@@ -109,7 +109,7 @@ export const LightdashNode: React.FC<NodeProps> = () => {
         updateLightdashState={updateLightdashState}
       />
 
-      <hr className="border-border mb-4" />
+      <hr className="border-neutral mb-4" />
 
       {/* Metrics to Include Section */}
       <LightdashMetricsIncludeExclude
@@ -118,7 +118,7 @@ export const LightdashNode: React.FC<NodeProps> = () => {
         updateLightdashState={updateLightdashState}
       />
 
-      <hr className="border-border mb-4" />
+      <hr className="border-neutral mb-4" />
 
       {/* Metrics to Exclude Section */}
       <LightdashMetricsIncludeExclude

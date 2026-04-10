@@ -40,6 +40,9 @@ export type SchemaModelFromJoinModels = [
                  */
                 expr: string;
               }
+            | {
+                subquery: SchemaModelSubquery;
+              }
           )[];
         };
       }
@@ -72,6 +75,9 @@ export type SchemaModelFromJoinModels = [
                  * SQL for the condition
                  */
                 expr: string;
+              }
+            | {
+                subquery: SchemaModelSubquery;
               }
           )[];
         };
@@ -102,6 +108,9 @@ export type SchemaModelFromJoinModels = [
                  */
                 expr: string;
               }
+            | {
+                subquery: SchemaModelSubquery;
+              }
           )[];
         };
       }
@@ -135,6 +144,9 @@ export type SchemaModelFromJoinModels = [
                  */
                 expr: string;
               }
+            | {
+                subquery: SchemaModelSubquery;
+              }
           )[];
         };
       }
@@ -144,6 +156,37 @@ export type SchemaModelFromJoinModels = [
  * Validate column name
  */
 export type SchemaColumnName = string;
+/**
+ * Validate source ids
+ */
+export type SchemaRefSourceId = string;
+/**
+ * SQL WHERE
+ */
+export type SchemaModelWhere =
+  | SchemaColumnExpr
+  | {
+      /**
+       * Conditions to be combined by AND
+       */
+      and?: {
+        expr?: SchemaColumnExpr;
+        group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
+      }[];
+      /**
+       * Conditions to be combined by OR
+       */
+      or?: {
+        expr?: SchemaColumnExpr;
+        group?: SchemaModelWhere;
+        subquery?: SchemaModelSubquery;
+      }[];
+    };
+/**
+ * SQL expression to be used when selecting the column (name will be the alias
+ */
+export type SchemaColumnExpr = string;
 /**
  * Validate selecting an existing named column
  */
@@ -193,10 +236,6 @@ export type SchemaColumnDescription = string;
  * Exclude this dimension from group by when we are aggregating
  */
 export type SchemaColumnExcludeFromGroupBy = boolean;
-/**
- * SQL expression to be used when selecting the column (name will be the alias
- */
-export type SchemaColumnExpr = string;
 /**
  * Whether this column should be treated as case-sensitive
  */
@@ -452,27 +491,6 @@ export type SchemaModelSelectCTE =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
- * SQL WHERE
- */
-export type SchemaModelWhere =
-  | SchemaColumnExpr
-  | {
-      /**
-       * Conditions to be combined by AND
-       */
-      and?: {
-        expr?: SchemaColumnExpr;
-        group?: SchemaModelWhere;
-      }[];
-      /**
-       * Conditions to be combined by OR
-       */
-      or?: {
-        expr?: SchemaColumnExpr;
-        group?: SchemaModelWhere;
-      }[];
-    };
-/**
  * Validate model group by
  *
  * @minItems 1
@@ -512,6 +530,7 @@ export type SchemaModelHaving =
          */
         expr?: string;
         group?: SchemaModelHaving;
+        subquery?: SchemaModelSubquery;
       }[];
       /**
        * Conditions to be combined by OR
@@ -522,6 +541,7 @@ export type SchemaModelHaving =
          */
         expr?: string;
         group?: SchemaModelHaving;
+        subquery?: SchemaModelSubquery;
       }[];
     };
 
@@ -605,6 +625,52 @@ export interface SchemaModelCTE {
   where?: SchemaModelWhere;
   group_by?: SchemaModelGroupBy;
   having?: SchemaModelHaving;
+}
+/**
+ * Defines an inline subquery for use in WHERE or HAVING conditions. Supports IN, NOT IN, EXISTS, NOT EXISTS, and scalar comparison operators.
+ */
+export interface SchemaModelSubquery {
+  /**
+   * How the subquery result is compared against the column
+   */
+  operator:
+    | 'in'
+    | 'not_in'
+    | 'exists'
+    | 'not_exists'
+    | 'eq'
+    | 'neq'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte';
+  /**
+   * Column to compare against the subquery result. Required for all operators except exists/not_exists.
+   */
+  column?: string;
+  /**
+   * Columns or expressions to select in the subquery
+   *
+   * @minItems 1
+   */
+  select: [string, ...string[]];
+  /**
+   * Data source for the subquery
+   */
+  from:
+    | {
+        model: SchemaModelRef;
+      }
+    | {
+        source: SchemaRefSourceId;
+      }
+    | {
+        /**
+         * Reference to a CTE defined in the ctes array
+         */
+        cte: string;
+      };
+  where?: SchemaModelWhere;
 }
 export interface SchemaColumnLightdash {
   case_sensitive?: SchemaLightdashCaseSensitive;

@@ -137,7 +137,7 @@ Unions multiple source tables.
 
 ### 4. `int_select_model` — Intermediate: Select from a Model
 
-Transforms data from a single upstream model.
+Transforms data from a single upstream model. Supports optional `from.rollup` for time-grain re-aggregation (provides `int_rollup_model` functionality with more control over columns).
 
 ```jsonc
 {
@@ -148,6 +148,10 @@ Transforms data from a single upstream model.
   "materialized": "incremental",
   "from": {
     "model": "stg__my_group__my_topic__raw_data_conformed",
+    // optional: re-aggregate to coarser time grain
+    "rollup": {
+      "interval": "day", // "day", "hour", "month", "year"
+    },
   },
   "select": [
     "account_id",
@@ -172,7 +176,7 @@ Transforms data from a single upstream model.
 
 ### 5. `int_join_models` — Intermediate: Join Multiple Models
 
-Joins a primary model with one or more additional models.
+Joins a primary model with one or more additional models. Supports optional `from.rollup` for time-grain re-aggregation alongside joins.
 
 ```jsonc
 {
@@ -183,6 +187,10 @@ Joins a primary model with one or more additional models.
   "materialized": "incremental",
   "from": {
     "model": "int__my_group__my_topic__daily_summary",
+    // optional: re-aggregate to coarser time grain
+    "rollup": {
+      "interval": "day", // "day", "hour", "month", "year"
+    },
     "join": [
       {
         "model": "int__my_group__other_topic__dimension_table",
@@ -318,6 +326,16 @@ Final business-ready model selecting from an intermediate model.
 Final business-ready model that joins multiple intermediate models. Same join syntax as `int_join_models`.
 
 **Required fields**: `type`, `group`, `topic`, `name`, `from.model`, `from.join`, `select`
+
+### Advanced: CTEs, rollup, shorthands, subqueries
+
+For **`int_select_model`**, **`int_join_models`**, **`int_union_models`**, **`mart_select_model`**, **`mart_join_models`** (not staging). **Shapes and required keys** live in **`.dj/schemas/model.type.<type>.schema.json`** and **`$ref`** targets — read those first; this section is a map, not a full spec.
+
+- **CTEs**: Optional ordered **`ctes`**. **`model.ctes.schema.json`**, **`model.cte.schema.json`**.
+- **`from`**: Each type’s **`from`** **`anyOf`** lists legal combinations (**`model`**, **`cte`**, **`join`**, optional **`rollup`** on **`int_*` select/join only** — not on marts).
+- **Rollup on select/join**: Optional **`rollup`** on **`from.model`** for **`int_select_model`** and **`int_join_models`** only (not marts). Keeps a normal **`select`** / join; coarser **`interval`** triggers **re-aggregation** of declarative **`agg`/`aggs`**. **`model.from.rollup.schema.json`**. **`group_by` / `agg` / `expr`**: **#9**–**#10**.
+- **Shorthands & CTE columns**: **`dims_from_*`**, **`fcts_from_*`**, **`all_from_*`** and explicit CTE column objects — **`model.select.model.schema.json`**, **`model.select.cte.schema.json`**, related **`model.select.*`**.
+- **`where` / `having`**: Nested **`subquery`** — **`model.subquery.schema.json`**.
 
 ---
 
@@ -507,6 +525,35 @@ With optional include/exclude:
 {
   "source": "my_database__my_schema.my_table",
   "type": "all_from_source",
+}
+```
+
+### From CTE (in models with `ctes`)
+
+```jsonc
+{
+  "cte": "my_cte_name",
+  "type": "all_from_cte", // "all_from_cte", "dims_from_cte", "fcts_from_cte"
+}
+```
+
+With optional include/exclude:
+
+```jsonc
+{
+  "cte": "my_cte_name",
+  "type": "dims_from_cte",
+  "include": ["account_id", "region"],
+}
+```
+
+Named column from a CTE:
+
+```jsonc
+{
+  "cte": "my_cte_name",
+  "name": "cost",
+  "type": "fct",
 }
 ```
 
@@ -768,6 +815,8 @@ Use `"type": "all_from_model", "exclude": ["col1", "col2"]` then redefine those 
 "where": { "and": [{ "expr": "cost > 0" }, { "expr": "status = 1" }] } // AND conditions
 "where": { "or": [{ "expr": "region = 'us-east-1'" }] }                // OR conditions
 "having": { "and": [{ "expr": "sum(cost) > 100" }] }                   // after aggregation
+// subquery condition (see "Inline Subqueries" section for full details)
+"where": { "and": [{ "subquery": { "operator": "in", "column": "account_id", "select": ["id"], "from": { "model": "..." } } }] }
 ```
 
 ### Join ON Conditions
@@ -784,6 +833,107 @@ Use `"override_alias": "parent"` on the joined model to reference it by alias.
 ### Seed Models
 
 Reference CSV seeds with `"from": { "model": "seed__<topic>__<name>" }` in `stg_select_model`.
+
+---
+
+## Inline CTEs
+
+The following model types support a `ctes` array for inline Common Table Expressions: `int_select_model`, `int_join_models`, `int_union_models`, `mart_select_model`, `mart_join_models`.
+
+CTEs generate SQL `WITH` clauses within the model. Each CTE has a `name` and a `from` source (model, earlier CTE, or union). Optional: `select`, `where`, `group_by`, `having`.
+
+CTEs must be ordered — a CTE can only reference CTEs defined before it in the array. The parent model references a CTE via `"from": { "cte": "<cte_name>" }`.
+
+```jsonc
+{
+  "type": "int_select_model",
+  "group": "my_group",
+  "topic": "my_topic",
+  "name": "filtered_summary",
+  "ctes": [
+    {
+      "name": "active_accounts",
+      "from": { "model": "stg__my_group__my_topic__accounts" },
+      "select": ["account_id", "region"],
+      "where": { "and": [{ "expr": "status = 'active'" }] },
+    },
+    {
+      "name": "enriched", // can reference earlier CTE
+      "from": {
+        "cte": "active_accounts",
+        "join": [
+          {
+            "model": "int__my_group__my_topic__daily",
+            "type": "inner",
+            "on": { "and": ["account_id"] },
+          },
+        ],
+      },
+      "select": [
+        { "cte": "active_accounts", "type": "all_from_cte" },
+        {
+          "model": "int__my_group__my_topic__daily",
+          "type": "fcts_from_model",
+        },
+      ],
+    },
+  ],
+  "from": { "cte": "enriched" }, // parent model reads from a CTE
+  "select": ["account_id", "region", "cost_sum"],
+}
+```
+
+CTE unions use the same pattern as model unions:
+
+```jsonc
+{
+  "name": "combined",
+  "from": { "cte": "cte_a", "union": { "ctes": ["cte_b", "cte_c"] } },
+}
+```
+
+---
+
+## Inline Subqueries
+
+Subqueries can appear in `where`, `having`, and join `on` conditions via the `subquery` key.
+
+**Structure**: `operator`, `column` (required except for `exists`/`not_exists`), `select`, `from` (model, source, or CTE), optional inner `where`.
+
+**Operators**: `in`, `not_in`, `exists`, `not_exists`, `eq`, `neq`, `gt`, `gte`, `lt`, `lte`
+
+```jsonc
+// WHERE with subquery
+"where": {
+  "and": [
+    { "expr": "cost > 0" },
+    {
+      "subquery": {
+        "operator": "in",
+        "column": "account_id",
+        "select": ["account_id"],
+        "from": { "model": "int__my_group__my_topic__active_accounts" },
+        "where": { "and": [{ "expr": "status = 'active'" }] },
+      },
+    },
+  ],
+}
+
+// JOIN ON with subquery
+"on": {
+  "and": [
+    "account_id",
+    {
+      "subquery": {
+        "operator": "exists",
+        "select": ["1"],
+        "from": { "cte": "valid_records" },
+        "where": { "and": [{ "expr": "a.id = valid_records.id" }] },
+      },
+    },
+  ],
+}
+```
 
 ---
 
@@ -893,6 +1043,12 @@ The authoritative JSON Schemas for all model and source types live in the `.dj/s
 | `model.select.model.schema.json`            | Select columns from another model                               |
 | `model.select.source.schema.json`           | Select columns from a source                                    |
 | `model.from.join.models.schema.json`        | Join configuration                                              |
+| `model.from.rollup.schema.json`             | Rollup configuration for time-grain re-aggregation              |
+| `model.sql_hooks.schema.json`               | `pre` / `post` SQL for staging and intermediate models          |
+| `model.subquery.schema.json`                | Inline subquery definition (WHERE, HAVING, JOIN ON)             |
+| `model.cte.schema.json`                     | Single CTE definition                                           |
+| `model.ctes.schema.json`                    | CTE array configuration                                         |
+| `model.select.cte.schema.json`              | Select columns from a CTE                                       |
 | `column.lightdash.schema.json`              | Lightdash BI column configuration                               |
 | `model.lightdash.schema.json`               | Lightdash BI model-level configuration                          |
 
@@ -909,11 +1065,11 @@ You can also look at existing `.model.json` and `.source.json` files in the `mod
 3. **Follow the naming convention** strictly: `<layer>__<group>__<topic>__<name>`
 4. **Reference models by their full name** (e.g., `int__my_group__my_topic__daily_summary`).
 5. **Reference sources** as `<database>__<schema>.<table_name>`.
-6. **Materialization defaults** to view-like behavior; set `"materialized": "incremental"` for large datasets that should be incrementally updated.
+6. **Materialization defaults** to view-like behavior; set `"materialized"` to `"incremental"` or `"ephemeral"` where the model type supports it. Optional `sql_hooks` (`pre`/`post`) exist on staging and intermediate types only — not on marts.
 7. **Scheduling is inherited** from sources — don't try to configure schedules on models.
 8. **Tags** can be simple strings or objects with `{ "tag": "name", "type": "exclude" | "inherit" | "local" | "ai_hints" }`.
-9. When using `group_by`, the shorthand `[{ "type": "dims" }]` groups by all dimension columns automatically.
-10. The `expr` field on select columns lets you write arbitrary Trino SQL for computed columns.
+9. **`group_by`** accepts column name strings, `{ "expr": "..." }` objects, or the shorthand `[{ "type": "dims" }]` to group by all dimension columns automatically.
+10. **`expr`** on select columns lets you write arbitrary Trino SQL. For declarative aggregation, prefer `agg`/`aggs` on `fct` columns over manual `expr`. Note: `mart_select_model` and `int_union_models` do not support `agg`/`aggs` — use `expr` or pre-aggregate upstream. When using `agg`, always set `group_by`. Never duplicate the same aggregate in both `expr` and `agg`.
 11. **Verify upstream columns before selecting them.** When creating or editing a downstream model, always open and read the upstream model's `.sql` file (there will be multiple in joins) or source `.yml` for staging models to confirm which columns are actually available. Determine the effective column name by inspecting each entry in the upstream `select` directive.
 
     - **`"expr"` key exists** → the column is a computed expression, ensure that any column names referenced existing in one of the parent models.
@@ -921,6 +1077,7 @@ You can also look at existing `.model.json` and `.source.json` files in the `mod
     - **Plain string** (e.g., `"account_id"`) → use that string directly as the column name.
     - **`"all_from_model"` / `"dims_from_model"` / `"fcts_from_model"`** → the upstream pulls columns from _its own_ upstream model; follow the chain to that model's `select` to discover the actual column names. If `"include"` or `"exclude"` is present, apply those filters.
     - **`"all_from_source"` / `"dims_from_source"` / `"fcts_from_source"`** → the upstream pulls columns from a source; open the referenced source `.yml` and inspect the table's `columns` array for the available column names and data types.
+    - **`"all_from_cte"` / `"dims_from_cte"` / `"fcts_from_cte"`** → the upstream pulls columns from a CTE; trace to that CTE's `select` to discover available columns.
 
     **Never assume a column exists — always verify it in the upstream definition.** This prevents referencing columns that don't exist.
 

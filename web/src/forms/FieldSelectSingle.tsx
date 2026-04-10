@@ -8,7 +8,6 @@ export type FieldSelectSingleProps = ControllerRenderProps & {
   options: { label: string; value: string }[];
   tooltipText?: string;
   className?: string;
-  wrapperClass?: string;
   inputClassName?: string;
   labelClass?: string;
   helpIcon?: React.ReactNode; // Help icon for Assist Me

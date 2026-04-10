@@ -1,3 +1,10 @@
+export interface Column {
+  name: string;
+  dataType: string;
+  type: 'dimension' | 'fact';
+  description?: string;
+}
+
 export enum SelectionType {
   ALL_FROM_MODEL = 'all_from_model',
   DIMS_FROM_MODEL = 'dims_from_model',
@@ -282,11 +289,17 @@ export const DATA_TEST_TYPES = [
 // Join condition row interface for JoinNode
 export interface JoinConditionRow {
   id: string;
-  type: 'column' | 'expression';
+  type: 'column' | 'expression' | 'subquery';
   baseColumn?: string;
   condition?: string;
   joinColumn?: string;
   expression?: string;
+  subqueryOperator?: string;
+  subqueryColumn?: string;
+  subquerySelect?: string;
+  subqueryFromType?: 'model' | 'source' | 'cte';
+  subqueryFromValue?: string;
+  subqueryWhere?: string;
 }
 
 // =============================================================================

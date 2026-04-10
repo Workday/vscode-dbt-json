@@ -4,6 +4,7 @@ import type {
   SelectedModel,
 } from '@shared/dbt/types';
 import { makeClassName } from '@web';
+import { Spinner } from '@web/elements';
 import { SCOPE_OPTIONS } from '@web/utils/modelRunConstants';
 import React from 'react';
 
@@ -21,6 +22,11 @@ interface ScopeSelectorProps {
   selectedModels?: SelectedModel[];
   availableModels?: string[];
   onSelectedModelsChange?: (models: SelectedModel[]) => void;
+  // For modified scope - selectable modified models
+  modifiedModels?: string[];
+  selectedModifiedModels?: SelectedModel[];
+  onSelectedModifiedModelsChange?: (models: SelectedModel[]) => void;
+  fetchingModifiedModels?: boolean;
 }
 
 /**
@@ -38,6 +44,10 @@ export const ScopeSelector = React.memo<ScopeSelectorProps>(
     selectedModels = [],
     availableModels = [],
     onSelectedModelsChange,
+    modifiedModels = [],
+    selectedModifiedModels = [],
+    onSelectedModifiedModelsChange,
+    fetchingModifiedModels = false,
   }) => {
     const hasActiveModel = activeModelName != null;
 
@@ -104,6 +114,31 @@ export const ScopeSelector = React.memo<ScopeSelectorProps>(
             availableModels={availableModels}
             onModelsChange={onSelectedModelsChange}
           />
+        )}
+
+        {/* Modified models selector - show when modified scope is selected */}
+        {currentScope === 'modified' && (
+          <>
+            {fetchingModifiedModels ? (
+              <div className="bg-message-info border border-[var(--color-primary)] rounded-lg p-4 flex items-center gap-2">
+                <Spinner />
+                <p className="text-sm text-message-info-contrast">
+                  Checking for modified models...
+                </p>
+              </div>
+            ) : (
+              modifiedModels.length > 0 &&
+              onSelectedModifiedModelsChange && (
+                <ModelSelector
+                  mode="multi-model"
+                  title="Modified Models Selection"
+                  selectedModels={selectedModifiedModels}
+                  availableModels={modifiedModels}
+                  onModelsChange={onSelectedModifiedModelsChange}
+                />
+              )
+            )}
+          </>
         )}
       </div>
     );

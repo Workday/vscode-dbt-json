@@ -647,4 +647,6 @@ export type DbtRunConfig = {
   statePath?: string;
   // Modified models list (for modified scope)
   modifiedModels?: string[];
+  // Selected modified models with lineage (for modified scope with user selection)
+  selectedModifiedModels?: SelectedModel[];
 };

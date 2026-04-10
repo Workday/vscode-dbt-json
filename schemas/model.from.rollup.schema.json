@@ -1,0 +1,15 @@
+{
+  "$id": "model.from.rollup.schema.json",
+  "title": "Schema Model From Rollup",
+  "description": "Rollup configuration for time-grain re-aggregation",
+  "type": "object",
+  "required": ["interval"],
+  "additionalProperties": false,
+  "properties": {
+    "datetime_expr": { "type": "string" },
+    "interval": {
+      "description": "The interval for the rollup",
+      "enum": ["day", "hour", "month", "year"]
+    }
+  }
+}

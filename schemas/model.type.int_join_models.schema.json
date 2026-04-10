@@ -61,7 +61,8 @@
           "required": ["join", "model"],
           "properties": {
             "join": { "$ref": "model.from.join.models.schema.json" },
-            "model": { "$ref": "model.ref.schema.json" }
+            "model": { "$ref": "model.ref.schema.json" },
+            "rollup": { "$ref": "model.from.rollup.schema.json" }
           }
         },
         {

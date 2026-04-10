@@ -116,6 +116,45 @@ describe('framework unit tests', () => {
             },
           },
         },
+        ['model.project.model_with_aggs']: {
+          columns: {
+            datetime: {
+              name: 'datetime',
+              data_type: 'timestamp',
+              meta: { type: 'dim' },
+            },
+            store_id: {
+              name: 'store_id',
+              data_type: 'varchar',
+              meta: { type: 'dim' },
+            },
+            store_name: {
+              name: 'store_name',
+              data_type: 'varchar',
+              meta: { type: 'dim' },
+            },
+            revenue_sum: {
+              name: 'revenue_sum',
+              data_type: 'double',
+              meta: { type: 'fct' },
+            },
+            events_count: {
+              name: 'events_count',
+              data_type: 'bigint',
+              meta: { type: 'fct' },
+            },
+            price_min: {
+              name: 'price_min',
+              data_type: 'double',
+              meta: { type: 'fct' },
+            },
+            price_max: {
+              name: 'price_max',
+              data_type: 'double',
+              meta: { type: 'fct' },
+            },
+          },
+        },
       },
       parent_map: {},
       saved_queries: {},
@@ -393,5 +432,126 @@ select * from ${modelName}
         },
       },
     ]);
+  });
+
+  test('int_select_model with group_by does not re-aggregate without from.rollup', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'analytics',
+      topic: 'reporting',
+      name: 'store_summary',
+      from: {
+        model: 'model_with_aggs',
+      },
+      select: [
+        'store_id',
+        'store_name',
+        { name: 'revenue_sum', type: 'fct' },
+        { name: 'events_count', type: 'fct' },
+        { name: 'price_min', type: 'fct' },
+        { name: 'price_max', type: 'fct' },
+        {
+          name: 'total_days',
+          expr: 'COUNT(DISTINCT event_date)',
+          type: 'fct',
+        },
+      ],
+      group_by: [{ type: 'dims' }],
+    };
+    const modelName = frameworkGetModelName(modelJson);
+
+    const result = frameworkGenerateModelOutput({
+      dj: createTestDJ(),
+      modelJson,
+      project,
+    });
+
+    expect(result.sql).toBe(
+      `
+{{
+  config(
+    materialized="ephemeral"
+  )
+}}
+`.trim() +
+        '\n\n' +
+        sqlFormat(`
+with ${modelName} as (
+  select
+      datetime,
+      events_count,
+      price_max,
+      price_min,
+      revenue_sum,
+      store_id,
+      store_name,
+      COUNT(DISTINCT event_date) as total_days
+  from
+      {{ ref('model_with_aggs') }}
+  group by
+      datetime,
+      store_id,
+      store_name
+)
+select * from ${modelName}
+        `),
+    );
+  });
+
+  test('int_select_model with from.rollup + explicit select generates rollup SQL', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'analytics',
+      topic: 'reporting',
+      name: 'store_daily',
+      from: {
+        model: 'model_with_aggs',
+        rollup: { interval: 'day' },
+      },
+      select: [
+        'store_id',
+        { name: 'revenue_sum', type: 'fct' },
+        { name: 'events_count', type: 'fct' },
+        {
+          name: 'custom_metric',
+          expr: 'COUNT(DISTINCT store_name)',
+          type: 'fct',
+        },
+      ],
+    };
+    const modelName = frameworkGetModelName(modelJson);
+
+    const result = frameworkGenerateModelOutput({
+      dj: createTestDJ(),
+      modelJson,
+      project,
+    });
+
+    expect(result.sql).toBe(
+      `
+{{
+  config(
+    materialized="ephemeral"
+  )
+}}
+`.trim() +
+        '\n\n' +
+        sqlFormat(`
+with ${modelName} as (
+  select
+      COUNT(DISTINCT store_name) as custom_metric,
+      date_trunc('day', datetime) as datetime,
+      sum(events_count) as events_count,
+      sum(revenue_sum) as revenue_sum,
+      store_id
+  from
+      {{ ref('model_with_aggs') }}
+  group by
+      date_trunc('day', datetime),
+      store_id
+)
+select * from ${modelName}
+        `),
+    );
   });
 });

@@ -229,13 +229,7 @@ export interface SchemaModelTypeIntRollupModel {
   exclude_portal_source_count?: SchemaModelExcludePortalSourceCount;
   from: {
     model: SchemaModelRef;
-    rollup: {
-      datetime_expr?: string;
-      /**
-       * The interval for the rollup
-       */
-      interval: 'day' | 'hour' | 'month' | 'year';
-    };
+    rollup: SchemaModelFromRollup;
   };
 }
 /**
@@ -347,4 +341,14 @@ export interface ModelSqlHooksSchemaJson {
    * Statement(s) to run before model
    */
   pre?: string | [string, ...string[]];
+}
+/**
+ * Rollup configuration for time-grain re-aggregation
+ */
+export interface SchemaModelFromRollup {
+  datetime_expr?: string;
+  /**
+   * The interval for the rollup
+   */
+  interval: 'day' | 'hour' | 'month' | 'year';
 }

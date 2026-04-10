@@ -1,8 +1,9 @@
-import { TrashIcon } from '@heroicons/react/24/outline';
 import type { DbtProject } from '@shared/dbt/types';
-import type { SchemaModelFromJoinModels } from '@shared/schema/types/model.type.int_join_models.schema';
+import type {
+  SchemaModelFromJoinModels,
+  SchemaModelSubquery,
+} from '@shared/schema/types/model.type.int_join_models.schema';
 import { useApp } from '@web/context/useApp';
-import { Button } from '@web/elements';
 import { useModelStore } from '@web/stores/useModelStore';
 import type { NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
@@ -22,8 +23,10 @@ import {
 import { JoinConditions } from '../components/JoinConditions';
 import { JoinHeader } from '../components/JoinHeader';
 import { ModelColumns } from '../components/ModelColumns';
-import type { JoinConditionRow, SelectionTypeValues } from '../types';
-import { SelectionType, supportsColumnName, supportsExprOnly } from '../types';
+import type { JoinConditionRow, SelectionType } from '../types';
+import { supportsColumnName, supportsExprOnly } from '../types';
+import { extractColumnsFromNode } from '../utils/manifestColumns';
+import { buildUpdatedSelections } from '../utils/selectionUtils';
 import type { AvailableModel, Column } from './SelectNode';
 
 type JoinWithUUID = SchemaModelFromJoinModels[0] & {
@@ -37,16 +40,6 @@ const getJoinModel = (
 
 interface JoinNodeData {
   joinId?: string;
-}
-
-interface ManifestModelNodeColumn {
-  data_type?: string;
-  description?: string;
-  meta?: { type?: string };
-}
-
-interface ManifestModelNode {
-  columns?: { [name: string]: ManifestModelNodeColumn | undefined };
 }
 
 export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
@@ -66,11 +59,8 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   }, [modelingState.join, nodeData.joinId]);
 
   const updateSpecificJoin = useCallback(
-    (joinUpdate: {
-      model: string;
-      type: 'inner' | 'left' | 'right' | 'full' | 'cross';
-      on: { and: (string | { expr: string })[] };
-    }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (joinUpdate: Record<string, any>) => {
       const existingJoins = Array.isArray(modelingState.join)
         ? modelingState.join
         : [];
@@ -89,13 +79,13 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         const updatedJoin = {
           ...joinUpdate,
           _uuid: existingJoin._uuid,
-        } as SchemaModelFromJoinModels[0];
+        } as unknown as SchemaModelFromJoinModels[0];
         updatedJoins[joinIndex] = updatedJoin;
       } else {
         const newJoin = {
           ...joinUpdate,
           _uuid: nodeData.joinId,
-        } as SchemaModelFromJoinModels[0];
+        } as unknown as SchemaModelFromJoinModels[0];
         updatedJoins.push(newJoin);
       }
       updateJoinState(updatedJoins as SchemaModelFromJoinModels);
@@ -114,6 +104,7 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   );
 
   const [models, setModels] = useState<string[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = useState<boolean>(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +119,12 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   const [joinType, setJoinType] = useState<string>(
     currentJoin?.type || 'inner',
   );
+
+  const [overrideAlias, setOverrideAlias] = useState<string>(
+    ((currentJoin as Record<string, unknown>)?.override_alias as string) || '',
+  );
+  const overrideAliasRef = useRef(overrideAlias);
+  overrideAliasRef.current = overrideAlias;
 
   const [conditions, setConditions] = useState<JoinConditionRow[]>(() => {
     return [
@@ -168,18 +165,22 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
       const currentJoinType = currentJoin.type || 'inner';
       setJoinType(currentJoinType);
 
-      // For left/right joins, the expression format is joinColumn = baseColumn
-      // For inner/full joins, the expression format is baseColumn = joinColumn
-      const shouldSwapColumns =
-        currentJoinType === 'left' || currentJoinType === 'right';
+      setOverrideAlias(
+        ((currentJoin as Record<string, unknown>)?.override_alias as string) ||
+          '',
+      );
 
       if (
         'on' in currentJoin &&
         currentJoin.on?.and &&
         currentJoin.on.and.length > 0
       ) {
-        // Get current join model name for prefixing
-        const joinModelName = currentModel;
+        // Use override_alias when available so alias-qualified column
+        // references (e.g. old_gen_1.col) are matched to the join side.
+        const joinAlias =
+          ((currentJoin as Record<string, unknown>)
+            ?.override_alias as string) || '';
+        const joinModelName = joinAlias || currentModel;
 
         const updatedConditions = currentJoin.on.and.map(
           (condition, index: number) => {
@@ -304,65 +305,53 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
                   let baseColumn: string;
                   let joinColumn: string;
 
-                  // For left/right joins: expression format is joinColumn = baseColumn
-                  // So left side is join, right side is base
-                  if (shouldSwapColumns) {
+                  // Detect which side belongs to base vs join by comparing
+                  // model prefixes.  Check against both the alias and the raw
+                  // model name so alias-qualified expressions are recognised.
+                  const leftBelongsToJoin =
+                    leftModelPrefix === joinModelName ||
+                    (!!joinAlias && leftModelPrefix === currentModel);
+                  const rightBelongsToJoin =
+                    rightModelPrefix === joinModelName ||
+                    (!!joinAlias && rightModelPrefix === currentModel);
+                  const leftBelongsToBase = leftModelPrefix === baseModelName;
+                  const rightBelongsToBase = rightModelPrefix === baseModelName;
+
+                  if (leftBelongsToJoin || rightBelongsToBase) {
                     joinColumn = leftModelPrefix
-                      ? leftColumn
+                      ? `${joinModelName}.${leftColumnName}`
                       : joinModelName
                         ? `${joinModelName}.${leftColumnName}`
                         : leftColumn;
                     baseColumn = rightModelPrefix
-                      ? rightColumn
+                      ? `${baseModelName ? baseModelName : rightModelPrefix}.${rightColumnName}`
                       : baseModelName
                         ? `${baseModelName}.${rightColumnName}`
                         : rightColumn;
+                  } else if (leftBelongsToBase || rightBelongsToJoin) {
+                    baseColumn = leftModelPrefix
+                      ? `${baseModelName ? baseModelName : leftModelPrefix}.${leftColumnName}`
+                      : baseModelName
+                        ? `${baseModelName}.${leftColumnName}`
+                        : leftColumn;
+                    joinColumn = rightModelPrefix
+                      ? `${joinModelName}.${rightColumnName}`
+                      : joinModelName
+                        ? `${joinModelName}.${rightColumnName}`
+                        : rightColumn;
                   } else {
-                    // For inner/full joins, try to detect by model prefix
-                    const leftBelongsToJoin = leftModelPrefix === joinModelName;
-                    const rightBelongsToJoin =
-                      rightModelPrefix === joinModelName;
-                    const leftBelongsToBase = leftModelPrefix === baseModelName;
-                    const rightBelongsToBase =
-                      rightModelPrefix === baseModelName;
-
-                    if (leftBelongsToJoin || rightBelongsToBase) {
-                      // Expression is in joinColumn = baseColumn format
-                      joinColumn = leftModelPrefix
-                        ? leftColumn
-                        : joinModelName
-                          ? `${joinModelName}.${leftColumnName}`
-                          : leftColumn;
-                      baseColumn = rightModelPrefix
-                        ? rightColumn
-                        : baseModelName
-                          ? `${baseModelName}.${rightColumnName}`
-                          : rightColumn;
-                    } else if (leftBelongsToBase || rightBelongsToJoin) {
-                      // Expression is in baseColumn = joinColumn format
-                      baseColumn = leftModelPrefix
-                        ? leftColumn
-                        : baseModelName
-                          ? `${baseModelName}.${leftColumnName}`
-                          : leftColumn;
-                      joinColumn = rightModelPrefix
-                        ? rightColumn
-                        : joinModelName
-                          ? `${joinModelName}.${rightColumnName}`
-                          : rightColumn;
-                    } else {
-                      // Default: assume left is base, right is join
-                      baseColumn = leftModelPrefix
-                        ? leftColumn
-                        : baseModelName
-                          ? `${baseModelName}.${leftColumnName}`
-                          : leftColumn;
-                      joinColumn = rightModelPrefix
-                        ? rightColumn
-                        : joinModelName
-                          ? `${joinModelName}.${rightColumnName}`
-                          : rightColumn;
-                    }
+                    // Prefix detection inconclusive – fall back to left=base,
+                    // right=join (most common for inner joins).
+                    baseColumn = leftModelPrefix
+                      ? leftColumn
+                      : baseModelName
+                        ? `${baseModelName}.${leftColumnName}`
+                        : leftColumn;
+                    joinColumn = rightModelPrefix
+                      ? rightColumn
+                      : joinModelName
+                        ? `${joinModelName}.${rightColumnName}`
+                        : rightColumn;
                   }
 
                   return {
@@ -380,6 +369,42 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
                 id: (index + 1).toString(),
                 type: 'expression' as const,
                 expression: expr,
+              };
+            }
+
+            if (
+              typeof condition === 'object' &&
+              condition !== null &&
+              'subquery' in condition
+            ) {
+              const sq = (condition as { subquery?: SchemaModelSubquery })
+                .subquery;
+              const fromObj = sq?.from as Record<string, string> | undefined;
+              let fromType: 'model' | 'source' | 'cte' = 'model';
+              let fromValue = '';
+              if (fromObj) {
+                if ('model' in fromObj) {
+                  fromType = 'model';
+                  fromValue = fromObj.model;
+                } else if ('source' in fromObj) {
+                  fromType = 'source';
+                  fromValue = fromObj.source;
+                } else if ('cte' in fromObj) {
+                  fromType = 'cte';
+                  fromValue = fromObj.cte;
+                }
+              }
+              return {
+                id: (index + 1).toString(),
+                type: 'subquery' as const,
+                subqueryOperator: (sq?.operator as string) || 'in',
+                subqueryColumn: (sq?.column as string) || '',
+                subquerySelect: Array.isArray(sq?.select)
+                  ? (sq.select as string[]).join(', ')
+                  : '',
+                subqueryFromType: fromType,
+                subqueryFromValue: fromValue,
+                subqueryWhere: typeof sq?.where === 'string' ? sq.where : '',
               };
             }
 
@@ -438,6 +463,23 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
 
     return filterAvailableModels(models, usedModels, currentSelections);
   }, [models, usedModels, selectedModel, currentJoinModel]);
+
+  const ctes = useModelStore((state) => state.ctes);
+
+  const subqueryModelOptions = useMemo(
+    () => models.map((m) => ({ label: m, value: m })),
+    [models],
+  );
+
+  const subquerySourceOptions = useMemo(
+    () => sources.map((s) => ({ label: s, value: s })),
+    [sources],
+  );
+
+  const subqueryCteOptions = useMemo(
+    () => ctes.map((c) => ({ label: c.name, value: c.name })),
+    [ctes],
+  );
 
   const joinTypeOptions = useMemo(
     () => [
@@ -530,12 +572,13 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
       });
     }
 
-    otherJoinModelColumns.forEach((columns, modelName) => {
-      if (modelName !== selectedModel?.value) {
+    const currentJoinKey = overrideAlias || selectedModel?.value;
+    otherJoinModelColumns.forEach((columns, aliasOrModel) => {
+      if (aliasOrModel !== currentJoinKey) {
         columns.forEach((column) => {
           options.push({
-            label: `${modelName}.${column.name}`,
-            value: `${modelName}.${column.name}`,
+            label: `${aliasOrModel}.${column.name}`,
+            value: `${aliasOrModel}.${column.name}`,
           });
         });
       }
@@ -548,23 +591,36 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
     modelingState.from.model,
     modelingState.from.cte,
     selectedModel,
+    overrideAlias,
   ]);
 
-  // Join column options show only the current join model's columns (without prefix)
+  // Join column options prefixed with override_alias (or model name as fallback)
   const joinColumnOptions = useMemo(() => {
-    const currentJoinModelName = selectedModel?.value;
-    if (!currentJoinModelName) {
+    const prefix = overrideAlias || selectedModel?.value;
+    if (!prefix) {
       return columns.map((column) => ({
         label: column.name,
         value: column.name,
       }));
     }
-    // Add prefix to join columns as well for consistency in the expression
     return columns.map((column) => ({
-      label: `${currentJoinModelName}.${column.name}`,
-      value: `${currentJoinModelName}.${column.name}`,
+      label: `${prefix}.${column.name}`,
+      value: `${prefix}.${column.name}`,
     }));
-  }, [columns, selectedModel]);
+  }, [columns, selectedModel, overrideAlias]);
+
+  const subqueryColumnOptions = useMemo(() => {
+    const combined = [
+      ...baseColumnOptions.map((o) => ({ label: o.label, value: o.value })),
+      ...joinColumnOptions.map((o) => ({ label: o.label, value: o.value })),
+    ];
+    const seen = new Set<string>();
+    return combined.filter((o) => {
+      if (seen.has(o.value)) return false;
+      seen.add(o.value);
+      return true;
+    });
+  }, [baseColumnOptions, joinColumnOptions]);
 
   // Validate conditions after column options are available
   // Convert column conditions to expression type if their values don't exist in options
@@ -660,36 +716,16 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
     isUnaryOperator,
   ]);
 
-  const extractColumnsFromModel = useCallback(
-    (modelNode: ManifestModelNode | undefined): Column[] => {
-      const all: Column[] = [];
-      if (modelNode?.columns) {
-        Object.entries(modelNode.columns).forEach(
-          ([columnName, columnData]) => {
-            const columnInfo = columnData as ManifestModelNodeColumn;
-
-            const columnType: 'dimension' | 'fact' =
-              columnInfo.meta?.type === 'fct' ? 'fact' : 'dimension';
-
-            all.push({
-              name: columnName,
-              dataType: columnInfo.data_type || 'string',
-              type: columnType,
-              description: columnInfo.description,
-            });
-          },
-        );
-      }
-      return all;
-    },
-    [],
-  );
-
   const buildAndExpressions = useCallback(
-    (conds: JoinConditionRow[], type: string) => {
-      if (type === 'cross') return [];
+    (conds: JoinConditionRow[], joinTypeVal: string) => {
+      if (joinTypeVal === 'cross') return [];
       return conds
         .filter((c) => {
+          if (c.type === 'subquery') {
+            return Boolean(
+              c.subquerySelect?.trim() && c.subqueryFromValue?.trim(),
+            );
+          }
           if (c.type === 'expression') {
             return Boolean(c.expression?.trim());
           }
@@ -700,6 +736,30 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
           return Boolean(c.baseColumn && c.joinColumn);
         })
         .map((c) => {
+          if (c.type === 'subquery') {
+            const fromType = c.subqueryFromType || 'model';
+            const fromValue = c.subqueryFromValue || '';
+            const from: SchemaModelSubquery['from'] =
+              fromType === 'model'
+                ? { model: fromValue }
+                : fromType === 'source'
+                  ? { source: fromValue }
+                  : { cte: fromValue };
+            const subquery: SchemaModelSubquery = {
+              operator: (c.subqueryOperator ||
+                'in') as SchemaModelSubquery['operator'],
+              select: (c.subquerySelect || '')
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean) as [string, ...string[]],
+              from,
+              ...(c.subqueryColumn ? { column: c.subqueryColumn } : {}),
+              ...(c.subqueryWhere?.trim()
+                ? { where: c.subqueryWhere.trim() }
+                : {}),
+            };
+            return { subquery };
+          }
           if (c.type === 'expression') {
             return { expr: c.expression! };
           }
@@ -714,11 +774,24 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   );
 
   const buildJoinUpdate = useCallback(
-    (model: string, type: string, conds: JoinConditionRow[]) => ({
-      model,
-      type: type as 'inner' | 'left' | 'right' | 'full' | 'cross',
-      on: { and: buildAndExpressions(conds, type) },
-    }),
+    (
+      model: string,
+      type: string,
+      conds: JoinConditionRow[],
+      alias: string,
+    ): Record<string, unknown> => {
+      const base: Record<string, unknown> = {
+        model,
+        type: type as 'inner' | 'left' | 'right' | 'full' | 'cross',
+      };
+      if (alias.trim()) {
+        base.override_alias = alias.trim();
+      }
+      if (type !== 'cross') {
+        base.on = { and: buildAndExpressions(conds, type) };
+      }
+      return base;
+    },
     [buildAndExpressions],
   );
 
@@ -739,9 +812,9 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         return;
       }
       const modelNode = currentProject.manifest.nodes[modelKey];
-      setBaseColumns(extractColumnsFromModel(modelNode));
+      setBaseColumns(extractColumnsFromNode(modelNode));
     },
-    [currentProject, extractColumnsFromModel],
+    [currentProject],
   );
 
   // Initialize projects and models once
@@ -780,6 +853,19 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
           .filter((name): name is string => Boolean(name));
 
         setModels(modelNames);
+
+        if (project.manifest.sources) {
+          const sourceNames = Object.keys(project.manifest.sources)
+            .filter((key) => key.startsWith('source.'))
+            .map((key) => {
+              const source = project.manifest.sources[key];
+              return source?.source_name && source?.name
+                ? `${source.source_name}.${source.name}`
+                : null;
+            })
+            .filter((name): name is string => Boolean(name));
+          setSources(sourceNames);
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch data';
@@ -829,6 +915,10 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
       const joinModelName = getJoinModel(join);
       if (!joinModelName) return;
 
+      const joinAlias =
+        ((join as Record<string, unknown>).override_alias as string) ||
+        joinModelName;
+
       // Find the model in manifest
       const modelKey = Object.keys(currentProject.manifest.nodes).find(
         (key) => {
@@ -839,18 +929,13 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
 
       if (modelKey && currentProject.manifest.nodes[modelKey]) {
         const modelNode = currentProject.manifest.nodes[modelKey];
-        const modelColumns = extractColumnsFromModel(modelNode);
-        columnsMap.set(joinModelName, modelColumns);
+        const modelColumns = extractColumnsFromNode(modelNode);
+        columnsMap.set(joinAlias, modelColumns);
       }
     });
 
     setOtherJoinModelColumns(columnsMap);
-  }, [
-    modelingState.join,
-    currentProject,
-    nodeData.joinId,
-    extractColumnsFromModel,
-  ]);
+  }, [modelingState.join, currentProject, nodeData.joinId]);
 
   useEffect(() => {
     if (!selectedModel?.value || !currentProject?.manifest?.nodes) {
@@ -981,10 +1066,15 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         return;
       }
       const modelNode = currentProject.manifest.nodes[modelKey];
-      setColumns(extractColumnsFromModel(modelNode));
+      setColumns(extractColumnsFromNode(modelNode));
 
       if (option?.value) {
-        const joinUpdate = buildJoinUpdate(option.value, joinType, conditions);
+        const joinUpdate = buildJoinUpdate(
+          option.value,
+          joinType,
+          conditions,
+          overrideAliasRef.current,
+        );
         updateSpecificJoin(joinUpdate);
       } else {
         const existingJoins = Array.isArray(modelingState.join)
@@ -1013,7 +1103,6 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
       modelingState.join,
       nodeData.joinId,
       updateJoinState,
-      extractColumnsFromModel,
       buildJoinUpdate,
     ],
   );
@@ -1022,33 +1111,49 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
     (conditionsToSync: JoinConditionRow[]) => {
       if (selectedModel?.value) {
         updateSpecificJoin(
-          buildJoinUpdate(selectedModel.value, joinType, conditionsToSync),
+          buildJoinUpdate(
+            selectedModel.value,
+            joinType,
+            conditionsToSync,
+            overrideAliasRef.current,
+          ),
         );
       }
     },
     [selectedModel, joinType, updateSpecificJoin, buildJoinUpdate],
   );
 
-  const addCondition = useCallback((conditionType: 'column' | 'expression') => {
-    const newCondition: JoinConditionRow = {
-      id: Date.now().toString(),
-      type: conditionType,
-      ...(conditionType === 'column' && {
-        baseColumn: '',
-        condition: '=',
-        joinColumn: '',
-      }),
-      ...(conditionType === 'expression' && {
-        expression: '',
-      }),
-    };
+  const addCondition = useCallback(
+    (conditionType: 'column' | 'expression' | 'subquery') => {
+      const newCondition: JoinConditionRow = {
+        id: Date.now().toString(),
+        type: conditionType,
+        ...(conditionType === 'column' && {
+          baseColumn: '',
+          condition: '=',
+          joinColumn: '',
+        }),
+        ...(conditionType === 'expression' && {
+          expression: '',
+        }),
+        ...(conditionType === 'subquery' && {
+          subqueryOperator: 'in',
+          subqueryColumn: '',
+          subquerySelect: '',
+          subqueryFromType: 'model' as const,
+          subqueryFromValue: '',
+          subqueryWhere: '',
+        }),
+      };
 
-    setConditions((prev) => {
-      const updatedConditions = [...prev, newCondition];
+      setConditions((prev) => {
+        const updatedConditions = [...prev, newCondition];
 
-      return updatedConditions;
-    });
-  }, []);
+        return updatedConditions;
+      });
+    },
+    [],
+  );
 
   const removeCondition = useCallback((id: string) => {
     setConditions((prev) => {
@@ -1112,12 +1217,69 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
 
         if (selectedModel?.value) {
           updateSpecificJoin(
-            buildJoinUpdate(selectedModel.value, option.value, conditions),
+            buildJoinUpdate(
+              selectedModel.value,
+              option.value,
+              conditions,
+              overrideAliasRef.current,
+            ),
           );
         }
       }
     },
     [conditions, selectedModel, updateSpecificJoin, buildJoinUpdate],
+  );
+
+  const handleAliasChange = useCallback(
+    (value: string) => {
+      const oldAlias = overrideAliasRef.current;
+      setOverrideAlias(value);
+
+      // Propagate the rename into existing condition values so that
+      // column references stay consistent with the new alias.
+      if (oldAlias && oldAlias !== value) {
+        const newPrefix = value || selectedModel?.value || '';
+        const swapPrefix = (
+          v: string | undefined,
+          from: string,
+          to: string,
+        ): string => {
+          if (!v) return v || '';
+          return v.startsWith(`${from}.`)
+            ? `${to}.${v.slice(from.length + 1)}`
+            : v;
+        };
+
+        setConditions((prev) =>
+          prev.map((c) => {
+            if (c.type === 'column') {
+              return {
+                ...c,
+                baseColumn: swapPrefix(c.baseColumn, oldAlias, newPrefix),
+                joinColumn: swapPrefix(c.joinColumn, oldAlias, newPrefix),
+              };
+            }
+            if (c.type === 'expression' && c.expression) {
+              return {
+                ...c,
+                expression: c.expression.replaceAll(
+                  `${oldAlias}.`,
+                  `${newPrefix}.`,
+                ),
+              };
+            }
+            return c;
+          }),
+        );
+      }
+
+      if (selectedModel?.value) {
+        updateSpecificJoin(
+          buildJoinUpdate(selectedModel.value, joinType, conditions, value),
+        );
+      }
+    },
+    [selectedModel, joinType, conditions, updateSpecificJoin, buildJoinUpdate],
   );
 
   const handleDelete = useCallback(() => {
@@ -1163,142 +1325,18 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
     ) => {
       if (!selectedModel) return;
 
-      const { basicFields, modelingState: currentModelingState } =
-        useModelStore.getState();
-      const modelType = basicFields.type;
-      const currentSelections = currentModelingState.select;
-
-      // Get list of columns available from this model to know which string columns to replace
-      const modelColumnNames = columns.map((col) => col.name);
-
-      // When switching to filter mode (selectionType !== ''), be more aggressive
-      // about removing simple { name, expr } columns since filter mode replaces individual selections
-      const isFilterMode = selectionType !== '';
-
-      const filteredSelections = currentSelections.filter(
-        (existingSelection) => {
-          // Remove string column names that are from the current model's columns
-          if (typeof existingSelection === 'string') {
-            return !modelColumnNames.includes(existingSelection);
-          }
-          // Remove expr-based columns that are simple column references (where expr === name)
-          // These are columns created from individual selection mode
-          if (
-            'name' in existingSelection &&
-            'expr' in existingSelection &&
-            !('model' in existingSelection) &&
-            !('source' in existingSelection) &&
-            existingSelection.expr === existingSelection.name
-          ) {
-            // In filter mode, remove ALL simple { name, expr } columns
-            // In individual mode, only remove those from the current model's columns
-            if (isFilterMode) {
-              return false;
-            }
-            return !modelColumnNames.includes(existingSelection.name);
-          }
-          if ('model' in existingSelection || 'source' in existingSelection) {
-            const existingModel =
-              'model' in existingSelection
-                ? existingSelection.model
-                : 'source' in existingSelection
-                  ? existingSelection.source
-                  : undefined;
-            return existingModel !== selectedModel.value;
-          }
-          return true;
-        },
-      );
-
-      if (!shouldClear) {
-        if (selectionType === '') {
-          const columnNames = selection.include || [];
-          const columnsToAdd = columnNames.filter((colName) => {
-            // Check if there's already a derived/expr-based column with this name
-            const hasDerivedColumn = filteredSelections.some(
-              (item) =>
-                typeof item !== 'string' &&
-                'name' in item &&
-                item.name === colName,
-            );
-            return !hasDerivedColumn;
-          });
-
-          if (columnsToAdd.length > 0) {
-            // Check schema support for this model type
-            if (supportsColumnName(modelType)) {
-              // Store as plain column names (SchemaColumnName) - no type determination needed
-              columnsToAdd.forEach((colName) => {
-                filteredSelections.push(colName as never);
-              });
-            } else if (supportsExprOnly(modelType)) {
-              // Store as { name, expr } objects (SchemaModelSelectExpr)
-              columnsToAdd.forEach((colName) => {
-                filteredSelections.push({
-                  name: colName,
-                  expr: colName,
-                } as never);
-              });
-            } else {
-              // Fall back to type determination for models not supporting either format
-              // Look up column types from the columns state
-              const selectedColumnsWithTypes = columnsToAdd.map((colName) => {
-                const columnInfo = columns.find((c) => c.name === colName);
-                return {
-                  name: colName,
-                  type: columnInfo?.type || 'dimension',
-                };
-              });
-
-              // Check if we have dimensions, facts, or both
-              const hasDimensions = selectedColumnsWithTypes.some(
-                (c) => c.type === 'dimension',
-              );
-              const hasFacts = selectedColumnsWithTypes.some(
-                (c) => c.type === 'fact',
-              );
-
-              // Determine the appropriate selection type
-              let determinedType: SelectionTypeValues;
-              if (hasDimensions && hasFacts) {
-                determinedType = SelectionType.ALL_FROM_MODEL;
-              } else if (hasFacts) {
-                determinedType = SelectionType.FCTS_FROM_MODEL;
-              } else {
-                determinedType = SelectionType.DIMS_FROM_MODEL;
-              }
-
-              // Create proper selection object with type, model, and include
-              const newSelection = {
-                model: selectedModel.value,
-                type: determinedType,
-                include: columnsToAdd,
-              };
-
-              filteredSelections.push(newSelection as never);
-            }
-          }
-        } else {
-          const baseSelection = {
-            model: selectedModel.value,
-            type: selectionType as SelectionTypeValues,
-          };
-
-          const newSelection = {
-            ...baseSelection,
-            ...(selection.include && selection.include.length > 0
-              ? { include: selection.include }
-              : {}),
-            ...(selection.exclude && selection.exclude.length > 0
-              ? { exclude: selection.exclude }
-              : {}),
-          };
-
-          filteredSelections.push(newSelection as never);
-        }
-      }
-
-      updateSelectState(filteredSelections);
+      const { basicFields, modelingState: ms } = useModelStore.getState();
+      const updated = buildUpdatedSelections(ms.select, {
+        qualifier: overrideAliasRef.current || selectedModel.value,
+        modelColumnNames: new Set(columns.map((c) => c.name)),
+        modelType: basicFields.type,
+        selectionType,
+        selection,
+        shouldClear: shouldClear ?? false,
+        selectedModelValue: selectedModel.value,
+        columns,
+      });
+      updateSelectState(updated);
     },
     [selectedModel, updateSelectState, columns],
   );
@@ -1363,7 +1401,7 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   return (
     <div
       key={nodeData.joinId}
-      className={`px-4 py-4 shadow-lg rounded-lg bg-background border-2 border-surface relative min-w-[580px]`}
+      className={`px-4 py-4 shadow-lg rounded-lg bg-background border-2 border-neutral relative min-w-[576px] max-w-[640px]`}
       onClick={(e) => {
         e.stopPropagation();
       }}
@@ -1372,19 +1410,6 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
       }}
       data-tutorial-id="join-node"
     >
-      {canDelete && (
-        <Button
-          onClick={() => {
-            handleDelete();
-          }}
-          className="absolute top-[12px] right-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-          title="Delete join node"
-          variant="iconButton"
-          label=""
-          icon={<TrashIcon className="w-5 h-5" />}
-        ></Button>
-      )}
-
       <JoinHeader
         modelOptions={modelOptions}
         selectedModel={selectedModel}
@@ -1396,6 +1421,10 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         selectedJoinType={selectedJoinTypeOption}
         onJoinTypeChange={handleJoinTypeChange}
         onOpenDataExplorer={handleOpenDataExplorer}
+        overrideAlias={overrideAlias}
+        onAliasChange={handleAliasChange}
+        canDelete={canDelete ?? false}
+        onDelete={handleDelete}
       />
 
       <JoinConditions
@@ -1408,6 +1437,12 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         onUpdateCondition={updateCondition}
         onRemoveCondition={removeCondition}
         onAddCondition={addCondition}
+        subqueryModelOptions={subqueryModelOptions}
+        subquerySourceOptions={subquerySourceOptions}
+        subqueryCteOptions={subqueryCteOptions}
+        subqueryColumnOptions={subqueryColumnOptions}
+        manifest={(currentProject?.manifest as Record<string, unknown>) ?? null}
+        ctes={ctes}
       />
 
       {selectedModel && (

@@ -73,7 +73,7 @@ export const AddJoinButtonNode: React.FC<NodeProps> = () => {
         className="w-3 h-3 !bg-border"
       />
 
-      <div className="bg-background border-2 border-dashed border-border p-2 rounded-sm hover:border-primary/50 transition-colors">
+      <div className="bg-background border-2 border-dashed border-neutral p-2 rounded-sm hover:border-primary/50 transition-colors">
         <Button
           onClick={handleAddJoin}
           className="w-full px-6 py-3 flex gap-1 items-center justify-center text-sm text-primary-contrast font-bold bg-primary hover:bg-primary/90 rounded-md transition-colors"

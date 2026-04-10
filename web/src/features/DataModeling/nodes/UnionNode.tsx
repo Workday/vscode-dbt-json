@@ -327,7 +327,7 @@ export const UnionNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="px-4 py-6 rounded-lg border-2 min-w-[400px] border-surface bg-background shadow-lg"
+      className="px-4 py-6 rounded-lg border-2 min-w-[400px] border-neutral bg-background shadow-lg"
       data-tutorial-id="union-node"
     >
       <div className="flex items-center mb-4">
@@ -357,7 +357,7 @@ export const UnionNode: React.FC<NodeProps> = () => {
         </div>
       </div>
 
-      <div className="border-t border-border mb-4"></div>
+      <div className="border-t border-neutral mb-4"></div>
 
       <div className="space-y-2">
         <div className="text-xs text-muted-foreground">
@@ -409,7 +409,7 @@ export const UnionNode: React.FC<NodeProps> = () => {
         </div>
       )}
 
-      <div className="border-t border-border my-4"></div>
+      <div className="border-t border-neutral my-4"></div>
 
       <div className="flex justify-center">
         <Button

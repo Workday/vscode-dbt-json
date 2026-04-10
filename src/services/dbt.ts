@@ -1,8 +1,4 @@
-import * as promptsModule from '@services/agent/prompts';
-import {
-  buildPromptFromDecorators,
-  generateAgentsMd,
-} from '@services/agent/utils';
+import { generateAgentsMd } from '@services/agent/utils';
 import type { Coder } from '@services/coder';
 import type { CoderFileInfo } from '@services/coder/types';
 import {
@@ -13,6 +9,7 @@ import {
 import {
   BASE_AIRFLOW_PATH,
   BASE_MACROS_PATH,
+  BASE_SKILLS_PATH,
   BASE_TESTS_PATH,
   COMMAND_ID,
   DBT_MSG,
@@ -193,35 +190,83 @@ export class Dbt implements ApiEnabledService<'dbt'> {
             throw new Error('Project not found');
           }
 
-          const diffLocalResult = await runProcess({
-            command: 'git',
-            args: ['--no-pager', 'diff', '--name-only', 'HEAD'],
-            cwd: project.pathSystem,
-          });
+          // Committed branch changes vs origin/master
           const diffMasterResult = await runProcess({
             command: 'git',
             args: ['--no-pager', 'diff', '--name-only', 'origin/master..'],
-            cwd: project.pathSystem,
+            cwd: WORKSPACE_ROOT,
           });
-          const resultArray = [
-            ...diffLocalResult.toString().split('\n').filter(Boolean),
-            ...diffMasterResult.toString().split('\n').filter(Boolean),
-          ];
-          // Use Set to avoid duplicate checks and array.includes() calls
+
+          // Local uncommitted + untracked changes via git status
+          const gitStatusResult = await runProcess({
+            command: 'git',
+            args: ['status', '--porcelain'],
+            cwd: WORKSPACE_ROOT,
+          });
+
+          const getSqlFilesFromDir = (dirPath: string): string[] => {
+            const sqlFiles: string[] = [];
+            try {
+              const fullPath = path.join(WORKSPACE_ROOT, dirPath);
+              if (!fs.existsSync(fullPath)) {
+                return sqlFiles;
+              }
+              const entries = fs.readdirSync(fullPath, {
+                withFileTypes: true,
+              });
+              for (const entry of entries) {
+                const entryPath = path.join(dirPath, entry.name);
+                if (entry.isDirectory()) {
+                  sqlFiles.push(...getSqlFilesFromDir(entryPath));
+                } else if (entry.isFile() && entry.name.endsWith('.sql')) {
+                  sqlFiles.push(entryPath);
+                }
+              }
+            } catch (err) {
+              this.log.warn(`Failed to read directory ${dirPath}:`, err);
+            }
+            return sqlFiles;
+          };
+
+          const allFilePaths: string[] = [];
+
+          // Collect paths from git status (staged, unstaged, and untracked)
+          const statusLines = gitStatusResult
+            .toString()
+            .split('\n')
+            .filter(Boolean);
+          for (const line of statusLines) {
+            const filePath = line.substring(3).trim();
+            if (filePath.endsWith('/')) {
+              allFilePaths.push(...getSqlFilesFromDir(filePath.slice(0, -1)));
+            } else {
+              allFilePaths.push(filePath);
+            }
+          }
+
+          // Collect paths from committed branch diff
+          const diffPaths = diffMasterResult
+            .toString()
+            .split('\n')
+            .filter(Boolean);
+          allFilePaths.push(...diffPaths);
+
           const modelSet = new Set<string>();
-          for (const filePath of resultArray) {
+          for (const filePath of allFilePaths) {
+            if (!filePath.endsWith('.sql')) {
+              continue;
+            }
             for (const modelPath of project.modelPaths) {
               const checkPath = path.join(project.pathRelative, modelPath);
-              this.log.info({ checkPath, filePath });
-              const match = new RegExp(
-                `^${checkPath}/(?:.+/)*((?:[a-z]|[0-9]|_)+)\\.sql$`,
-              ).exec(filePath);
-              if (match) {
-                const modelName = match[1];
-                modelSet.add(modelName);
+              if (filePath.startsWith(checkPath + '/')) {
+                const modelName = path.basename(filePath, '.sql');
+                if (modelName) {
+                  modelSet.add(modelName);
+                }
               }
             }
           }
+
           return apiResponse<typeof payload.type>(Array.from(modelSet));
         }
         case 'dbt-fetch-projects': {
@@ -1612,9 +1657,9 @@ ${macro.macro_sql}`;
     // Write the generic tests contributed by the extension
     await this.writeGenericTests(project);
 
-    // Write AGENTS.md to the dbt project root and agent prompt files to the workspace root.
-    await this.writeAgentsMd(project);
-    await this.writeAgentPromptFiles();
+    // Write AGENTS.md and skill files to the workspace root's .dj/ directory.
+    await this.writeAgentsMd();
+    await this.writeSkillFiles();
   }
 
   /**
@@ -1784,9 +1829,9 @@ ${macro.macro_sql}`;
   }
 
   /**
-   * Write AGENTS.md to the dbt project root for AI coding agents.
+   * Write AGENTS.md to the workspace root's .dj/ directory for AI coding agents.
    */
-  async writeAgentsMd(project: DbtProject): Promise<void> {
+  async writeAgentsMd(): Promise<void> {
     const { codingAgent } = getDjConfig();
     if (!codingAgent) {
       return;
@@ -1795,7 +1840,7 @@ ${macro.macro_sql}`;
     try {
       this.log.info('WRITING AGENTS.MD');
       const agentsMdContent = generateAgentsMd();
-      const agentsMdPath = path.join(project.pathSystem, 'AGENTS.md');
+      const agentsMdPath = path.join(WORKSPACE_ROOT, '.dj', 'AGENTS.md');
       await vscode.workspace.fs.writeFile(
         vscode.Uri.file(agentsMdPath),
         Buffer.from(agentsMdContent),
@@ -1805,73 +1850,65 @@ ${macro.macro_sql}`;
     }
   }
 
-  private static readonly AGENT_PROMPT_CONFIG: Record<
-    string,
-    { dir: string[]; ext: string; frontmatter?: string }
-  > = {
-    'github-copilot': {
-      dir: ['.github', 'prompts'],
-      ext: '.prompt.md',
-      frontmatter: `---\nmode: agent\ntools: ['changes', 'edit', 'extensions', 'fetch', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'search', 'testFailure', 'usages', 'vscodeAPI']\n---\n\n`,
-    },
-    cline: {
-      dir: ['.clinerules', 'workflows'],
-      ext: '.md',
-    },
-    'claude-code': {
-      dir: ['.claude', 'commands'],
-      ext: '.md',
-    },
-  };
-
   /**
-   * Write agent-specific prompt files to the workspace root.
-   * These are written per-workspace (not per-project) since tools like
-   * GitHub Copilot, Cline, and Claude Code discover them at the workspace root.
+   * Write skill files to the workspace root's .dj/skills/ directory.
+   * Each skill is a directory containing a SKILL.md file, following the
+   * Agent Skills open standard (https://agentskills.io).
    */
-  async writeAgentPromptFiles(): Promise<void> {
+  async writeSkillFiles(): Promise<void> {
     const { codingAgent } = getDjConfig();
     if (!codingAgent) {
       return;
     }
 
-    const agentConfig = Dbt.AGENT_PROMPT_CONFIG[codingAgent];
-    if (!agentConfig) {
-      return;
-    }
+    this.log.info('WRITING SKILL FILES');
+    try {
+      const skillEntries = await vscode.workspace.fs.readDirectory(
+        vscode.Uri.file(BASE_SKILLS_PATH),
+      );
 
-    for (const [key, value] of Object.entries(promptsModule.promptSignatures)) {
-      if (
-        typeof value === 'function' &&
-        key.endsWith('Signature') &&
-        value.prototype?.constructor
-      ) {
-        try {
-          const baseName = key.replace(/Signature$/, '').toLowerCase();
-          const promptFileName = `${baseName}${agentConfig.ext}`;
-          const promptFilePath = path.join(
-            WORKSPACE_ROOT,
-            ...agentConfig.dir,
-            promptFileName,
-          );
+      const writePromises = skillEntries
+        .filter(([, type]) => type === vscode.FileType.Directory)
+        .map(async ([skillDirName]) => {
+          try {
+            const sourceDir = path.join(BASE_SKILLS_PATH, skillDirName);
+            const targetDir = path.join(
+              WORKSPACE_ROOT,
+              '.dj',
+              'skills',
+              skillDirName,
+            );
 
-          let promptText = buildPromptFromDecorators(
-            value as { new (...args: any[]): any },
-          );
-          this.log.debug('PROMPT TEXT', promptText);
+            // Read all files in the skill directory and copy them
+            const files = await vscode.workspace.fs.readDirectory(
+              vscode.Uri.file(sourceDir),
+            );
 
-          if (agentConfig.frontmatter) {
-            promptText = agentConfig.frontmatter + promptText;
+            for (const [fileName, fileType] of files) {
+              if (fileType === vscode.FileType.File) {
+                const sourcePath = vscode.Uri.file(
+                  path.join(sourceDir, fileName),
+                );
+                // Strip leading underscore from template filenames (e.g. _SKILL.md → SKILL.md)
+                // so they aren't interpreted as skills inside this repo's own templates directory.
+                const targetFileName = fileName.startsWith('_')
+                  ? fileName.slice(1)
+                  : fileName;
+                const targetPath = vscode.Uri.file(
+                  path.join(targetDir, targetFileName),
+                );
+                const content = await vscode.workspace.fs.readFile(sourcePath);
+                await vscode.workspace.fs.writeFile(targetPath, content);
+              }
+            }
+          } catch (err: unknown) {
+            this.log.error(`Error writing skill ${skillDirName}:`, err);
           }
+        });
 
-          await vscode.workspace.fs.writeFile(
-            vscode.Uri.file(promptFilePath),
-            Buffer.from(promptText),
-          );
-        } catch (err: unknown) {
-          this.log.error(`Error writing prompt for ${key}:`, err);
-        }
-      }
+      await Promise.all(writePromises);
+    } catch (err: unknown) {
+      this.log.error('Error writing skill files:', err);
     }
   }
 

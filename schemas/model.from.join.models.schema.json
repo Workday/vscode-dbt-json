@@ -45,6 +45,14 @@
                           "type": "string"
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["subquery"],
+                      "properties": {
+                        "subquery": { "$ref": "model.subquery.schema.json" }
+                      }
                     }
                   ]
                 }
@@ -101,6 +109,14 @@
                           "description": "SQL for the condition",
                           "type": "string"
                         }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["subquery"],
+                      "properties": {
+                        "subquery": { "$ref": "model.subquery.schema.json" }
                       }
                     }
                   ]

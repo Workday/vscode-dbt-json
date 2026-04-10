@@ -1,5 +1,6 @@
 import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 import { InputText } from './InputText';
 
@@ -29,26 +30,48 @@ export const SelectMulti: React.FC<SelectMultiProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
+  const rafRef = useRef<number>(0);
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+  const updateDropdownPos = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
     }
+  }, []);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+  // Continuously track trigger position while open so the dropdown follows
+  // pan / zoom / scroll on the React Flow canvas.
+  useEffect(() => {
+    if (!isOpen) return;
+    const track = () => {
+      updateDropdownPos();
+      rafRef.current = requestAnimationFrame(track);
     };
-  }, [isOpen]);
+    rafRef.current = requestAnimationFrame(track);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [isOpen, updateDropdownPos]);
+
+  const handleToggle = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isOpen) {
+        updateDropdownPos();
+      }
+      setIsOpen((prev) => !prev);
+    },
+    [isOpen, updateDropdownPos],
+  );
 
   const toggleOption = (optionValue: string) => {
     if (value.includes(optionValue)) {
@@ -69,7 +92,6 @@ export const SelectMulti: React.FC<SelectMultiProps> = ({
       .filter(Boolean);
   };
 
-  // Filter options based on search query
   const filteredOptions = searchable
     ? options.filter((option) =>
         option.label.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -78,15 +100,17 @@ export const SelectMulti: React.FC<SelectMultiProps> = ({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
+      {/* Trigger */}
       <div
-        className="w-full min-h-[40px] px-3 py-2 border border-input rounded-md bg-background text-foreground cursor-pointer flex items-center gap-2 flex-wrap"
-        onClick={() => setIsOpen(!isOpen)}
+        className="w-full min-h-[40px] px-3 py-2 border border-neutral rounded-md bg-background text-foreground cursor-pointer flex items-start gap-2"
+        onClick={handleToggle}
       >
-        {value.length === 0 ? (
-          <span className="text-muted-foreground">{placeholder}</span>
-        ) : showSelectedTags ? (
-          <div className="flex flex-wrap gap-1">
-            {getSelectedLabels().map((label, index) => (
+        {/* Tags area — can grow and scroll; chevron stays outside this */}
+        <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto react-flow__node-scrollable flex-1">
+          {value.length === 0 ? (
+            <span className="text-muted-foreground mt-0.5">{placeholder}</span>
+          ) : showSelectedTags ? (
+            getSelectedLabels().map((label, index) => (
               <span
                 key={value[index]}
                 className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-sm"
@@ -99,64 +123,93 @@ export const SelectMulti: React.FC<SelectMultiProps> = ({
                   <XMarkIcon className="w-3 h-3" />
                 </button>
               </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-foreground">{value.length} selected</span>
-        )}
+            ))
+          ) : (
+            <span className="text-foreground mt-0.5">
+              {value.length} selected
+            </span>
+          )}
+        </div>
+        {/* Chevron anchored at top-right, outside the flex-wrap area */}
         <ChevronDownIcon
-          className={`w-4 h-4 ml-auto transition-transform ${
-            isOpen ? 'transform rotate-180' : ''
+          className={`w-4 h-4 shrink-0 mt-1 transition-transform ${
+            isOpen ? 'rotate-180' : ''
           }`}
         />
       </div>
 
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-y-auto react-flow__node-scrollable">
-          {searchable && (
-            <div className="p-2 border-b border-input">
-              <InputText
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                inputClassName="!mt-0"
-              />
-            </div>
-          )}
-          <div
-            className={
-              searchable
-                ? 'max-h-48 overflow-y-auto react-flow__node-scrollable'
-                : ''
-            }
-          >
-            {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-muted-foreground text-center">
-                {searchQuery ? 'No options found' : 'No options available'}
-              </div>
-            ) : (
-              filteredOptions.map((option) => (
+      {isOpen &&
+        ReactDOM.createPortal(
+          <>
+            {/* Transparent backdrop rendered at body level — works regardless of React Flow canvas transforms */}
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+              onClick={() => setIsOpen(false)}
+            />
+            {/* Dropdown also at body level so position: fixed is relative to actual viewport */}
+            {dropdownPos && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: dropdownPos.top,
+                  left: dropdownPos.left,
+                  width: dropdownPos.width,
+                  zIndex: 9999,
+                }}
+                className="bg-background border border-neutral rounded-md shadow-lg max-h-60 overflow-y-auto react-flow__node-scrollable"
+              >
+                {searchable && (
+                  <div className="p-2 border-b border-neutral">
+                    <InputText
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      inputClassName="!mt-0"
+                    />
+                  </div>
+                )}
                 <div
-                  key={option.value}
-                  className={`px-3 py-2 cursor-pointer hover:bg-muted flex items-center gap-2 ${
-                    value.includes(option.value) ? 'bg-muted' : ''
-                  }`}
-                  onClick={() => toggleOption(option.value)}
+                  className={
+                    searchable
+                      ? 'max-h-48 overflow-y-auto react-flow__node-scrollable'
+                      : ''
+                  }
                 >
-                  <input
-                    type="checkbox"
-                    checked={value.includes(option.value)}
-                    onChange={() => {}}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <span className="text-foreground">{option.label}</span>
+                  {filteredOptions.length === 0 ? (
+                    <div className="px-3 py-2 text-muted-foreground text-center">
+                      {searchQuery
+                        ? 'No options found'
+                        : 'No options available'}
+                    </div>
+                  ) : (
+                    filteredOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className={`px-3 py-2 cursor-pointer hover:bg-surface/50 flex items-center gap-2 ${
+                          value.includes(option.value) ? 'bg-surface/30' : ''
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleOption(option.value);
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={value.includes(option.value)}
+                          onChange={() => {}}
+                          className="w-4 h-4 rounded border-gray-300"
+                        />
+                        <span className="text-foreground">{option.label}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))
+              </div>
             )}
-          </div>
-        </div>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 };

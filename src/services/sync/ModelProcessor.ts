@@ -32,6 +32,12 @@ import type {
   SyncResource,
 } from './types';
 
+const JSONC_FORMAT_OPTIONS = {
+  tabSize: 4,
+  insertSpaces: true,
+  eol: '\n',
+};
+
 /**
  * ModelProcessor handles the processing of individual model resources.
  *

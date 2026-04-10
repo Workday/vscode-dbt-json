@@ -63,6 +63,9 @@ export function ModelRun() {
   const [isLoading, setIsLoading] = useState(true);
   const [generalError, setGeneralError] = useState<string>('');
   const [modifiedModels, setModifiedModels] = useState<string[]>([]);
+  const [selectedModifiedModels, setSelectedModifiedModels] = useState<
+    SelectedModel[]
+  >([]);
   const [fetchingModifiedModels, setFetchingModifiedModels] = useState(false);
   const [hasFetchedModels, setHasFetchedModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -104,6 +107,7 @@ export function ModelRun() {
     config,
     fetchingModifiedModels,
     modifiedModels,
+    selectedModifiedModels,
     hasFetchedModels,
   });
 
@@ -177,6 +181,7 @@ export function ModelRun() {
       }
       // Reset modified models and fetch flag when neither defer nor modified scope is active
       setModifiedModels([]);
+      setSelectedModifiedModels([]);
       setHasFetchedModels(false);
       setFetchingModifiedModels(false);
     } else if (shouldFetchModifiedModels && !hasFetchedModels) {
@@ -194,6 +199,13 @@ export function ModelRun() {
         .then((models) => {
           if (!abortController.signal.aborted) {
             setModifiedModels(models);
+            // Auto-select all modified models with downstream lineage (current default)
+            setSelectedModifiedModels(
+              models.map((modelName) => ({
+                modelName,
+                lineage: 'downstream' as DbtRunLineage,
+              })),
+            );
             setHasFetchedModels(true); // Mark as fetched only on success
           }
         })
@@ -311,8 +323,10 @@ export function ModelRun() {
     () => ({
       ...config,
       modifiedModels: config.scope === 'modified' ? modifiedModels : undefined,
+      selectedModifiedModels:
+        config.scope === 'modified' ? selectedModifiedModels : undefined,
     }),
-    [config, modifiedModels],
+    [config, modifiedModels, selectedModifiedModels],
   );
 
   // Calculate command preview in real-time
@@ -330,8 +344,8 @@ export function ModelRun() {
     // For single model scope, require model info
     if (config.scope === 'single' && !modelInfo) return true;
 
-    // Disable for 'modified' scope if no models available
-    if (config.scope === 'modified' && modifiedModels.length === 0) {
+    // Disable for 'modified' scope if no models selected
+    if (config.scope === 'modified' && selectedModifiedModels.length === 0) {
       return true;
     }
 
@@ -349,7 +363,7 @@ export function ModelRun() {
     isFormValid,
     config.scope,
     config.selectedModels,
-    modifiedModels.length,
+    selectedModifiedModels.length,
   ]);
 
   /**
@@ -401,6 +415,16 @@ export function ModelRun() {
       handleConfigChange('selectedModels', models);
     },
     [handleConfigChange],
+  );
+
+  /**
+   * Handle selected modified models change for modified scope
+   */
+  const handleSelectedModifiedModelsChange = useCallback(
+    (models: SelectedModel[]) => {
+      setSelectedModifiedModels(models);
+    },
+    [],
   );
 
   /**
@@ -616,6 +640,12 @@ export function ModelRun() {
               selectedModels={config.selectedModels}
               availableModels={availableModels}
               onSelectedModelsChange={handleSelectedModelsChange}
+              modifiedModels={modifiedModels}
+              selectedModifiedModels={selectedModifiedModels}
+              onSelectedModifiedModelsChange={
+                handleSelectedModifiedModelsChange
+              }
+              fetchingModifiedModels={fetchingModifiedModels}
             />
           </div>
 
@@ -725,19 +755,28 @@ export function ModelRun() {
                   {modifiedModels.length > 0 ? (
                     <div className="flex flex-col gap-2 min-h-0">
                       <p className="text-sm font-semibold">
-                        Modified Models: {modifiedModels.length} model
-                        {modifiedModels.length > 1 ? 's' : ''} found.
+                        Modified Models: {selectedModifiedModels.length} of{' '}
+                        {modifiedModels.length} selected
                       </p>
-                      <ul className="flex flex-col gap-1 max-h-[200px] overflow-y-auto overflow-x-hidden list-disc list-inside pr-2">
-                        {modifiedModels.map((model) => (
-                          <li
-                            key={model}
-                            className="break-words text-sm min-w-0"
-                          >
-                            {model}
-                          </li>
-                        ))}
-                      </ul>
+                      {selectedModifiedModels.length > 0 ? (
+                        <ul className="flex flex-col gap-1 max-h-[200px] overflow-y-auto overflow-x-hidden list-none pr-2">
+                          {selectedModifiedModels.map((model) => (
+                            <li
+                              key={model.modelName}
+                              className="break-words text-sm min-w-0"
+                            >
+                              <span className="font-medium">
+                                {model.modelName}
+                              </span>
+                              <span className="text-xs ml-2 opacity-70 whitespace-nowrap">
+                                ({model.lineage.replace('-', ' ')})
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm opacity-70">No models selected</p>
+                      )}
                     </div>
                   ) : (
                     <Message variant="error">

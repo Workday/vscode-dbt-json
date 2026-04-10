@@ -844,7 +844,7 @@ export const ColumnSelectionNode: React.FC<NodeProps> = () => {
 
   return (
     <div
-      className="bg-background border-2 border-border rounded-lg shadow-lg w-[900px] max-w-[1100px] cursor-default nopan"
+      className="bg-background border-2 border-neutral rounded-lg shadow-lg w-[900px] max-w-[1100px] cursor-default nopan"
       data-tutorial-id="column-selection-node"
     >
       <Handle type="target" position={Position.Top} id="input" />
@@ -919,7 +919,7 @@ export const ColumnSelectionNode: React.FC<NodeProps> = () => {
               placeholder="Search columns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-neutral rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
         </div>
@@ -1044,7 +1044,7 @@ export const ColumnSelectionNode: React.FC<NodeProps> = () => {
                               className={`rounded-lg relative select-none ${
                                 snapshot.isDragging
                                   ? 'bg-transparent'
-                                  : 'border border-border bg-background'
+                                  : 'border border-neutral bg-background'
                               }`}
                               style={{
                                 ...provided.draggableProps.style,
@@ -1359,7 +1359,7 @@ export const ColumnSelectionNode: React.FC<NodeProps> = () => {
       )}
 
       {!shouldShowAddColumnBasic && !editingColumn && isAddColumnAllowed && (
-        <div className="border-t border-border p-4 text-center flex justify-center bg-[#F5F5F5]">
+        <div className="border-t border-neutral p-4 text-center flex justify-center bg-[#F5F5F5]">
           <Button
             className="text-lg font-semibold text-foreground"
             icon={<PlusIcon className="h-4 w-4" />}

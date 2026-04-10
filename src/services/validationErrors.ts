@@ -248,6 +248,122 @@ export function validateCtes(modelJson: any): string[] {
   return errors;
 }
 
+const EXISTS_OPERATORS = new Set(['exists', 'not_exists']);
+
+/**
+ * Validates subquery-specific constraints that cannot be expressed in JSON Schema alone:
+ * - exists/not_exists operators must not have a "column" field (it has no effect)
+ * - Subqueries referencing CTEs via from.cte must reference a CTE defined in the model
+ */
+export function validateSubqueries(modelJson: any): string[] {
+  const errors: string[] = [];
+  const cteNames = new Set<string>(
+    (modelJson?.ctes ?? []).map((c: any) => c?.name).filter(Boolean),
+  );
+
+  function checkSubquery(subquery: any, path: string): void {
+    if (!subquery || typeof subquery !== 'object') {
+      return;
+    }
+
+    if (EXISTS_OPERATORS.has(subquery.operator) && subquery.column) {
+      errors.push(
+        `${path}: "column" is not applicable for "${subquery.operator}" operator and should be removed.`,
+      );
+    }
+
+    if (
+      subquery.from &&
+      'cte' in subquery.from &&
+      subquery.from.cte &&
+      cteNames.size > 0 &&
+      !cteNames.has(subquery.from.cte)
+    ) {
+      errors.push(
+        `${path}: references CTE "${subquery.from.cte}" which is not defined in the ctes array.`,
+      );
+    }
+
+    if (subquery.where) {
+      walkConditions(subquery.where, `${path}.where`);
+    }
+  }
+
+  function walkConditions(conditions: any, path: string): void {
+    if (!conditions || typeof conditions !== 'object') {
+      return;
+    }
+    for (const key of ['and', 'or'] as const) {
+      if (!Array.isArray(conditions[key])) {
+        continue;
+      }
+      for (let i = 0; i < conditions[key].length; i++) {
+        const item = conditions[key][i];
+        if (!item || typeof item !== 'object') {
+          continue;
+        }
+        if (item.subquery) {
+          checkSubquery(item.subquery, `${path}.${key}[${i}].subquery`);
+        }
+        if (item.group) {
+          walkConditions(item.group, `${path}.${key}[${i}].group`);
+        }
+      }
+    }
+  }
+
+  function walkJoinOn(joins: any[], basePath: string): void {
+    if (!Array.isArray(joins)) {
+      return;
+    }
+    for (let j = 0; j < joins.length; j++) {
+      const join = joins[j];
+      if (!join?.on?.and) {
+        continue;
+      }
+      for (let k = 0; k < join.on.and.length; k++) {
+        const cond = join.on.and[k];
+        if (cond && typeof cond === 'object' && 'subquery' in cond) {
+          checkSubquery(
+            cond.subquery,
+            `${basePath}[${j}].on.and[${k}].subquery`,
+          );
+        }
+      }
+    }
+  }
+
+  // Walk model-level where, having, and join ON
+  if (modelJson.where) {
+    walkConditions(modelJson.where, 'where');
+  }
+  if (modelJson.having) {
+    walkConditions(modelJson.having, 'having');
+  }
+  if (modelJson.from?.join) {
+    walkJoinOn(modelJson.from.join, 'from.join');
+  }
+
+  // Walk CTE-level where, having, and join ON
+  if (Array.isArray(modelJson.ctes)) {
+    for (let i = 0; i < modelJson.ctes.length; i++) {
+      const cte = modelJson.ctes[i];
+      const prefix = `ctes[${i}]`;
+      if (cte.where) {
+        walkConditions(cte.where, `${prefix}.where`);
+      }
+      if (cte.having) {
+        walkConditions(cte.having, `${prefix}.having`);
+      }
+      if (cte.from?.join) {
+        walkJoinOn(cte.from.join, `${prefix}.from.join`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 /**
  * Formats a single error object into a human-readable message
  */

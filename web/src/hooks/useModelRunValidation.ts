@@ -1,4 +1,4 @@
-import type { DbtRunConfig } from '@shared/dbt/types';
+import type { DbtRunConfig, SelectedModel } from '@shared/dbt/types';
 import { useCallback, useMemo } from 'react';
 
 interface ValidationErrors {
@@ -13,6 +13,7 @@ interface UseModelRunValidationProps {
   config: DbtRunConfig;
   fetchingModifiedModels: boolean;
   modifiedModels: string[];
+  selectedModifiedModels: SelectedModel[];
   hasFetchedModels?: boolean; // Flag to track if we've attempted/completed a fetch
 }
 
@@ -24,6 +25,7 @@ export function useModelRunValidation({
   config,
   fetchingModifiedModels,
   modifiedModels,
+  selectedModifiedModels,
   hasFetchedModels = false,
 }: UseModelRunValidationProps) {
   /**
@@ -95,6 +97,17 @@ export function useModelRunValidation({
         'No model changes detected from master branch. All models are up to date.';
     }
 
+    // Validate that at least one modified model is selected
+    if (
+      scope === 'modified' &&
+      !fetchingModifiedModels &&
+      hasFetchedModels &&
+      modifiedModels.length > 0 &&
+      selectedModifiedModels.length === 0
+    ) {
+      errors.defer = 'At least one modified model must be selected to run.';
+    }
+
     // Validate multi-model scope
     if (scope === 'multi-model') {
       if (!selectedModels || selectedModels.length === 0) {
@@ -117,6 +130,7 @@ export function useModelRunValidation({
     config,
     fetchingModifiedModels,
     modifiedModels.length,
+    selectedModifiedModels.length,
     hasFetchedModels,
     validateDate,
   ]);

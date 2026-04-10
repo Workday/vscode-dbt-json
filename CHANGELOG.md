@@ -1,5 +1,33 @@
 # Change Log
 
+## 1.2.0
+
+### Inline Subquery Support
+
+- **Nested subqueries in WHERE, HAVING, and JOIN ON conditions** — define inline subqueries directly in model JSON with support for 10 operators: `IN`, `NOT IN`, `EXISTS`, `NOT EXISTS`, `=`, `!=`, `>`, `>=`, `<`, `<=`
+- **Subquery data sources** — reference models, sources, or CTEs as the subquery's FROM clause, with optional inner WHERE filtering
+- **Visual SubqueryEditor** — new reusable UI component with searchable dropdowns for model/source/CTE selection, operator picker, and collapsible layout
+- **JOIN ON subqueries** — subquery conditions alongside column and expression conditions in join definitions
+- **Schema validation** — new `model.subquery.schema.json` with `$ref` integration into WHERE, HAVING, and JOIN schemas
+
+### Enhancements
+
+- Improved JOIN node headers with `override_alias` support and cleaner layout
+- Added a `from.rollup` property to `int_select_model` and `int_join_models`, enabling time-grain re-aggregation alongside explicit column selection and joins. This provides the functionality of `int_rollup_model` with greater control over dimensions and custom expressions.
+- Added selective model execution for deferred runs. Users can now choose which modified models to include when running with `--defer`, instead of running all changed models.
+- Refactored AI agent integration to use agent-agnostic skill files (Agent Skills open standard) instead of agent-specific prompts
+- AGENTS.md and skill files now written to the workspace root's `.dj/` directory (typically in `.gitignore`) instead of per-project
+- Removed unnecessary activation events for faster extension startup
+- `dj.codingAgent` setting now accepts `boolean` (recommended) with legacy string values deprecated
+- Updated AGENTS.md template and skill files with documentation for inline CTEs, subqueries, and `from.rollup`
+
+### Fixes
+
+- Fixed crash in JOIN ON processing when `on` is undefined (cross joins)
+- Fixed schema compliance by omitting `on` property for cross joins in `buildJoinUpdate`
+- Resolved an issue where column metadata (descriptions, tags, and partition configs) failed to propagate through CTEs
+- Fix Data Explorer showing stale results when changing the selected model in Data Modeling; now auto-refreshes columns and clears previous query results on model change
+
 ## 1.1.0
 
 - Added an optional case_sensitive field at the model and field levels for explicit overrides; global default is managed via Lightdash config

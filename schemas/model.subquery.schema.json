@@ -1,0 +1,78 @@
+{
+  "$id": "model.subquery.schema.json",
+  "title": "Schema Model Subquery",
+  "description": "Defines an inline subquery for use in WHERE or HAVING conditions. Supports IN, NOT IN, EXISTS, NOT EXISTS, and scalar comparison operators.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operator", "select", "from"],
+  "properties": {
+    "operator": {
+      "description": "How the subquery result is compared against the column",
+      "enum": [
+        "in",
+        "not_in",
+        "exists",
+        "not_exists",
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte"
+      ]
+    },
+    "column": {
+      "type": "string",
+      "description": "Column to compare against the subquery result. Required for all operators except exists/not_exists."
+    },
+    "select": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Columns or expressions to select in the subquery"
+    },
+    "from": {
+      "description": "Data source for the subquery",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model"],
+          "properties": {
+            "model": { "$ref": "model.ref.schema.json" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source"],
+          "properties": {
+            "source": { "$ref": "source.ref.schema.json" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cte"],
+          "properties": {
+            "cte": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Reference to a CTE defined in the ctes array"
+            }
+          }
+        }
+      ]
+    },
+    "where": {
+      "$ref": "model.where.schema.json"
+    }
+  },
+  "if": {
+    "properties": { "operator": { "enum": ["exists", "not_exists"] } }
+  },
+  "then": {},
+  "else": {
+    "required": ["column"]
+  }
+}

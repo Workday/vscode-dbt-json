@@ -37,18 +37,7 @@
       "required": ["model", "rollup"],
       "properties": {
         "model": { "$ref": "model.ref.schema.json" },
-        "rollup": {
-          "type": "object",
-          "required": ["interval"],
-          "additionalProperties": false,
-          "properties": {
-            "datetime_expr": { "type": "string" },
-            "interval": {
-              "description": "The interval for the rollup",
-              "enum": ["day", "hour", "month", "year"]
-            }
-          }
-        }
+        "rollup": { "$ref": "model.from.rollup.schema.json" }
       }
     }
   }

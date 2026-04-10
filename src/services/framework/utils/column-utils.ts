@@ -326,38 +326,35 @@ export function frameworkBuildColumns({
 
   let datetimeInterval: 'hour' | 'day' | 'month' | 'year' | null = null;
 
-  // HANDLE SELECTED COLUMNS
+  // HANDLE ROLLUP SETUP (datetime column + partition exclusions)
+  // This runs whenever from.rollup is present, regardless of whether select exists.
   if ('rollup' in modelJson.from && modelJson.from.rollup) {
-    // HANDLE ROLLUP
-    datetimeInterval = modelJson.from.rollup.interval;
+    const { rollup } = modelJson.from;
+    datetimeInterval = rollup.interval;
+    const rollupArgs = { ...modelJson.from, rollup, dj, modelJson, project };
+    columns.push(...frameworkGetRollupInputs(rollupArgs).columns);
+  }
+
+  // HANDLE SELECTED COLUMNS
+  if (
+    'rollup' in modelJson.from &&
+    modelJson.from.rollup &&
+    !('select' in modelJson && modelJson.select)
+  ) {
+    // ROLLUP WITHOUT SELECT (int_rollup_model) - auto-discover dims + suffix-agg facts
+    const { rollup } = modelJson.from;
+    const rollupArgs = { ...modelJson.from, rollup, dj, modelJson, project };
     const from = frameworkGetNodeColumns({
-      exclude: [
-        ...columns,
-        ...frameworkGetRollupInputs({
-          ...modelJson.from,
-          dj,
-          modelJson,
-          project,
-        }).exclude,
-      ],
+      exclude: [...columns, ...frameworkGetRollupInputs(rollupArgs).exclude],
       from: modelJson.from,
       project,
     });
-    columns.push(
-      ...frameworkGetRollupInputs({
-        ...modelJson.from,
-        dj,
-        modelJson,
-        project,
-      }).columns,
-    );
     for (const col of from.dimensions) {
       inheritedColumnNames.add(col.name);
     }
     columns.push(...from.dimensions);
     for (const f of from.facts) {
       if (frameworkSuffixAgg(f.name)) {
-        // For rollups, we're only going to include the previously aggregated columns
         inheritedColumnNames.add(f.name);
         columns.push(f);
       }
@@ -495,11 +492,37 @@ export function frameworkBuildColumns({
         selected.override_prefix;
       // In join models, columns must be table-qualified to avoid ambiguity.
       // CTE columns use the CTE name as qualifier (e.g. pre_agg.cost_sum).
+      // When a join target has override_alias, use it as the qualifier so the
+      // generated SQL matches the alias in the JOIN line.
+      let resolvedQualifier = overridePrefix || fromModel || fromCte;
+      const baseModel =
+        'model' in modelJson.from ? modelJson.from.model : undefined;
+      const isBaseModelSelect =
+        fromModel && baseModel && fromModel === baseModel;
+      if (
+        !overridePrefix &&
+        !isBaseModelSelect &&
+        resolvedQualifier &&
+        'join' in modelJson.from &&
+        Array.isArray(modelJson.from.join) &&
+        modelJson.from.join.length
+      ) {
+        const matchingJoin = (
+          modelJson.from.join as Array<Record<string, unknown>>
+        ).find(
+          (j) =>
+            (fromModel && j.model === fromModel) ||
+            (fromCte && j.cte === fromCte),
+        );
+        if (matchingJoin?.override_alias) {
+          resolvedQualifier = matchingJoin.override_alias as string;
+        }
+      }
       const prefix =
         ('join' in modelJson.from &&
           modelJson.type !== 'int_join_column' &&
           modelJson.from.join?.length &&
-          (overridePrefix || fromModel || fromCte)) ||
+          resolvedQualifier) ||
         null;
       if (typeof selected === 'string') {
         columns.push(
@@ -799,6 +822,95 @@ export function frameworkBuildColumns({
 }
 
 /**
+ * Builds a column-name-to-type map from all sources in a CTE's FROM clause
+ * (main source + joins). Used to inherit the correct dim/fct type when a CTE
+ * lists columns as plain strings rather than typed objects.
+ */
+function buildCteSourceTypeMap(
+  from: FrameworkCTE['from'],
+  cteRegistry: CteColumnRegistry,
+  project: DbtProject,
+): Map<string, string> {
+  const typeMap = new Map<string, string>();
+
+  const addFromModel = (model: string) => {
+    for (const col of frameworkGetNodeColumns({ from: { model }, project })
+      .columns) {
+      typeMap.set(col.name, col.meta?.type ?? 'dim');
+    }
+  };
+
+  const addFromCte = (cteName: string) => {
+    for (const col of cteRegistry.get(cteName) ?? []) {
+      typeMap.set(col.name, col.meta?.type ?? 'dim');
+    }
+  };
+
+  if ('model' in from && from.model) {
+    addFromModel(from.model);
+  } else if ('cte' in from && from.cte) {
+    addFromCte(from.cte);
+  }
+
+  if ('join' in from && Array.isArray(from.join)) {
+    for (const j of from.join) {
+      if ('model' in j) {
+        addFromModel((j as { model: string }).model);
+      } else if ('cte' in j) {
+        addFromCte((j as { cte: string }).cte);
+      }
+    }
+  }
+
+  return typeMap;
+}
+
+/**
+ * Builds a column-name-to-FrameworkColumn map from all sources in a CTE's
+ * FROM clause (main source + joins). Used to inherit full column metadata
+ * (description, data_type, tags, etc.) when a CTE lists columns as plain
+ * strings rather than typed objects.
+ */
+function buildCteSourceColumnMap(
+  from: FrameworkCTE['from'],
+  cteRegistry: CteColumnRegistry,
+  project: DbtProject,
+): Map<string, FrameworkColumn> {
+  const colMap = new Map<string, FrameworkColumn>();
+
+  const addFromModel = (model: string) => {
+    for (const col of frameworkGetNodeColumns({ from: { model }, project })
+      .columns) {
+      colMap.set(col.name, col);
+    }
+  };
+
+  const addFromCte = (cteName: string) => {
+    for (const col of cteRegistry.get(cteName) ?? []) {
+      colMap.set(col.name, col);
+    }
+  };
+
+  if ('model' in from && from.model) {
+    addFromModel(from.model);
+  } else if ('cte' in from && from.cte) {
+    addFromCte(from.cte);
+  }
+
+  if ('join' in from && Array.isArray(from.join)) {
+    for (const j of from.join) {
+      if ('model' in j) {
+        addFromModel((j as { model: string }).model);
+      } else if ('cte' in j) {
+        addFromCte((j as { cte: string }).cte);
+      }
+    }
+  }
+
+  return colMap;
+}
+
+/**
  * Infers output columns for a CTE by analyzing its select items.
  * Unlike external models, CTEs have no manifest entry, so their schema
  * must be derived from the select definition at generation time.
@@ -808,10 +920,12 @@ export function frameworkBuildColumns({
 export function frameworkInferCteColumns({
   cte,
   cteRegistry,
+  modelId,
   project,
 }: {
   cte: FrameworkCTE;
   cteRegistry: CteColumnRegistry;
+  modelId?: string | null;
   project: DbtProject;
 }): FrameworkColumn[] {
   const columns: FrameworkColumn[] = [];
@@ -854,9 +968,24 @@ export function frameworkInferCteColumns({
     return columns;
   }
 
+  const sourceTypeMap = buildCteSourceTypeMap(cte.from, cteRegistry, project);
+  const sourceColumnMap = buildCteSourceColumnMap(
+    cte.from,
+    cteRegistry,
+    project,
+  );
+
   for (const item of cte.select) {
     if (typeof item === 'string') {
-      columns.push({ name: item, meta: { type: 'dim' } });
+      const inherited = sourceColumnMap.get(item);
+      if (inherited) {
+        columns.push({ ...inherited });
+      } else {
+        const inheritedType = (sourceTypeMap.get(item) ?? 'dim') as
+          | 'dim'
+          | 'fct';
+        columns.push({ name: item, meta: { type: inheritedType } });
+      }
       continue;
     }
 
@@ -926,10 +1055,30 @@ export function frameworkInferCteColumns({
 
     if ('name' in sel) {
       const name = sel.name as string;
+      const sourceCol = sourceColumnMap.get(name);
       const col: FrameworkColumn = {
         name,
         meta: { type: selType === 'fct' ? 'fct' : 'dim' },
       };
+      if (sourceCol?.meta?.origin) {
+        col.meta.origin = sourceCol.meta.origin;
+      }
+      if ('description' in sel && sel.description) {
+        col.description = sel.description as string;
+      }
+      if ('data_type' in sel && sel.data_type) {
+        col.data_type = sel.data_type as FrameworkColumn['data_type'];
+      }
+      if ('data_tests' in sel && sel.data_tests) {
+        col.data_tests = sel.data_tests as FrameworkColumn['data_tests'];
+      }
+      if (
+        'lightdash' in sel &&
+        (sel.lightdash as { dimension?: unknown })?.dimension
+      ) {
+        col.meta.dimension = (sel.lightdash as { dimension: unknown })
+          .dimension as FrameworkColumn['meta']['dimension'];
+      }
       if ('expr' in sel && sel.expr) {
         col.meta.expr = sel.expr as string;
       }
@@ -950,6 +1099,9 @@ export function frameworkInferCteColumns({
       if (agg) {
         col.name = `${name}_${agg}`;
       }
+      if (modelId && !col.meta.origin?.id) {
+        col.meta.origin = { id: modelId };
+      }
       columns.push(col);
       continue;
     }
@@ -969,9 +1121,11 @@ export function frameworkInferCteColumns({
  */
 export function frameworkBuildCteColumnRegistry({
   ctes,
+  modelId,
   project,
 }: {
   ctes: FrameworkCTE[];
+  modelId?: string | null;
   project: DbtProject;
 }): CteColumnRegistry {
   const registry: CteColumnRegistry = new Map();
@@ -979,6 +1133,7 @@ export function frameworkBuildCteColumnRegistry({
     const columns = frameworkInferCteColumns({
       cte,
       cteRegistry: registry,
+      modelId,
       project,
     });
     registry.set(cte.name, columns);
@@ -1113,7 +1268,10 @@ export function frameworkColumnName({
     'override_suffix_agg' in column.meta && column.meta.override_suffix_agg
   );
   const rollupAgg =
-    ('rollup' in modelJson.from && column.meta.type === 'fct' && suffixAgg) ||
+    ('rollup' in modelJson.from &&
+      column.meta.type === 'fct' &&
+      !column.meta.expr &&
+      suffixAgg) ||
     null;
   const newAgg = metaAgg || rollupAgg;
   return newAgg && (newAgg !== suffixAgg || overrideSuffixAgg)

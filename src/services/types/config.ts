@@ -15,7 +15,7 @@ export type CoderConfig = {
   airflowGenerateDags?: boolean;
   airflowDagsPath?: string;
   aiHintTag?: string;
-  codingAgent?: 'github-copilot' | 'claude-code' | 'cline';
+  codingAgent?: boolean | 'github-copilot' | 'claude-code' | 'cline';
   dbtProjectNames?: string[];
   dbtGenericTestsPath?: string;
   dbtMacroPath?: string;

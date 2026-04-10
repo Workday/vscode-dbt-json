@@ -208,8 +208,16 @@ export function buildDbtRunCommand(config: DbtRunConfig): string {
       selectClause = ''; // No select clause runs all models
       break;
     case 'modified':
-      // Build select clause with all modified models
-      if (config.modifiedModels && config.modifiedModels.length > 0) {
+      // Build select clause with selected modified models (with per-model lineage)
+      if (
+        config.selectedModifiedModels &&
+        config.selectedModifiedModels.length > 0
+      ) {
+        selectClause = config.selectedModifiedModels
+          .map((model) => applyLineage(model.modelName, model.lineage))
+          .join(' ');
+      } else if (config.modifiedModels && config.modifiedModels.length > 0) {
+        // Fallback: all modified models with downstream lineage
         selectClause = config.modifiedModels
           .map((model) => `${model}+`)
           .join(' ');

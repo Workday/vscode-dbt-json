@@ -25,6 +25,7 @@ import {
   formatValidationErrors,
   getValidatorForType,
   validateCtes,
+  validateSubqueries,
 } from '@services/validationErrors';
 import type { FrameworkModel, FrameworkSource } from '@shared/framework/types';
 import type { Ajv, ValidateFunction } from 'ajv';
@@ -176,6 +177,21 @@ export class ValidationService {
     if (cteErrors.length > 0) {
       const message = `CTE validation errors:\n${cteErrors.join('\n')}`;
       this.logger.error?.(`CTE validation failed for ${pathJson}:`, message);
+      return {
+        valid: false,
+        error: message,
+        pathJson,
+      };
+    }
+
+    // Validate subquery constraints
+    const subqueryErrors = validateSubqueries(modelJson);
+    if (subqueryErrors.length > 0) {
+      const message = `Subquery validation errors:\n${subqueryErrors.join('\n')}`;
+      this.logger.error?.(
+        `Subquery validation failed for ${pathJson}:`,
+        message,
+      );
       return {
         valid: false,
         error: message,

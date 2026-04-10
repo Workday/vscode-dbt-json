@@ -12,7 +12,7 @@ import type {
   DbtResourceType,
 } from '@shared/dbt/types';
 import { getDbtModelId } from '@shared/dbt/utils';
-import type { FrameworkModel } from '@shared/framework/types';
+import type { FrameworkCTE, FrameworkModel } from '@shared/framework/types';
 import * as _ from 'lodash';
 import * as path from 'path';
 
@@ -214,6 +214,46 @@ export function frameworkGetModelMeta({
 }
 
 /**
+ * Trace a CTE chain back to the root model or source reference.
+ * Walks the `ctes` array starting from `cteName`, following `from.cte`
+ * references until a concrete `from.model` or `from.source` is found.
+ * Returns `null` if the chain cannot be resolved (e.g. circular or missing).
+ */
+export function resolveCteRootFrom(
+  cteName: string,
+  ctes: FrameworkCTE[],
+): { model: string } | { source: string } | null {
+  const cteMap = new Map(ctes.map((c) => [c.name, c]));
+  const visited = new Set<string>();
+  let current = cteName;
+
+  while (current) {
+    if (visited.has(current)) {
+      return null;
+    }
+    visited.add(current);
+
+    const cte = cteMap.get(current);
+    if (!cte) {
+      return null;
+    }
+
+    if ('model' in cte.from && cte.from.model) {
+      return { model: cte.from.model };
+    }
+    if ('source' in cte.from && (cte.from as { source: string }).source) {
+      return { source: (cte.from as { source: string }).source };
+    }
+    if ('cte' in cte.from && cte.from.cte) {
+      current = cte.from.cte;
+      continue;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
  * Get parent node metadata
  *
  * @param modelJson - The framework model JSON
@@ -228,6 +268,18 @@ export function frameworkGetParentMeta({
   project: DbtProject;
 }): unknown {
   if ('cte' in modelJson.from) {
+    if ('ctes' in modelJson && modelJson.ctes?.length) {
+      const rootFrom = resolveCteRootFrom(
+        (modelJson.from as { cte: string }).cte,
+        modelJson.ctes,
+      );
+      if (rootFrom) {
+        if ('source' in rootFrom) {
+          return frameworkGetSourceMeta({ project, ...rootFrom });
+        }
+        return frameworkGetModelMeta({ project, ...rootFrom });
+      }
+    }
     return null;
   }
   if ('source' in modelJson.from) {

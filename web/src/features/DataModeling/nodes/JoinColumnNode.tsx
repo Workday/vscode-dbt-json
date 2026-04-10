@@ -8,6 +8,10 @@ import { Handle, Position } from '@xyflow/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import ErrorMessage from '../components/ErrorMessage';
+import {
+  extractColumnsFromNode,
+  findModelNode,
+} from '../utils/manifestColumns';
 import type { AvailableModel, Column } from './SelectNode';
 
 export const JoinColumnNode: React.FC<NodeProps> = () => {
@@ -91,46 +95,16 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
 
   // Fetch base model columns
   const fetchBaseColumns = useCallback(() => {
-    if (!modelingState.from?.model || !currentProject?.manifest?.nodes) {
+    if (!modelingState.from?.model || !currentProject?.manifest) {
       setBaseColumns([]);
       return;
     }
 
-    const baseModelName = modelingState.from.model;
-    const modelKey = Object.keys(currentProject.manifest.nodes).find((key) => {
-      const node = currentProject.manifest.nodes?.[key];
-      return key.startsWith('model.') && node?.name === baseModelName;
-    });
-
-    if (!modelKey || !currentProject.manifest.nodes[modelKey]) {
-      setBaseColumns([]);
-      return;
-    }
-
-    const modelNode = currentProject.manifest.nodes[modelKey];
-    const allColumns: Column[] = [];
-
-    if (modelNode.columns) {
-      Object.entries(modelNode.columns).forEach(([columnName, columnData]) => {
-        const columnInfo = columnData as {
-          data_type?: string;
-          description?: string;
-          meta?: { type?: string };
-        };
-
-        const columnType: 'dimension' | 'fact' =
-          columnInfo.meta?.type === 'fct' ? 'fact' : 'dimension';
-
-        allColumns.push({
-          name: columnName,
-          dataType: columnInfo.data_type || 'string',
-          type: columnType,
-          description: columnInfo.description,
-        });
-      });
-    }
-
-    setBaseColumns(allColumns);
+    const modelNode = findModelNode(
+      currentProject.manifest,
+      modelingState.from.model as string,
+    );
+    setBaseColumns(extractColumnsFromNode(modelNode));
   }, [modelingState.from?.model, currentProject]);
 
   // Fetch initial data
@@ -201,7 +175,9 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
   const handleColumnChange = useCallback(
     (option: AvailableModel | null) => {
       setSelectedColumn(option);
-      updateJoinConfiguration(option?.value || '', fields);
+      // Keep existing fields when changing / clearing the column — user may be
+      // correcting a wrong selection and should not have to re-enter field names.
+      updateJoinConfiguration(option?.value ?? '', fields);
     },
     [fields, updateJoinConfiguration],
   );
@@ -259,7 +235,7 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
 
   if (loading) {
     return (
-      <div className="bg-background border-2 border-border rounded-lg p-4 min-w-[400px]">
+      <div className="bg-background border-2 border-neutral rounded-lg p-4 min-w-[400px] shadow-lg">
         <Handle
           type="target"
           position={Position.Top}
@@ -294,7 +270,7 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
   }
 
   return (
-    <div className="bg-background border-2 border-border rounded-lg p-4 min-w-[400px] max-w-[500px]">
+    <div className="bg-background border-2 border-neutral rounded-lg p-4 min-w-[400px] max-w-[500px] shadow-lg">
       <Handle
         type="target"
         position={Position.Top}
@@ -326,12 +302,14 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
           Column Selection
         </label>
         <SelectSingle
+          label=""
           value={selectedColumn}
           onChange={handleColumnChange}
           onBlur={() => {}}
           options={columnOptions}
           placeholder="Select column to unnest"
-          className="w-full border border-border rounded-md py-2 px-4"
+          selectedDisplayValue={(opt) => opt?.label ?? ''}
+          className="w-full border border-neutral rounded-md py-2 px-4 bg-background text-foreground h-10 text-sm"
         />
       </div>
 
@@ -348,7 +326,7 @@ export const JoinColumnNode: React.FC<NodeProps> = () => {
               {fields.map((field: string) => (
                 <div
                   key={field}
-                  className="flex items-center justify-between p-2 border border-border bg-card rounded-md"
+                  className="flex items-center justify-between p-2 border border-neutral bg-card rounded-md"
                 >
                   <span className="text-sm text-foreground">{field}</span>
                   <Button
