@@ -4,7 +4,7 @@ description: >-
   Create a DJ .model.json file for a new dbt model. Use when the user wants to
   create, add, or scaffold a dbt model -- staging, intermediate, or mart --
   including joins, CTEs, rollup, subqueries, or aggregations.
-compatibility: DJ extension workspace with .dj/schemas/ and .dj/AGENTS.md
+compatibility: DJ extension workspace with .dj/schemas/ and .agents/dj/AGENTS.md
 metadata:
   dj-framework-skill: '1.0'
 ---
@@ -13,7 +13,7 @@ metadata:
 
 **Create** new **`.model.json`** files (and **`.source.json`** when adding sources). **Never** hand-edit auto-generated **`.sql`** / **`.yml`** — only the JSON sources of truth.
 
-**Reading order:** **`.dj/schemas/`** (type schema + **`$ref`s**) for exact shapes → **`.dj/AGENTS.md`** **Model Types** (examples) → **Advanced** (short map: CTEs, rollup, shorthands, subqueries — still defer to schemas) → **Important Conventions** **#6**–**#12**.
+**Reading order:** **`.dj/schemas/`** (type schema + **`$ref`s**) for exact shapes → **`.agents/dj/AGENTS.md`** **Model Types** (examples) → **Advanced** (short map: CTEs, rollup, shorthands, subqueries — still defer to schemas) → **Important Conventions** **#6**–**#12**.
 
 ## Model `type` (infer — do not ask the user)
 
@@ -36,7 +36,7 @@ One clarifying question if source vs existing model is unclear.
 **Checklist**
 
 - [ ] `type` from table; read **`.dj/schemas/model.type.<type>.schema.json`**; if CTE / subquery / **`from.model.rollup`** / hooks / **`agg`**, also **`model.cte`**, **`model.subquery`**, **`model.from.rollup`**, **`model.sql_hooks`**, **`model.select.*.with.agg`** as needed
-- [ ] **`.dj/AGENTS.md`**: **Model Types** example; **Advanced** if CTE / rollup / shorthand / subquery
+- [ ] **`.agents/dj/AGENTS.md`**: **Model Types** example; **Advanced** if CTE / rollup / shorthand / subquery
 - [ ] Upstream columns from **`.model.json`** / **`.source.json`** (trace **`ctes`** if any)
 - [ ] Write **JSONC**; validate against schema
 
