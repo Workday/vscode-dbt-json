@@ -2,23 +2,31 @@
   "$id": "model.group_by.schema.json",
   "title": "Schema Model Group By",
   "description": "Validate model group by",
-  "type": "array",
-  "minItems": 1,
-  "items": {
-    "anyOf": [
-      { "type": "string", "pattern": "^([A-z]|[0-9]|\\.|_)+$" },
-      {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["expr"],
-        "properties": { "expr": { "type": "string" } }
-      },
-      {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["type"],
-        "properties": { "type": { "const": "dims" } }
+  "anyOf": [
+    {
+      "const": "dims",
+      "description": "Shorthand: group by all dimension columns. Equivalent to [{ \"type\": \"dims\" }]."
+    },
+    {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "type": "string", "pattern": "^([A-z]|[0-9]|\\.|_)+$" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expr"],
+            "properties": { "expr": { "type": "string" } }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": { "type": { "const": "dims" } }
+          }
+        ]
       }
-    ]
-  }
+    }
+  ]
 }

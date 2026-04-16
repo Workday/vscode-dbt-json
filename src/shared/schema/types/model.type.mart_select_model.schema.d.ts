@@ -55,29 +55,29 @@ export type SchemaModelTags = (
 )[];
 /**
  * Validate model group by
- *
- * @minItems 1
  */
-export type SchemaModelGroupBy = [
-  (
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  ),
-  ...(
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  )[],
-];
+export type SchemaModelGroupBy =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
 /**
  * Will prevent the automatic portal partition date columns from getting added
  */
@@ -112,26 +112,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -148,26 +147,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   ),
   ...(
@@ -180,26 +178,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -216,26 +213,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   )[],
 ];
@@ -556,6 +552,31 @@ export type SchemaModelSelectCTE =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
+ * Validate model group by
+ */
+export type SchemaModelGroupBy1 =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
+/**
  * SQL HAVING
  */
 export type SchemaModelHaving =
@@ -807,7 +828,7 @@ export interface SchemaModelCTE {
     )[],
   ];
   where?: SchemaModelWhere;
-  group_by?: SchemaModelGroupBy;
+  group_by?: SchemaModelGroupBy1;
   having?: SchemaModelHaving;
 }
 /**

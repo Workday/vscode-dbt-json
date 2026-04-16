@@ -108,15 +108,23 @@ export interface SyncConfig {
  * ```typescript
  * const callbacks: SyncCallbacks = {
  *   onProgress: (msg) => progress.report({ message: msg }),
- *   onModelValidationError: (uri, msg) => {
+ *   onModelValidationError: (uri, msg, errors, jsonContent) => {
  *     diagnostics.set(uri, [new Diagnostic(range, msg)]);
  *   },
  * };
  * ```
  */
 export interface SyncCallbacks {
-  /** Called when model validation fails */
-  onModelValidationError?: (uri: vscode.Uri, message: string) => void;
+  /** Called when model or source validation fails */
+  onModelValidationError?: (
+    uri: vscode.Uri,
+    message: string,
+    errors?: ValidationErrorDetail[],
+    jsonContent?: string,
+  ) => void;
+
+  /** Called for non-blocking validation issues (e.g. CTE column reference warnings) */
+  onModelValidationWarning?: (uri: vscode.Uri, message: string) => void;
 
   /** Called when SQL/YML generation fails */
   onGenerationError?: (
@@ -381,6 +389,16 @@ export interface ValidationServiceParams {
 }
 
 /**
+ * A single validation error with its JSON pointer path for diagnostic positioning.
+ */
+export interface ValidationErrorDetail {
+  /** Human-readable error message */
+  message: string;
+  /** AJV JSON pointer path, e.g. "/tables/0/freshness" */
+  instancePath: string;
+}
+
+/**
  * Result of model JSON validation.
  * Contains enhanced model JSON with auto-generated tests if applicable.
  */
@@ -391,6 +409,8 @@ export interface ModelValidationResult {
   pathJson: string;
   /** Error message if validation failed */
   error?: string;
+  /** Individual errors with JSON paths for diagnostic positioning */
+  errors?: ValidationErrorDetail[];
   /** Enhanced model JSON with auto-generated tests (if valid) */
   enhancedModelJson?: FrameworkModel;
   /** Stringified enhanced JSON content ready for processing (if valid) */
@@ -409,4 +429,6 @@ export interface SourceValidationResult {
   pathJson: string;
   /** Error message if validation failed */
   error?: string;
+  /** Individual errors with JSON paths for diagnostic positioning */
+  errors?: ValidationErrorDetail[];
 }

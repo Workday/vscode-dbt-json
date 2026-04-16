@@ -185,7 +185,7 @@ export type SchemaColumnType = 'dim' | 'fct';
 export interface SchemaSource {
   database: SchemaSourceDatabase;
   description?: SchemaSourceDescription;
-  freshness?: SchemaSourceFreshness;
+  freshness?: SchemaSourceFreshness | null;
   loaded_at_field?: SchemaLoadedAtField;
   meta?: SchemaSourceMeta;
   schema: SchemaSourceSchema;
@@ -330,6 +330,8 @@ export interface SchemaSourceTable {
    * A description for the table
    */
   description?: string;
+  freshness?: SchemaSourceFreshness | null;
+  loaded_at_field?: SchemaLoadedAtField;
   meta?: SchemaSourceMeta;
   /**
    * An array of columns which exist on the table

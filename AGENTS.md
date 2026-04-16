@@ -197,6 +197,15 @@ Each model has a `type` field validated by JSON schema:
 
 Each type has its own schema file: `schemas/model.type.*.schema.json`
 
+**Cross-cutting features** (applicable to multiple model types):
+
+- **Inline CTEs** — `ctes` array on `int_select_model`, `int_join_models`, `int_union_models`, `mart_select_model`, `mart_join_models`. CTE bulk selects (`all_from_cte`, `dims_from_cte`, `fcts_from_cte`) support `exclude`/`include` filters. Plain string selects in CTEs inherit `dim`/`fct` type from the upstream model or CTE.
+- **Inline subqueries** — `subquery` key in `where`, `having`, and join `on` conditions. 10 operators: `in`, `not_in`, `exists`, `not_exists`, `eq`, `neq`, `gt`, `gte`, `lt`, `lte`.
+- **`from.rollup`** — Optional time-grain re-aggregation on `int_select_model` and `int_join_models` (not on marts).
+- **`"dims"` shorthand** — `group_by: "dims"` is equivalent to `[{ "type": "dims" }]`; join `on: "dims"` auto-joins on all shared dimension columns.
+- **Materialization shorthand** — `materialization` field accepts a string (`"incremental"` | `"ephemeral"`) or structured object with `type`, `format` (`delta_lake` | `hive` | `iceberg`), `partitions`, `strategy`, and `database`. Supplements the legacy `materialized` field.
+- **Catalog-agnostic storage** — `dbt_project.yml` vars `storage_type` (`delta_lake` | `iceberg`), `etl_schema`, and `project_catalog` drive storage-specific SQL generation (e.g., `partitioned_by` for Delta vs `partitioning` for Iceberg).
+
 ### dbt Integration
 
 **Dbt Service** (`src/services/dbt.ts`):
@@ -309,7 +318,7 @@ vscode-dbt-json/
 │   │   ├── config.ts             # Configuration service
 │   │   ├── djLogger.ts           # Logging service
 │   │   ├── statemanager.ts       # State management
-│   │   ├── validationErrors.ts   # Custom validation functions
+│   │   ├── modelValidation.ts    # Model validation functions
 │   │   ├── constants.ts          # Command IDs and constants
 │   │   └── utils/                # fileNavigation, fileSystem, git, process, sql
 │   └── shared/                   # Cross-environment utilities
@@ -349,9 +358,15 @@ vscode-dbt-json/
 │   │   ├── utils/                # Utility functions
 │   │   └── styles/               # CSS styles
 │   └── vite.config.ts            # Builds to ../dist/web
-├── schemas/                      # JSON Schema definitions (93 files)
+├── schemas/                      # JSON Schema definitions (93+ files)
 │   ├── model.schema.json         # Root schema (anyOf 11 model types)
 │   ├── model.type.*.schema.json  # 11 model type schemas
+│   ├── model.cte.schema.json     # Single CTE definition
+│   ├── model.ctes.schema.json    # CTE array configuration
+│   ├── model.subquery.schema.json      # Inline subquery definition
+│   ├── model.materialization.schema.json # Materialization (string or object)
+│   ├── model.from.rollup.schema.json   # Rollup configuration
+│   ├── model.select.cte.schema.json    # Select columns from a CTE
 │   ├── source.schema.json        # Source definition schema
 │   └── column.*.schema.json      # Column properties schemas
 ├── macros/                       # dbt macros shipped with extension
@@ -572,12 +587,36 @@ To add/modify JSON schemas:
 5. State management with Zustand stores in `web/src/stores/`
 6. Reusable components in `web/src/elements/`
 
+### Working with Tests
+
+- CTE, subquery, partition, and storage-type code paths are high-regression zones — always add or update tests when modifying these areas. Tests live in `src/services/framework/__tests__/`.
+- Run `npm test` before submitting changes to SQL generation or schema validation code.
+
 ### File System Operations
 
 - Extension writes files via VS Code workspace API (atomic updates)
 - Batch updates to prevent API overload
 - Hash-based caching to skip unchanged files
 - Always use absolute paths from `admin.WORKSPACE_ROOT`
+
+## Development Pitfalls & Patterns
+
+### Airflow Dual-Tree Rule
+
+- `airflow/v2_7/` and `airflow/v2_10/` are **mirrors** — fixes and changes must be applied to **both** directories.
+
+### JSONC Comment Preservation
+
+- Standard `JSON.stringify` strips comments. Any code path that writes `.model.json` files must use JSONC-aware handling (e.g., `jsonc-parser`) to preserve user comments.
+
+### Diagnostics Lifecycle
+
+- Validation entries in the VS Code Problems tab must be **explicitly cleared** when the underlying issue is fixed. Any work on validation should consider when diagnostics are set and cleared to avoid stale entries.
+
+### Storage-Type Branching
+
+- Incremental strategy defaults depend on `storage_type` (Delta Lake vs Iceberg) from `dbt_project.yml` vars. Changes to `getDefaultIncrementalStrategy` or `getMaterializationProp` in `sql-utils.ts` must be tested against **both** storage paths.
+- Iceberg uses `partitioning: ARRAY[...]` while Delta Lake/Hive uses `partitioned_by: ARRAY[...]` — the switch happens in `frameworkGenerateModelOutput` based on model `format` or project `storage_type`.
 
 ## Configuration
 
@@ -600,6 +639,7 @@ To add/modify JSON schemas:
 | `dj.dataExplorer.autoRefresh`  | boolean | `false`      | Auto-refresh Data Explorer on file switch        |
 | `dj.lightdashProjectPath`      | string  | —            | Custom path to dbt project for Lightdash         |
 | `dj.lightdashProfilesPath`     | string  | —            | Custom path to dbt profiles for Lightdash        |
+| `dj.materialization.defaultIncrementalStrategy` | string | `overwrite_existing_partitions` | Default incremental strategy: `delete+insert`, `merge`, or `overwrite_existing_partitions` |
 | `dj.autoGenerateTests`         | object  | —            | (Experimental) Auto-generate tests on models     |
 
 ### Environment Variables

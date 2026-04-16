@@ -286,16 +286,16 @@ export type FrameworkApi =
       request: {
         /** Action to perform */
         action: 'get' | 'set';
-        /** Context for the preference (e.g., 'column-lineage', 'data-explorer') */
+        /** Context for the preference (e.g., 'column-lineage', 'data-explorer', 'default-incremental-strategy') */
         context: string;
-        /** Value for set action (boolean preference value) */
-        value?: boolean;
+        /** Value for set action */
+        value?: boolean | string;
       };
       response: {
         success: boolean;
         error?: string;
         /** Preference value (returned by 'get' action) */
-        value?: boolean;
+        value?: boolean | string;
       };
     }
   | {
@@ -483,6 +483,7 @@ export type FrameworkSelected =
   | string
   | SchemaModelSelectCol
   | SchemaModelSelectColWithAgg
+  | SchemaModelSelectCTE
   | SchemaModelSelectExpr
   | SchemaModelSelectExprWithAgg
   | SchemaModelSelectInterval
@@ -568,3 +569,12 @@ export type FrameworkSyncOp =
       text: string;
       path: string;
     };
+
+/**
+ * Valid values for the default incremental strategy extension setting.
+ * Shared across extension config, DJ context, and webview.
+ */
+export type DefaultIncrementalStrategy =
+  | 'delete+insert'
+  | 'merge'
+  | 'overwrite_existing_partitions';

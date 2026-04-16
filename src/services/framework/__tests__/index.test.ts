@@ -13,18 +13,7 @@ import * as fs from 'fs';
 import { glob } from 'glob';
 import * as path from 'path';
 
-// Mock config directly to avoid vscode dependency
-const mockConfig: any = {
-  aiHintTag: 'ai',
-  airflowGenerateDags: false,
-  dbtMacroPath: '_ext_',
-  airflowDagsPath: 'dags/_ext_',
-};
-
-// Test helper to create DJ object with config
-const createTestDJ = (): DJ => ({
-  config: mockConfig,
-});
+import { createTestDJ } from './helpers';
 
 describe('framework fixtures', () => {
   test('test that all .sql & .yml match when generated from .model.json', () => {
@@ -553,5 +542,761 @@ with ${modelName} as (
 select * from ${modelName}
         `),
     );
+  });
+});
+
+describe('materialization shorthand', () => {
+  const project: DbtProject = {
+    name: 'project',
+    macroPaths: ['macros'],
+    manifest: {
+      child_map: {},
+      disabled: {},
+      docs: {},
+      exposures: {},
+      group_map: {},
+      groups: {},
+      macros: {},
+      metadata: { project_name: 'project' },
+      metrics: {},
+      nodes: {
+        ['model.project.model_a']: {
+          columns: {
+            dim_a: {
+              name: 'dim_a',
+              data_type: 'varchar',
+              meta: { type: 'dim' },
+            },
+          },
+        },
+      },
+      parent_map: {},
+      saved_queries: {},
+      selectors: {},
+      semantic_models: {},
+      sources: {},
+    },
+    modelPaths: ['models'],
+    packagePath: '',
+    pathRelative: '',
+    pathSystem: '',
+    properties: { vars: { event_dates: '2024-07-01' } },
+    targetPath: 'target',
+    variables: {},
+  };
+
+  test('"materialization": "incremental" uses default strategy from config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('"materialization": "incremental" respects config override to merge', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('"materialization": "ephemeral" string shorthand generates ephemeral config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'ephemeral',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const { config } = frameworkGenerateModelOutput({
+      dj: createTestDJ(),
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('ephemeral');
+    expect(config.incremental_strategy).toBeUndefined();
+  });
+
+  test('materialization object with explicit strategy takes precedence over config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: {
+        type: 'incremental',
+        strategy: { type: 'delete+insert', unique_key: 'dim_a' },
+      },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+    expect(config.unique_key).toBe('dim_a');
+  });
+
+  test('"materialized" string without incremental_strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'stg_select_source',
+      group: 'sales',
+      topic: 'orders',
+      name: 'raw',
+      materialized: 'incremental',
+      select: ['dim_a'],
+      from: { source: 'source_a.table_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('defaults to delete+insert when config is unset', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = { config: {} };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('materialization object without strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: { type: 'incremental' },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('overwrite_existing_partitions from config is applied', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy:
+          'overwrite_existing_partitions',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('overwrite_existing_partitions');
+  });
+});
+
+describe('materialization shorthand', () => {
+  const project: DbtProject = {
+    name: 'project',
+    macroPaths: ['macros'],
+    manifest: {
+      child_map: {},
+      disabled: {},
+      docs: {},
+      exposures: {},
+      group_map: {},
+      groups: {},
+      macros: {},
+      metadata: { project_name: 'project' },
+      metrics: {},
+      nodes: {
+        ['model.project.model_a']: {
+          columns: {
+            dim_a: {
+              name: 'dim_a',
+              data_type: 'varchar',
+              meta: { type: 'dim' },
+            },
+          },
+        },
+      },
+      parent_map: {},
+      saved_queries: {},
+      selectors: {},
+      semantic_models: {},
+      sources: {},
+    },
+    modelPaths: ['models'],
+    packagePath: '',
+    pathRelative: '',
+    pathSystem: '',
+    properties: { vars: { event_dates: '2024-07-01' } },
+    targetPath: 'target',
+    variables: {},
+  };
+
+  test('"materialization": "incremental" uses default strategy from config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('"materialization": "incremental" respects config override to merge', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('"materialization": "ephemeral" string shorthand generates ephemeral config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'ephemeral',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const { config } = frameworkGenerateModelOutput({
+      dj: createTestDJ(),
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('ephemeral');
+    expect(config.incremental_strategy).toBeUndefined();
+  });
+
+  test('materialization object with explicit strategy takes precedence over config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: {
+        type: 'incremental',
+        strategy: { type: 'delete+insert', unique_key: 'dim_a' },
+      },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+    expect(config.unique_key).toBe('dim_a');
+  });
+
+  test('"materialized" string without incremental_strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'stg_select_source',
+      group: 'sales',
+      topic: 'orders',
+      name: 'raw',
+      materialized: 'incremental',
+      select: ['dim_a'],
+      from: { source: 'source_a.table_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('defaults to delete+insert when config is unset', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = { config: {} };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('materialization object without strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: { type: 'incremental' },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('overwrite_existing_partitions from config is applied', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy:
+          'overwrite_existing_partitions',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('overwrite_existing_partitions');
+  });
+});
+
+describe('materialization shorthand', () => {
+  const project: DbtProject = {
+    name: 'project',
+    macroPaths: ['macros'],
+    manifest: {
+      child_map: {},
+      disabled: {},
+      docs: {},
+      exposures: {},
+      group_map: {},
+      groups: {},
+      macros: {},
+      metadata: { project_name: 'project' },
+      metrics: {},
+      nodes: {
+        ['model.project.model_a']: {
+          columns: {
+            dim_a: {
+              name: 'dim_a',
+              data_type: 'varchar',
+              meta: { type: 'dim' },
+            },
+          },
+        },
+      },
+      parent_map: {},
+      saved_queries: {},
+      selectors: {},
+      semantic_models: {},
+      sources: {},
+    },
+    modelPaths: ['models'],
+    packagePath: '',
+    pathRelative: '',
+    pathSystem: '',
+    properties: { vars: { event_dates: '2024-07-01' } },
+    targetPath: 'target',
+    variables: {},
+  };
+
+  test('"materialization": "incremental" uses default strategy from config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('"materialization": "incremental" respects config override to merge', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('"materialization": "ephemeral" string shorthand generates ephemeral config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'ephemeral',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const { config } = frameworkGenerateModelOutput({
+      dj: createTestDJ(),
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('ephemeral');
+    expect(config.incremental_strategy).toBeUndefined();
+  });
+
+  test('materialization object with explicit strategy takes precedence over config', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: {
+        type: 'incremental',
+        strategy: { type: 'delete+insert', unique_key: 'dim_a' },
+      },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+    expect(config.unique_key).toBe('dim_a');
+  });
+
+  test('"materialized" string without incremental_strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'stg_select_source',
+      group: 'sales',
+      topic: 'orders',
+      name: 'raw',
+      materialized: 'incremental',
+      select: ['dim_a'],
+      from: { source: 'source_a.table_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'delete+insert',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('defaults to delete+insert when config is unset', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = { config: {} };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('delete+insert');
+  });
+
+  test('materialization object without strategy uses config default', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: { type: 'incremental' },
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy: 'merge',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('merge');
+  });
+
+  test('overwrite_existing_partitions from config is applied', () => {
+    const modelJson: FrameworkModel = {
+      type: 'int_select_model',
+      group: 'sales',
+      topic: 'orders',
+      name: 'enriched',
+      materialization: 'incremental',
+      select: [{ model: 'model_a', columns: ['dim_a'] }],
+      from: { model: 'model_a' },
+    } as unknown as FrameworkModel;
+
+    const dj: DJ = {
+      config: {
+        materializationDefaultIncrementalStrategy:
+          'overwrite_existing_partitions',
+      },
+    };
+
+    const { config } = frameworkGenerateModelOutput({
+      dj,
+      modelJson,
+      project,
+    });
+
+    expect(config.materialized).toBe('incremental');
+    expect(config.incremental_strategy).toBe('overwrite_existing_partitions');
   });
 });

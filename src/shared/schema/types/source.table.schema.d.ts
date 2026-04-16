@@ -6,6 +6,10 @@
  */
 
 /**
+ * A column name (or expression) that returns a timestamp indicating freshness
+ */
+export type SchemaLoadedAtField = string;
+/**
  * Source ETL settings
  */
 export type SchemaSourceEtl =
@@ -175,6 +179,8 @@ export interface SchemaSourceTable {
    * A description for the table
    */
   description?: string;
+  freshness?: SchemaSourceFreshness | null;
+  loaded_at_field?: SchemaLoadedAtField;
   meta?: SchemaSourceMeta;
   /**
    * An array of columns which exist on the table
@@ -189,6 +195,35 @@ export interface SchemaSourceTable {
     name: SchemaColumnName;
     type?: SchemaColumnType;
   }[];
+}
+/**
+ * Configures dbt freshness settings for this source
+ */
+export interface SchemaSourceFreshness {
+  error_after?: {
+    /**
+     * A positive integer for the number of periods where a data source is still considered fresh
+     */
+    count: number;
+    /**
+     * The time period used in the freshness calculation
+     */
+    period: 'day' | 'hour' | 'minute';
+  };
+  /**
+   * Add a where clause to the query run by dbt source freshness in order to limit data scanned
+   */
+  filter?: string;
+  warn_after?: {
+    /**
+     * A positive integer for the number of periods where a data source is still considered fresh
+     */
+    count: number;
+    /**
+     * The time period used in the freshness calculation
+     */
+    period: 'day' | 'hour' | 'minute';
+  };
 }
 /**
  * Validates schema for source meta (either on the schema or table level)

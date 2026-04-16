@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import * as yaml from 'yaml';
 
+import type { DefaultIncrementalStrategy } from './framework/types';
 import type {
   AppError,
   DateIso,
@@ -17,7 +18,7 @@ import type {
 export type DJ = {
   config: {
     aiHintTag?: string;
-    // Add other config properties as needed by shared utilities
+    materializationDefaultIncrementalStrategy?: DefaultIncrementalStrategy;
   };
 };
 

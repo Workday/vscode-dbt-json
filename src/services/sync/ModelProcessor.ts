@@ -13,10 +13,12 @@
  */
 
 import {
+  frameworkBuildCteColumnRegistry,
   frameworkGenerateModelOutput,
   frameworkGetModelName,
   frameworkGetModelPrefix,
 } from '@services/framework/utils';
+import { validateCteColumnReferences } from '@services/modelValidation';
 import { jsonParse } from '@shared';
 import type { DbtProject } from '@shared/dbt/types';
 import type { FrameworkModel, FrameworkSyncOp } from '@shared/framework/types';
@@ -131,8 +133,30 @@ export class ModelProcessor {
       newSql = generated.sql;
       newYml = generated.yml;
 
-      // Clear diagnostics on success
-      this.callbacks.onDiagnosticsClear?.(newJsonUri);
+      // Validate exclude/include column references against the CTE registry
+      let hasColRefWarnings = false;
+      if ('ctes' in modelJson && modelJson.ctes?.length) {
+        const cteColumnRegistry = frameworkBuildCteColumnRegistry({
+          ctes: modelJson.ctes,
+          project,
+        });
+        const colRefErrors = validateCteColumnReferences(
+          modelJson,
+          cteColumnRegistry,
+        );
+        if (colRefErrors.length > 0) {
+          hasColRefWarnings = true;
+          for (const msg of colRefErrors) {
+            this.config.logger.warn?.(`${modelName}: ${msg}`);
+          }
+          const warningMessage = `CTE column reference warnings:\n${colRefErrors.join('\n')}`;
+          this.callbacks.onModelValidationWarning?.(newJsonUri, warningMessage);
+        }
+      }
+
+      if (!hasColRefWarnings) {
+        this.callbacks.onDiagnosticsClear?.(newJsonUri);
+      }
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       const message = ERROR_MESSAGES.INVALID_MODEL_SQL(error.message);

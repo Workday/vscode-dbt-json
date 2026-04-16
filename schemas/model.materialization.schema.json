@@ -3,6 +3,8 @@
   "title": "Schema Model Materialization",
   "description": "Materialization Configuration",
   "anyOf": [
+    { "const": "incremental" },
+    { "const": "ephemeral" },
     {
       "type": "object",
       "required": ["type"],

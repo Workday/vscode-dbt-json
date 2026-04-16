@@ -1,6 +1,7 @@
 import type { Coder } from '@services/coder';
 import { COMMAND_ID, VIEW_ID } from '@services/constants';
 import {
+  filterBulkSelectColumns,
   frameworkBuildCteColumnRegistry,
   frameworkGetNodeColumns,
   frameworkGetSourceMeta,
@@ -10,6 +11,12 @@ import { PanelViewProvider } from '@services/webview/PanelViewProvider';
 import { jsonParse } from '@shared';
 import type { DbtProject } from '@shared/dbt/types';
 import { getDbtModelId } from '@shared/dbt/utils';
+import {
+  BULK_CTE_TYPES,
+  BULK_MODEL_TYPES,
+  BULK_SELECT_TYPES,
+  type BulkSelectType,
+} from '@shared/framework/constants';
 import type { FrameworkColumn } from '@shared/framework/types';
 import type { FrameworkModel } from '@shared/framework/types';
 import {
@@ -61,14 +68,7 @@ interface CteDefinition {
 
 /** Bulk select directive types (all_from_model, dims_from_model, etc.) */
 interface SelectDirective {
-  type:
-    | 'all_from_model'
-    | 'all_from_source'
-    | 'dims_from_model'
-    | 'fcts_from_model'
-    | 'all_from_cte'
-    | 'dims_from_cte'
-    | 'fcts_from_cte';
+  type: BulkSelectType;
   model?: string;
   source?: string;
   cte?: string;
@@ -1218,16 +1218,42 @@ export class ColumnLineageService implements DJService {
       if (
         'type' in selected &&
         'cte' in selected &&
-        (selected.type === 'all_from_cte' ||
-          selected.type === 'dims_from_cte' ||
-          selected.type === 'fcts_from_cte')
+        BULK_CTE_TYPES.has(selected.type as string)
       ) {
         const ctes = (
           'ctes' in modelJson && modelJson.ctes ? modelJson.ctes : []
         ) as CteDefinition[];
+        const cteName = (selected as { cte: string }).cte;
+        const include =
+          'include' in selected && Array.isArray(selected.include)
+            ? (selected.include as string[])
+            : undefined;
+        const exclude =
+          'exclude' in selected && Array.isArray(selected.exclude)
+            ? (selected.exclude as string[])
+            : undefined;
+
+        // Build CTE registry to check type + include/exclude filters
+        const registry = frameworkBuildCteColumnRegistry({
+          ctes: ctes as Parameters<
+            typeof frameworkBuildCteColumnRegistry
+          >[0]['ctes'],
+          project,
+        });
+        const cteCols = registry.get(cteName) || [];
+        const resolvedNames = filterBulkSelectColumns(
+          cteCols,
+          selected.type as string,
+          { include, exclude },
+        ).map((c) => c.name);
+
+        if (!resolvedNames.includes(columnName)) {
+          continue;
+        }
+
         const cteLineage = this.traceCteColumnLineage(
           columnName,
-          (selected as { cte: string }).cte,
+          cteName,
           ctes,
         );
         if (cteLineage) {
@@ -1239,10 +1265,8 @@ export class ColumnLineageService implements DJService {
       // Handle bulk directives (model, source variants)
       if (
         'type' in selected &&
-        (selected.type === 'all_from_model' ||
-          selected.type === 'all_from_source' ||
-          selected.type === 'dims_from_model' ||
-          selected.type === 'fcts_from_model')
+        (BULK_MODEL_TYPES.has(selected.type as string) ||
+          selected.type === BULK_SELECT_TYPES.ALL_FROM_SOURCE)
       ) {
         const expandedCols = this.resolveSelectDirective(
           selected as SelectDirective,
@@ -1771,20 +1795,10 @@ export class ColumnLineageService implements DJService {
           project,
         });
         const cteCols = registry.get(selected.cte) || [];
-        let resolved = cteCols;
-        if (selected.type === 'dims_from_cte') {
-          resolved = cteCols.filter((c) => c.meta?.type !== 'fct');
-        } else if (selected.type === 'fcts_from_cte') {
-          resolved = cteCols.filter((c) => c.meta?.type === 'fct');
-        }
-        let names = resolved.map((c) => c.name);
-        if (selected.include?.length) {
-          names = names.filter((n) => selected.include!.includes(n));
-        }
-        if (selected.exclude?.length) {
-          names = names.filter((n) => !selected.exclude!.includes(n));
-        }
-        return names;
+        return filterBulkSelectColumns(cteCols, selected.type, {
+          include: selected.include,
+          exclude: selected.exclude,
+        }).map((c) => c.name);
       } catch {
         return [];
       }
@@ -1808,17 +1822,17 @@ export class ColumnLineageService implements DJService {
     });
 
     switch (selected.type) {
-      case 'all_from_model':
-      case 'all_from_source':
-      case 'all_from_cte':
+      case BULK_SELECT_TYPES.ALL_FROM_MODEL:
+      case BULK_SELECT_TYPES.ALL_FROM_SOURCE:
+      case BULK_SELECT_TYPES.ALL_FROM_CTE:
         return nodeColumns.columns.map((c) => c.name);
 
-      case 'dims_from_model':
-      case 'dims_from_cte':
+      case BULK_SELECT_TYPES.DIMS_FROM_MODEL:
+      case BULK_SELECT_TYPES.DIMS_FROM_CTE:
         return nodeColumns.dimensions.map((c) => c.name);
 
-      case 'fcts_from_model':
-      case 'fcts_from_cte':
+      case BULK_SELECT_TYPES.FCTS_FROM_MODEL:
+      case BULK_SELECT_TYPES.FCTS_FROM_CTE:
         return nodeColumns.facts.map((c) => c.name);
 
       default:
@@ -2003,12 +2017,7 @@ export class ColumnLineageService implements DJService {
 
       // Bulk CTE directives (all_from_cte, dims_from_cte, fcts_from_cte)
       if ('type' in sel && 'cte' in sel) {
-        const selType = sel.type as string;
-        if (
-          selType === 'all_from_cte' ||
-          selType === 'dims_from_cte' ||
-          selType === 'fcts_from_cte'
-        ) {
+        if (BULK_CTE_TYPES.has(sel.type as string)) {
           const result = this.traceCteColumnLineage(
             columnName,
             (sel as { cte: string }).cte,
@@ -2023,12 +2032,7 @@ export class ColumnLineageService implements DJService {
 
       // Bulk model directives
       if ('type' in sel && 'model' in sel) {
-        const selType = sel.type as string;
-        if (
-          selType === 'all_from_model' ||
-          selType === 'dims_from_model' ||
-          selType === 'fcts_from_model'
-        ) {
+        if (BULK_MODEL_TYPES.has(sel.type as string)) {
           return {
             type: 'passthrough',
             sourceColumns: [columnName],

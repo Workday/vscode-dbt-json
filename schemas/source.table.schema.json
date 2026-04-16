@@ -14,6 +14,16 @@
       "description": "A description for the table",
       "type": "string"
     },
+    "freshness": {
+      "oneOf": [
+        { "$ref": "source.freshness.schema.json" },
+        {
+          "type": "null",
+          "description": "Set to null to disable freshness checks for this table"
+        }
+      ]
+    },
+    "loaded_at_field": { "$ref": "source.loaded_at_field.schema.json" },
     "meta": { "$ref": "source.meta.schema.json" },
     "columns": {
       "description": "An array of columns which exist on the table",

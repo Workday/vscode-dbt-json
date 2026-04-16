@@ -3,6 +3,7 @@
  */
 
 import type { AutoGenerateTestsConfig } from '@services/framework/utils';
+import type { DefaultIncrementalStrategy } from '@shared/framework/types';
 import type { LogLevel } from '@shared/types/common';
 
 /**
@@ -23,6 +24,7 @@ export type CoderConfig = {
   trinoPath?: string;
   lightdashProjectPath?: string;
   lightdashProfilesPath?: string;
+  materializationDefaultIncrementalStrategy?: DefaultIncrementalStrategy;
   // Settings with defaults from package.json
   columnLineageAutoRefresh?: boolean;
   dataExplorerAutoRefresh?: boolean;

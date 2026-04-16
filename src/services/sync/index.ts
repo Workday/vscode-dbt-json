@@ -95,5 +95,6 @@ export type {
   SyncResult,
   SyncRoot,
   SyncStats,
+  ValidationErrorDetail,
   ValidationServiceParams,
 } from './types';

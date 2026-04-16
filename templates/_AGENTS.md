@@ -334,8 +334,10 @@ For **`int_select_model`**, **`int_join_models`**, **`int_union_models`**, **`ma
 - **CTEs**: Optional ordered **`ctes`**. **`model.ctes.schema.json`**, **`model.cte.schema.json`**.
 - **`from`**: Each type’s **`from`** **`anyOf`** lists legal combinations (**`model`**, **`cte`**, **`join`**, optional **`rollup`** on **`int_*` select/join only** — not on marts).
 - **Rollup on select/join**: Optional **`rollup`** on **`from.model`** for **`int_select_model`** and **`int_join_models`** only (not marts). Keeps a normal **`select`** / join; coarser **`interval`** triggers **re-aggregation** of declarative **`agg`/`aggs`**. **`model.from.rollup.schema.json`**. **`group_by` / `agg` / `expr`**: **#9**–**#10**.
-- **Shorthands & CTE columns**: **`dims_from_*`**, **`fcts_from_*`**, **`all_from_*`** and explicit CTE column objects — **`model.select.model.schema.json`**, **`model.select.cte.schema.json`**, related **`model.select.*`**.
+- **Shorthands & CTE columns**: **`dims_from_*`**, **`fcts_from_*`**, **`all_from_*`** and explicit CTE column objects — **`model.select.model.schema.json`**, **`model.select.cte.schema.json`**, related **`model.select.*`**. CTE bulk selects support **`exclude`/`include`** filters and **inherit dim/fct types** from upstream.
 - **`where` / `having`**: Nested **`subquery`** — **`model.subquery.schema.json`**.
+- **`"dims"` shorthand**: **`group_by: "dims"`** equivalent to **`[{ "type": "dims" }]`**; join **`on: "dims"`** auto-joins on all shared dimension columns — **`model.group_by.schema.json`**.
+- **Materialization**: String **`"incremental"`** / **`"ephemeral"`** or structured object with **`type`**, **`format`**, **`partitions`**, **`strategy`**, **`database`** — **`model.materialization.schema.json`**.
 
 ---
 
@@ -435,13 +437,15 @@ Sources can define partition filters to enable efficient querying:
 ### Optional Source Fields
 
 - `description`: Description of the source
-- `freshness`: dbt freshness configuration
+- `freshness`: dbt freshness configuration object, or `null` to disable freshness checks for the entire source
 - `loaded_at_field`: Column indicating data freshness
 - `meta.portal_partition_columns`: Custom partition columns for the framework
 - `meta.portal_source_count`: Custom source count configuration
 - `meta.table_function`: Table function configuration
 - `meta.where`: Static where clause applied whenever the source is queried
 - Per-table `meta`: Table-level overrides for the same meta fields above
+- Per-table `freshness`: Table-level freshness config or `null` to disable for a specific table
+- Per-table `loaded_at_field`: Table-level override for the timestamp field used in freshness checks
 
 ---
 
@@ -574,12 +578,12 @@ Named column from a CTE:
 | ---------------------------------- | ------------- | -------------------------------------------------------------------------- |
 | `description`                      | string        | Model description                                                          |
 | `tags`                             | array         | Tags for categorization, e.g. `["my_tag", "my_group"]`                     |
-| `materialized`                     | string        | `"incremental"` or `"ephemeral"` (default is view-like)                    |
-| `materialization`                  | string        | Overrides dbt materialization strategy                                     |
-| `incremental_strategy`             | object        | `{ "type": "delete+insert" }` or `{ "type": "merge", "unique_key": "id" }` |
-| `sql_hooks`                        | object        | `{ "pre": "SET ...", "post": "..." }` — SQL to run before/after            |
-| `partitioned_by`                   | array         | Column(s) to partition by                                                  |
-| `group_by`                         | array         | `[{ "type": "dims" }]` or `["col1", "col2"]` or `[{ "expr": "..." }]`      |
+| `materialized`                     | string        | Legacy: `"incremental"` or `"ephemeral"` (default is view-like). Prefer `materialization` instead. |
+| `materialization`                  | string/object | Preferred. String `"incremental"` or `"ephemeral"`, or object `{ "type": "incremental", "format"?, "partitions"?, "strategy"?, "database"? }`. See Materialization section. |
+| `incremental_strategy`             | object        | Legacy: `{ "type": "delete+insert" }` or `{ "type": "merge", "unique_key": "id" }`. Prefer `materialization.strategy`. |
+| `sql_hooks`                        | object        | `{ "pre": "SET ...", "post": "..." }` — SQL to run before/after (staging and intermediate only) |
+| `partitioned_by`                   | array         | Legacy: Column(s) to partition by. Prefer `materialization.partitions`.     |
+| `group_by`                         | string/array  | `"dims"` or `[{ "type": "dims" }]` or `["col1", "col2"]` or `[{ "expr": "..." }]` |
 | `where`                            | string/object | Filter clause — simple string or `{ "and": [...], "or": [...] }`           |
 | `having`                           | object        | HAVING clause (same shape as `where`)                                      |
 | `order_by`                         | array         | ORDER BY columns                                                           |
@@ -651,14 +655,46 @@ Named column from a CTE:
 
 ## Materialization & Incremental Strategies
 
-| Layer | Default   | Common Override                                        |
-| ----- | --------- | ------------------------------------------------------ |
-| `stg` | ephemeral | `"materialized": "incremental"` for large sources      |
-| `int` | ephemeral | `"materialized": "incremental"` for large aggregations |
+| Layer | Default   | Common Override                                          |
+| ----- | --------- | -------------------------------------------------------- |
+| `stg` | ephemeral | `"materialization": "incremental"` for large sources     |
+| `int` | ephemeral | `"materialization": "incremental"` for large aggregations |
+| `mart` | view     | Not configurable — marts are always views                 |
 
 **Materialization types**: `ephemeral` (CTE, no table), `incremental` (processes new data only)
 
-### Incremental Configuration
+### Materialization (Preferred)
+
+Use the `materialization` field instead of the legacy `materialized` + `incremental_strategy` + `partitioned_by` combination. It accepts a string shorthand or a structured object.
+
+**String shorthand** (equivalent to legacy `materialized`):
+
+```jsonc
+{
+  "materialization": "incremental", // or "ephemeral"
+}
+```
+
+**Structured form** (full control):
+
+```jsonc
+{
+  "materialization": {
+    "type": "incremental",
+    "format": "iceberg",                     // optional: "delta_lake", "hive", or "iceberg"
+    "partitions": ["portal_partition_daily"], // optional: columns to partition by
+    "strategy": { "type": "delete+insert" }, // optional: "delete+insert" or "merge"
+    "database": "custom_database",           // optional: override target database
+  },
+}
+```
+
+- **`format`**: Controls storage format. Defaults to the project's `storage_type` variable in `dbt_project.yml`. Iceberg uses `partitioning` keyword; Delta Lake/Hive uses `partitioned_by`.
+- **`strategy`**: `{ "type": "delete+insert" }` for date-partitioned data, or `{ "type": "merge", "unique_key": "id" }` for upserts. If omitted, uses the extension's default (configurable via `dj.materialization.defaultIncrementalStrategy`).
+
+### Legacy Incremental Configuration
+
+Still supported but prefer `materialization` above:
 
 ```jsonc
 {
@@ -667,9 +703,6 @@ Named column from a CTE:
   "partitioned_by": ["portal_partition_daily"],
 }
 ```
-
-- **`delete+insert`** (default): Best for date-partitioned data
-- **`merge`**: Upserts based on `unique_key`. Best for dimension tables
 
 **Date filter options**: `"exclude_date_filter": true` (skip all date filtering), `"exclude_daily_filter": true` (skip daily partition filter only)
 
@@ -822,6 +855,7 @@ Use `"type": "all_from_model", "exclude": ["col1", "col2"]` then redefine those 
 ### Join ON Conditions
 
 ```jsonc
+"on": "dims"                                                            // shorthand: join on all shared dimension columns
 "on": { "and": ["account_id", "portal_partition_daily"] }              // shorthand (same column names)
 "on": { "and": [{ "expr": "base.account_id = joined.customer_id" }] }  // explicit expression
 ```
@@ -883,6 +917,36 @@ CTEs must be ordered — a CTE can only reference CTEs defined before it in the 
 }
 ```
 
+### CTE Bulk Select with Exclude/Include
+
+CTE bulk selects (`all_from_cte`, `dims_from_cte`, `fcts_from_cte`) support `exclude` and `include` filters:
+
+```jsonc
+{
+  "cte": "active_accounts",
+  "type": "dims_from_cte",
+  "exclude": ["internal_id"],       // remove specific columns
+}
+```
+
+```jsonc
+{
+  "cte": "active_accounts",
+  "type": "all_from_cte",
+  "include": ["account_id", "region"], // select only these columns
+}
+```
+
+### CTE Column Type Inheritance
+
+When a CTE selects columns as plain strings (e.g., `"select": ["col_a", "col_b"]`), each column inherits its `dim`/`fct` type from the upstream model or CTE. This means `dims_from_cte` and `fcts_from_cte` will correctly filter by column type in CTE-to-CTE chains without needing to redeclare column types.
+
+### CTE `group_by`
+
+Use `"group_by": "dims"` or `"group_by": [{ "type": "dims" }]` inside CTEs. Avoid bare string aliases for computed columns — if a CTE select item has an `expr` (e.g., `{ "name": "month", "expr": "DATE_TRUNC('MONTH', event_date)" }`), using `"group_by": ["month"]` will fail at Trino runtime because the string alias is not a valid SQL GROUP BY target. Use `[{ "type": "dims" }]` instead, which automatically resolves computed expressions.
+
+### CTE Unions
+
 CTE unions use the same pattern as model unions:
 
 ```jsonc
@@ -939,14 +1003,17 @@ Subqueries can appear in `where`, `having`, and join `on` conditions via the `su
 
 ## Common Pitfalls
 
-| Problem                          | Solution                                                                                                         |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Column Not Found**             | Verify columns exist in upstream `select`. Check `exclude` filters in `all_from_model`.                          |
-| **Row Multiplication**           | Add `equal_row_count` test. Verify join conditions. Aggregate "many" side before joining.                        |
-| **Duplicate Column Names**       | Use `exclude` on one model or rename with `expr`.                                                                |
-| **Aggregation Without Group By** | Always add `"group_by": [{ "type": "dims" }]` when using `agg`.                                                  |
-| **Invalid Source Reference**     | Use format `<database>__<schema>.<table_name>` (double underscore, then dot).                                    |
-| **Lightdash Case Sensitivity**   | Optionally set `"case_sensitive": true/false` at model or column level to override the Lightdash global default. |
+| Problem                              | Solution                                                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Column Not Found**                 | Verify columns exist in upstream `select`. Check `exclude` filters in `all_from_model` or `all_from_cte`.        |
+| **Row Multiplication**               | Add `equal_row_count` test. Verify join conditions. Aggregate "many" side before joining.                        |
+| **Duplicate Column Names**           | Use `exclude` on one model or rename with `expr`.                                                                |
+| **Aggregation Without Group By**     | Always add `"group_by": "dims"` (or `[{ "type": "dims" }]`) when using `agg`.                                    |
+| **Invalid Source Reference**         | Use format `<database>__<schema>.<table_name>` (double underscore, then dot).                                    |
+| **Lightdash Case Sensitivity**       | Optionally set `"case_sensitive": true/false` at model or column level to override the Lightdash global default. |
+| **CTE group_by with computed cols**  | Don't use bare string aliases (e.g., `["month"]`) for columns defined with `expr`. Use `"dims"` or `{ "expr": "..." }`. |
+| **materialized vs materialization**  | Both work; `materialization` is preferred and supports structured config (format, partitions, strategy).          |
+| **CTE column type mismatch**         | Plain string selects in CTEs inherit dim/fct type from upstream. Verify with `dims_from_cte`/`fcts_from_cte`.    |
 
 ---
 
@@ -1006,7 +1073,9 @@ When adding a new source:
 - Column `name`: lowercase alphanumeric with underscores and dots
 - Source references: format `<database>__<schema>.<table_name>`
 - Model references: the full model name (e.g., `int__my_group__my_topic__daily_summary`)
-- `materialized`: must be `"incremental"` or `"ephemeral"`
+- `materialized`: must be `"incremental"` or `"ephemeral"` (legacy; prefer `materialization`)
+- `materialization`: string `"incremental"` or `"ephemeral"`, or object with `"type": "incremental"` and optional `format`, `partitions`, `strategy`, `database`
+- `format` (in `materialization`): must be `"delta_lake"`, `"hive"`, or `"iceberg"`
 - `agg`: must be one of `"sum"`, `"count"`, `"min"`, `"max"`, `"hll"`, `"tdigest"`
 - `interval`: must be one of `"day"`, `"hour"`, `"month"`, `"year"`
 - Join `type`: must be one of `"left"`, `"inner"`, `"right"`, `"full"`, `"cross"`
@@ -1045,6 +1114,11 @@ The authoritative JSON Schemas for all model and source types live in the `.dj/s
 | `model.from.join.models.schema.json`        | Join configuration                                              |
 | `model.from.rollup.schema.json`             | Rollup configuration for time-grain re-aggregation              |
 | `model.sql_hooks.schema.json`               | `pre` / `post` SQL for staging and intermediate models          |
+| `model.materialization.schema.json`         | Materialization config (string shorthand or structured object)  |
+| `model.incremental_strategy.schema.json`    | Incremental strategy (`delete+insert` or `merge`)               |
+| `model.format.schema.json`                  | Storage format (`delta_lake`, `hive`, `iceberg`)                |
+| `model.partitions.schema.json`              | Partition columns for materialization                           |
+| `model.group_by.schema.json`               | Group by config (`"dims"` shorthand or array)                   |
 | `model.subquery.schema.json`                | Inline subquery definition (WHERE, HAVING, JOIN ON)             |
 | `model.cte.schema.json`                     | Single CTE definition                                           |
 | `model.ctes.schema.json`                    | CTE array configuration                                         |
@@ -1065,10 +1139,10 @@ You can also look at existing `.model.json` and `.source.json` files in the `mod
 3. **Follow the naming convention** strictly: `<layer>__<group>__<topic>__<name>`
 4. **Reference models by their full name** (e.g., `int__my_group__my_topic__daily_summary`).
 5. **Reference sources** as `<database>__<schema>.<table_name>`.
-6. **Materialization defaults** to view-like behavior; set `"materialized"` to `"incremental"` or `"ephemeral"` where the model type supports it. Optional `sql_hooks` (`pre`/`post`) exist on staging and intermediate types only — not on marts.
+6. **Materialization defaults** to view-like behavior. Prefer `"materialization": "incremental"` (or the structured object form) over legacy `"materialized"`. Both `materialized` and `materialization` are accepted; when both are present, `materialization` takes precedence. Optional `sql_hooks` (`pre`/`post`) exist on staging and intermediate types only — not on marts.
 7. **Scheduling is inherited** from sources — don't try to configure schedules on models.
 8. **Tags** can be simple strings or objects with `{ "tag": "name", "type": "exclude" | "inherit" | "local" | "ai_hints" }`.
-9. **`group_by`** accepts column name strings, `{ "expr": "..." }` objects, or the shorthand `[{ "type": "dims" }]` to group by all dimension columns automatically.
+9. **`group_by`** accepts column name strings, `{ "expr": "..." }` objects, or the shorthand `"dims"` (or `[{ "type": "dims" }]`) to group by all dimension columns automatically. The string `"dims"` is equivalent to `[{ "type": "dims" }]`. Similarly, join `on` accepts `"dims"` to auto-join on all shared dimension columns.
 10. **`expr`** on select columns lets you write arbitrary Trino SQL. For declarative aggregation, prefer `agg`/`aggs` on `fct` columns over manual `expr`. Note: `mart_select_model` and `int_union_models` do not support `agg`/`aggs` — use `expr` or pre-aggregate upstream. When using `agg`, always set `group_by`. Never duplicate the same aggregate in both `expr` and `agg`.
 11. **Verify upstream columns before selecting them.** When creating or editing a downstream model, always open and read the upstream model's `.sql` file (there will be multiple in joins) or source `.yml` for staging models to confirm which columns are actually available. Determine the effective column name by inspecting each entry in the upstream `select` directive.
 
@@ -1082,3 +1156,6 @@ You can also look at existing `.model.json` and `.source.json` files in the `mod
     **Never assume a column exists — always verify it in the upstream definition.** This prevents referencing columns that don't exist.
 
 12. **To rename or move a model, update its `.model.json` fields — not the filename.** Change the `group`, `topic`, and/or `name` fields inside the JSON file. The DJ extension will automatically rename/move the file and regenerate the corresponding `.sql` and `.yml` files to match. Do not manually rename or move model files on disk.
+13. **CTE `group_by` must not use bare string aliases for computed columns.** If a CTE select item has `"name": "month", "expr": "DATE_TRUNC('MONTH', event_date)"`, using `"group_by": ["month"]` will pass schema validation but fail at Trino with `COLUMN_NOT_FOUND`. Use `"group_by": "dims"` or `"group_by": [{ "expr": "DATE_TRUNC('MONTH', event_date)" }]` instead.
+14. **CTE bulk selects support `exclude`/`include` filters.** `all_from_cte`, `dims_from_cte`, and `fcts_from_cte` accept `exclude` and `include` arrays, matching the behavior of model-level bulk selects. Plain string column selects in CTEs inherit their `dim`/`fct` type from the upstream model or CTE.
+15. **Source freshness can be disabled.** Set `"freshness": null` at source level or table level to disable dbt freshness checks. Individual tables can override the source-level `loaded_at_field`.

@@ -4,84 +4,48 @@ import {
   buildSubquerySql,
   frameworkGenerateModelOutput,
 } from '@services/framework/utils';
-import { validateSubqueries } from '@services/validationErrors';
-import type { DJ } from '@shared';
-import type { DbtProject } from '@shared/dbt/types';
+import { validateSubqueries } from '@services/modelValidation';
 import type { FrameworkModel } from '@shared/framework/types';
 
-const mockConfig: any = {
-  aiHintTag: 'ai',
-  airflowGenerateDags: false,
-  dbtMacroPath: '_ext_',
-  airflowDagsPath: 'dags/_ext_',
-};
+import { createTestDJ, createTestProject } from './helpers';
 
-const createTestDJ = (): DJ => ({
-  config: mockConfig,
-});
-
-const project: DbtProject = {
-  name: 'project',
-  macroPaths: ['macros'],
-  manifest: {
-    child_map: {},
-    disabled: {},
-    docs: {},
-    exposures: {},
-    group_map: {},
-    groups: {},
-    macros: {},
-    metadata: { project_name: 'project' },
-    metrics: {},
-    nodes: {
-      ['model.project.model_a']: {
-        columns: {
-          dim_a: {
-            name: 'dim_a',
-            data_type: 'varchar',
-            meta: { type: 'dim' },
-          },
-          dim_b: {
-            name: 'dim_b',
-            data_type: 'varchar',
-            meta: { type: 'dim' },
-          },
+const project = createTestProject({
+  nodes: {
+    ['model.project.model_a']: {
+      columns: {
+        dim_a: {
+          name: 'dim_a',
+          data_type: 'varchar',
+          meta: { type: 'dim' },
         },
-      },
-      ['model.project.model_b']: {
-        columns: {
-          dim_a: {
-            name: 'dim_a',
-            data_type: 'varchar',
-            meta: { type: 'dim' },
-          },
-          dim_b: {
-            name: 'dim_b',
-            data_type: 'varchar',
-            meta: { type: 'dim' },
-          },
-          amount: {
-            name: 'amount',
-            data_type: 'double',
-            meta: { type: 'fct' },
-          },
+        dim_b: {
+          name: 'dim_b',
+          data_type: 'varchar',
+          meta: { type: 'dim' },
         },
       },
     },
-    parent_map: {},
-    saved_queries: {},
-    selectors: {},
-    semantic_models: {},
-    sources: {},
+    ['model.project.model_b']: {
+      columns: {
+        dim_a: {
+          name: 'dim_a',
+          data_type: 'varchar',
+          meta: { type: 'dim' },
+        },
+        dim_b: {
+          name: 'dim_b',
+          data_type: 'varchar',
+          meta: { type: 'dim' },
+        },
+        amount: {
+          name: 'amount',
+          data_type: 'double',
+          meta: { type: 'fct' },
+        },
+      },
+    },
   },
-  modelPaths: ['models'],
-  packagePath: '',
-  pathRelative: '',
-  pathSystem: '',
-  properties: { vars: { event_dates: '2024-07-01' } },
-  targetPath: 'target',
-  variables: {},
-};
+});
 
 describe('buildConditionsSql - group recursion', () => {
   test('string input is returned as-is', () => {

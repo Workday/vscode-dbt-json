@@ -115,6 +115,10 @@ export class SourceProcessor {
       const generated = frameworkGenerateSourceOutput({ project, sourceJson });
       updatedProject = generated.project;
       newYml = generated.yml;
+
+      // Clear diagnostics on success
+      const newJsonUri = vscode.Uri.file(newJsonPath);
+      this.callbacks.onDiagnosticsClear?.(newJsonUri);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       this.config.logger.error(

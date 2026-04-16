@@ -78,8 +78,10 @@ export function dbtSourceRegisterSql({
 }) {
   const properties = dbtSourcePropertiesString({ project, sourceId });
 
+  const etlSchema = project.properties.vars?.etl_schema || 'source_etl';
+
   const sql = `
-MERGE INTO ${project.name}.source_etl.dbt_sources old
+MERGE INTO ${project.name}.${etlSchema}.dbt_sources old
 USING (VALUES ('${sourceId}', '${properties}', false)) new (source_id, properties, etl_active)
 ON (old.source_id = new.source_id)
 WHEN MATCHED

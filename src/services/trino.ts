@@ -70,10 +70,11 @@ export class Trino implements ApiEnabledService<'trino'> {
           return apiResponse<typeof payload.type>(currentSchema);
         }
         case 'trino-fetch-etl-sources': {
-          const { projectName } = payload.request;
+          const { projectName, etlSchema } = payload.request;
+          const schemaName = etlSchema || 'source_etl';
 
           const etlSourcesRaw = await this.handleQuery(
-            `select source_id, properties, etl_active from ${projectName}.source_etl.dbt_sources`,
+            `select source_id, properties, etl_active from ${projectName}.${schemaName}.dbt_sources`,
           );
           const etlSources: FrameworkEtlSource[] = etlSourcesRaw.map((r) => {
             return {

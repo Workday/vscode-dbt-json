@@ -15,6 +15,7 @@ const config = {
     '<rootDir>/dist/',
     '<rootDir>/venv/',
     '<rootDir>/.venv/',
+    '/__tests__/helpers\\.ts$',
   ],
 };
 

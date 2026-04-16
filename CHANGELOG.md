@@ -1,5 +1,39 @@
 # Change Log
 
+## 1.3.0
+
+### Catalog-Agnostic Storage Support
+
+- **Iceberg and Glue/Polaris support** — new `storage_type`, `etl_schema`, and `project_catalog` variables in `dbt_project.yml` enable catalog-agnostic SQL generation across Delta Lake, Iceberg, Hive, and Glue/Polaris
+- **Storage-type-aware partitioning** — incremental models automatically use the correct format (`partitioned_by` vs `partition_by`) based on storage type
+
+### Materialization Shorthand
+
+- Simplified syntax for materialization, use `"materialization": "incremental" | "ephemeral"` instead of the full object definition.
+- New `dj.materialization.defaultIncrementalStrategy` setting to define global default for incremental materialization shorthand. Can be overridden per model via `materialization.strategy`.
+- Enabled strategy field in Model Wizard for incremental models.
+
+### CTE Bulk Select: Exclude/Include Filters and Type Inheritance
+
+- **`exclude`/`include` support for CTE bulk selects** — `all_from_cte`, `dims_from_cte`, and `fcts_from_cte` directives now accept `exclude` and `include` arrays to filter which columns are selected from a CTE, matching the existing support for model-level bulk selects
+- **Column type inheritance in CTEs** — when a CTE selects columns as plain strings (e.g. `"select": ["col_a", "col_b"]`), the dim/fct type is now inherited from the parent model or CTE instead of defaulting all columns to `dim`. This ensures `dims_from_cte` and `fcts_from_cte` correctly filter by column type in CTE-to-CTE chains
+- **CTE column reference validation** — invalid column names in `exclude`/`include` arrays are now reported as errors in the VS Code Problems tab with the list of available columns, without blocking the sync workflow
+- **Column lineage accuracy** — lineage tracing now respects dims/fcts type filters when resolving CTE bulk directives, preventing `fct` columns from appearing in `dims_from_cte` lineage traces (and vice versa)
+
+### CTE group_by Validation for Computed Columns
+
+- **Reject string aliases for computed columns in CTE `group_by`** — using bare string aliases like `["month"]` when `month` is defined with an `expr` (e.g. `DATE_TRUNC('MONTH', col)`) now produces a validation error in the Problems tab instead of silently generating invalid SQL that fails at Trino runtime
+- **Recommended pattern documented** — `[{ "type": "dims" }]` is now documented as the recommended `group_by` pattern inside CTEs, automatically resolving computed expressions
+
+### Enhancements
+
+- Support `"dims"` as a top-level string value for `group_by`, equivalent to `[{ "type": "dims" }]`.
+- Support `"dims"` as a string value for join `on`, automatically joining on all shared dimension columns.
+- Update source and table freshness configuration:
+  - Source-level freshness now accepts a config object or null (disables checks for the entire source).
+  - Table-level optional freshness property (set to null to disable per-table).
+  - Table-level optional `loaded_at_field` to allow overriding the timestamp field.
+
 ## 1.2.1
 
 - AGENTS.md and skill files now written to `.agents/dj/` and `.agents/skills/` respectively, instead of `.dj/`

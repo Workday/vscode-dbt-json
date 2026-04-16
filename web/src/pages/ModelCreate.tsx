@@ -418,6 +418,21 @@ export function ModelCreate({ mode = 'create' }: ModelCreateProps) {
         const formType = isEditMode ? 'framework-model-update' : 'model-create';
         initializeFormContext(mode, formType);
 
+        // Fetch default incremental strategy from extension settings
+        try {
+          const prefResult = await api.post({
+            type: 'framework-preferences',
+            request: { action: 'get', context: 'default-incremental-strategy' },
+          });
+          if (prefResult.success && typeof prefResult.value === 'string') {
+            useModelStore
+              .getState()
+              .setDefaultIncrementalStrategy(prefResult.value);
+          }
+        } catch {
+          // Non-critical: falls back to 'delete+insert' in the store
+        }
+
         // Load projects first
         const _projects = await api.post({
           type: 'dbt-fetch-projects',

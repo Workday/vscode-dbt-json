@@ -14,6 +14,7 @@ import type { FrameworkContext } from '../context';
  * Supported contexts:
  * - 'column-lineage': Column lineage auto-refresh settings
  * - 'data-explorer': Data explorer auto-refresh settings
+ * - 'default-incremental-strategy': Default incremental strategy (read-only)
  */
 export class PreferencesHandler {
   constructor(private readonly ctx: FrameworkContext) {}
@@ -50,10 +51,10 @@ export class PreferencesHandler {
             error: 'context is required for set action',
           });
         }
-        if (typeof value !== 'boolean') {
+        if (value === undefined || value === null) {
           return apiResponse<typeof payload.type>({
             success: false,
-            error: 'value (boolean) is required for set action',
+            error: 'value is required for set action',
           });
         }
         return this.setPreference(context, value, payload);
@@ -83,7 +84,11 @@ export class PreferencesHandler {
       { type: 'framework-preferences' }
     >,
   >(context: string, payload: T): ApiResponse<'framework-preferences'> {
-    const { columnLineageAutoRefresh, dataExplorerAutoRefresh } = getDjConfig();
+    const {
+      columnLineageAutoRefresh,
+      dataExplorerAutoRefresh,
+      materializationDefaultIncrementalStrategy,
+    } = getDjConfig();
 
     switch (context) {
       case 'column-lineage': {
@@ -97,6 +102,13 @@ export class PreferencesHandler {
         return apiResponse<typeof payload.type>({
           success: true,
           value: dataExplorerAutoRefresh,
+        });
+      }
+
+      case 'default-incremental-strategy': {
+        return apiResponse<typeof payload.type>({
+          success: true,
+          value: materializationDefaultIncrementalStrategy ?? 'delete+insert',
         });
       }
 
@@ -118,7 +130,7 @@ export class PreferencesHandler {
     >,
   >(
     context: string,
-    value: boolean,
+    value: boolean | string,
     payload: T,
   ): Promise<ApiResponse<'framework-preferences'>> {
     const config = vscode.workspace.getConfiguration('dj');
@@ -140,6 +152,14 @@ export class PreferencesHandler {
           vscode.ConfigurationTarget.Workspace,
         );
         return apiResponse<typeof payload.type>({ success: true, value });
+      }
+
+      case 'default-incremental-strategy': {
+        return apiResponse<typeof payload.type>({
+          success: false,
+          error:
+            'default-incremental-strategy is read-only. Configure it via VS Code settings (dj.materialization.defaultIncrementalStrategy).',
+        });
       }
 
       default:

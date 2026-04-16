@@ -13,7 +13,7 @@ metadata:
 
 **Create** new **`.model.json`** files (and **`.source.json`** when adding sources). **Never** hand-edit auto-generated **`.sql`** / **`.yml`** — only the JSON sources of truth.
 
-**Reading order:** **`.dj/schemas/`** (type schema + **`$ref`s**) for exact shapes → **`.agents/dj/AGENTS.md`** **Model Types** (examples) → **Advanced** (short map: CTEs, rollup, shorthands, subqueries — still defer to schemas) → **Important Conventions** **#6**–**#12**.
+**Reading order:** **`.dj/schemas/`** (type schema + **`$ref`s**) for exact shapes → **`.agents/dj/AGENTS.md`** **Model Types** (examples) → **Advanced** (short map: CTEs, rollup, shorthands, subqueries, materialization, `"dims"` — still defer to schemas) → **Important Conventions** **#6**–**#15**.
 
 ## Model `type` (infer — do not ask the user)
 
@@ -33,9 +33,9 @@ One clarifying question if source vs existing model is unclear.
 
 **Path:** `models/<staging|intermediate|mart>/<group>/<topic>/<layer>__<group>__<topic>__<name>.model.json` (`stg_*`→`staging`, etc.).
 
-**Checklist**
+**Checklist:**
 
-- [ ] `type` from table; read **`.dj/schemas/model.type.<type>.schema.json`**; if CTE / subquery / **`from.model.rollup`** / hooks / **`agg`**, also **`model.cte`**, **`model.subquery`**, **`model.from.rollup`**, **`model.sql_hooks`**, **`model.select.*.with.agg`** as needed
+- [ ] `type` from table; read **`.dj/schemas/model.type.<type>.schema.json`**; if CTE / subquery / **`from.model.rollup`** / hooks / **`agg`** / materialization, also **`model.cte`**, **`model.subquery`**, **`model.from.rollup`**, **`model.sql_hooks`**, **`model.materialization`**, **`model.select.*.with.agg`** as needed
 - [ ] **`.agents/dj/AGENTS.md`**: **Model Types** example; **Advanced** if CTE / rollup / shorthand / subquery
 - [ ] Upstream columns from **`.model.json`** / **`.source.json`** (trace **`ctes`** if any)
 - [ ] Write **JSONC**; validate against schema
@@ -73,19 +73,27 @@ The layer directory is derived from the type prefix: `stg_*` -> `staging`, `int_
 - Use JSONC format: trailing commas are allowed, preserve any existing comments
 - Source references use `<database>__<schema>.<table>` format (double underscore, then dot)
 - Column types are `dim` (dimension) or `fct` (fact/measure), default is `dim`
-- When using `agg`, always include `"group_by": [{ "type": "dims" }]`
+- When using `agg`, always include `"group_by": "dims"` (or `[{ "type": "dims" }]`)
+- `"dims"` shorthand: `group_by: "dims"` groups by all dimension columns; join `on: "dims"` auto-joins on all shared dimension columns
 - For joins, verify upstream columns exist by reading the upstream model's `.model.json` or source `.source.json`
 - Rename models by changing JSON fields (type/group/topic/name), never by renaming the file on disk
+- Prefer `"materialization": "incremental"` over legacy `"materialized": "incremental"`. For full control, use the structured form: `{ "type": "incremental", "format"?: "iceberg"|"delta_lake"|"hive", "partitions"?: [...], "strategy"?: {...} }`. See `model.materialization.schema.json`
 - `int_select_model` and `int_join_models` support `from.rollup` for time-grain re-aggregation without needing a separate `int_rollup_model`. See AGENTS.md "Model Types" and `model.from.rollup.schema.json`
-- Use the `ctes` array for inline CTEs on `int_select_model`, `int_join_models`, `int_union_models`, `mart_select_model`, `mart_join_models`. See AGENTS.md "Inline CTEs" and `model.cte.schema.json`
+- Use the `ctes` array for inline CTEs on `int_select_model`, `int_join_models`, `int_union_models`, `mart_select_model`, `mart_join_models`. CTE bulk selects support `exclude`/`include` filters. See AGENTS.md "Inline CTEs" and `model.cte.schema.json`
 - WHERE, HAVING, and JOIN ON conditions support inline subqueries via the `subquery` key. See AGENTS.md "Inline Subqueries" and `model.subquery.schema.json`
+- Source freshness can be disabled with `"freshness": null` at source or table level
 
 ## Gotchas
 
 - Subquery `column` is required for all operators except `exists`/`not_exists`
 - CTEs must be ordered: a CTE can only reference CTEs defined **before** it in the `ctes` array
+- **CTE `group_by` with computed columns**: bare string aliases (e.g., `["month"]`) for columns defined with `expr` (e.g., `DATE_TRUNC(...)`) pass schema validation but fail at Trino with `COLUMN_NOT_FOUND`. Use `"group_by": "dims"` or `[{ "expr": "..." }]` instead
+- **CTE column type inheritance**: plain string selects in CTEs inherit `dim`/`fct` type from the upstream model or CTE -- no need to redeclare column types. This means `dims_from_cte` and `fcts_from_cte` correctly filter by type in CTE-to-CTE chains
+- **CTE bulk select filtering**: `all_from_cte`, `dims_from_cte`, `fcts_from_cte` support `exclude` and `include` arrays to filter columns
 - `from.rollup` requires the upstream model to have a select column with an `"interval"` field (e.g., `{ "name": "datetime", "interval": "day" }`)
 - Cross joins have no `on` property -- do not include `on: {}` or `on: null`
 - Subquery `from` can reference a model, source, or CTE -- use `{ "cte": "name" }` for CTEs defined in the same model
 - `topic` is not in `required` for `int_join_models` (it is for all other types) -- still set it in practice
 - `mart_select_model` and `int_union_models` do not support `agg`/`aggs` in select items -- use only passthrough or expression columns
+- `materialization` structured form allows `"format": "iceberg"` for Iceberg storage -- partitioning keyword changes automatically based on format
+- Both `materialized` (legacy) and `materialization` (preferred) are accepted; when both are present, `materialization` takes precedence

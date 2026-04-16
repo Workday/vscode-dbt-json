@@ -30,6 +30,10 @@ const SHOW_ADVANCED_FIELDS = false;
 const INCREMENTAL_STRATEGY_OPTIONS = [
   { label: 'Delete + Insert', value: 'delete+insert' },
   { label: 'Merge', value: 'merge' },
+  {
+    label: 'Overwrite Existing Partitions',
+    value: 'overwrite_existing_partitions',
+  },
 ] as const;
 
 export function AdditionalFields({
@@ -187,7 +191,7 @@ export function AdditionalFields({
       />
 
       {/* 3. Incremental Strategy (only shown for incremental materialization) */}
-      {SHOW_ADVANCED_FIELDS && showIncrementalStrategy && (
+      {showIncrementalStrategy && (
         <div className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold text-foreground border-b border-neutral py-2">
             Incremental Strategy
@@ -218,7 +222,7 @@ export function AdditionalFields({
                   }}
                   label="Type"
                   options={[...INCREMENTAL_STRATEGY_OPTIONS]}
-                  tooltipText="The strategy to use for incremental updates"
+                  tooltipText="The strategy to use for incremental updates. The default can be configured via the dj.materialization.defaultIncrementalStrategy setting."
                 />
               )}
             />

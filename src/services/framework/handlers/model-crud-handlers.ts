@@ -1,18 +1,20 @@
 import { getDjConfig } from '@services/config';
 import {
   frameworkBuildColumns,
+  frameworkBuildCteColumnRegistry,
   frameworkGenerateModelOutput,
   frameworkGetModelId,
   frameworkGetModelName,
   frameworkGetModelPrefix,
   frameworkMakeModelTemplate,
 } from '@services/framework/utils';
-import { requireProject, safeAsync } from '@services/types';
 import {
   formatValidationErrors,
   getValidatorForType,
+  validateCteColumnReferences,
   validateCtes,
-} from '@services/validationErrors';
+} from '@services/modelValidation';
+import { requireProject, safeAsync } from '@services/types';
 import { jsonParse, removeEmpty } from '@shared';
 import type { ApiPayload, ApiResponse } from '@shared/api/types';
 import { apiResponse } from '@shared/api/utils';
@@ -248,6 +250,40 @@ export class ModelCrudHandlers {
       const error = new Error('CTE Validation Failed');
       (error as any).details = cteErrors;
       throw error;
+    }
+
+    // Validate exclude/include column references if CTEs are present
+    if (
+      'ctes' in modelJsonForValidation &&
+      modelJsonForValidation.ctes?.length
+    ) {
+      const cteColumnRegistry = frameworkBuildCteColumnRegistry({
+        ctes: modelJsonForValidation.ctes,
+        project,
+      });
+      const colRefErrors = validateCteColumnReferences(
+        modelJsonForValidation,
+        cteColumnRegistry,
+      );
+      if (colRefErrors.length > 0) {
+        const modelName = frameworkGetModelName(modelJsonForValidation);
+        try {
+          await this.ctx.stateManager.clearModelEditDraft(modelName);
+        } catch (cleanupError: unknown) {
+          this.ctx.log.warn(
+            `Failed to clean up temp edit file after CTE column reference error: ${String(cleanupError)}`,
+          );
+        }
+        const message = `CTE column reference errors:\n${colRefErrors.join('\n')}`;
+        this.ctx.diagnosticModelJson.set(originalModelUri, [
+          new vscode.Diagnostic(new vscode.Range(0, 0, 0, 0), message),
+        ]);
+        this.ctx.log.error('CTE COLUMN REFERENCE VALIDATION FAILED', message);
+        this.ctx.log.show(true);
+        const error = new Error('CTE Column Reference Validation Failed');
+        (error as any).details = colRefErrors;
+        throw error;
+      }
     }
 
     // No validation errors, so we'll clear any previous diagnostics on this file
