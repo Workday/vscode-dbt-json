@@ -127,8 +127,8 @@ DJ stores temporary files in a `.dj/` folder in your workspace:
 On first use, DJ will prompt:
 
 ```text
-DJ uses a .dj folder for temporary files.
-Would you like to add .dj to .gitignore?
+DJ uses a .dj folder for local state.
+Would you like to add it to .gitignore?
 ```
 
 Click "Yes" to automatically update `.gitignore`.

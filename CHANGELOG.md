@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.2.1
+
+- AGENTS.md and skill files now written to `.agents/dj/` and `.agents/skills/` respectively, instead of `.dj/`
+
 ## 1.2.0
 
 ### Inline Subquery Support
@@ -16,7 +20,6 @@
 - Added a `from.rollup` property to `int_select_model` and `int_join_models`, enabling time-grain re-aggregation alongside explicit column selection and joins. This provides the functionality of `int_rollup_model` with greater control over dimensions and custom expressions.
 - Added selective model execution for deferred runs. Users can now choose which modified models to include when running with `--defer`, instead of running all changed models.
 - Refactored AI agent integration to use agent-agnostic skill files (Agent Skills open standard) instead of agent-specific prompts
-- AGENTS.md and skill files now written to the workspace root's `.dj/` directory (typically in `.gitignore`) instead of per-project
 - Removed unnecessary activation events for faster extension startup
 - `dj.codingAgent` setting now accepts `boolean` (recommended) with legacy string values deprecated
 - Updated AGENTS.md template and skill files with documentation for inline CTEs, subqueries, and `from.rollup`

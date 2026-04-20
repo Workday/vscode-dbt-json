@@ -429,7 +429,8 @@ Scopes: `extension`, `web`, `macros`, `schemas`, `scripts`
 
 When adding features or making notable changes, update `CHANGELOG.md`:
 
-- Add a concise bullet under the current top-level version heading (e.g., `## 1.1.0`)
+- Always check `package.json` for the current `version` field and add entries under the matching `## <version>` heading in `CHANGELOG.md`
+- If the heading for the current version doesn't exist yet, create it above the previous version
 - Use the same style as existing entries — short, descriptive, no prefix labels
 - Group related changes into a single bullet when possible
 - Do not add date suffixes or create new version headings unless explicitly asked
@@ -626,13 +627,13 @@ LIGHTDASH_TRINO_HOST=host.docker.internal  # Trino host override for Docker
 
 The extension includes built-in support for AI coding agents to help users create DJ-compliant dbt models.
 
-**Project-level AGENTS.md generation:** When installed in a dbt project, the extension generates an `AGENTS.md` file in the workspace root's `.dj/` directory (typically in `.gitignore`). This file contains DJ framework-specific instructions (model types, JSON schema structure, naming conventions, column definitions) that users can reference in their LLM workflows to generate valid `.model.json` and `.source.json` files. The generated file is tailored to the project's configuration and available models/sources.
+**Project-level AGENTS.md generation:** When installed in a dbt project, the extension generates an `AGENTS.md` file at `.agents/dj/AGENTS.md` in the workspace root. This file contains DJ framework-specific instructions (model types, JSON schema structure, naming conventions, column definitions) that users can reference in their LLM workflows to generate valid `.model.json` and `.source.json` files. The generated file is tailored to the project's configuration and available models/sources.
 
-**Skill files (`.dj/skills/`):** The extension writes agent-agnostic skill directories to the workspace root's `.dj/skills/` directory, following the [Agent Skills](https://agentskills.io) open standard. Each skill is a subdirectory containing a `SKILL.md` file with YAML frontmatter (`name` and `description`) and markdown instructions (e.g., `.dj/skills/dj-create-new-model/SKILL.md`). Skill templates are bundled with the extension in `templates/skills/` and copied to the workspace at activation time.
+**Skill files (`.agents/skills/`):** The extension writes agent-agnostic skill directories to the workspace root's `.agents/skills/` directory, following the [Agent Skills](https://agentskills.io) open standard. Each skill is a subdirectory containing a `SKILL.md` file with YAML frontmatter (`name` and `description`) and markdown instructions (e.g., `.agents/skills/dj-create-new-model/SKILL.md`). Skill templates are bundled with the extension in `templates/skills/` and copied to the workspace at activation time.
 
-**Coding agent setting (`dj.codingAgent`):** Set to `true` to enable AI agent integration. When enabled, both `AGENTS.md` and skill files are written to the workspace root's `.dj/` directory (typically in `.gitignore`). Legacy string values (`github-copilot`, `claude-code`, `cline`) are still accepted but deprecated — skills are now agent-agnostic.
+**Coding agent setting (`dj.codingAgent`):** Set to `true` to enable AI agent integration. When enabled, `AGENTS.md` is written to `.agents/dj/` and skill files to `.agents/skills/` at the workspace root. Legacy string values (`github-copilot`, `claude-code`, `cline`) are still accepted but deprecated — skills are now agent-agnostic.
 
-**Agent service (`src/services/agent/`):** Contains `utils.ts` with `generateAgentsMd()` for reading the `templates/_AGENTS.md` template. Skill files are read from `templates/skills/` and written to `.dj/skills/` at the workspace root by `writeSkillFiles()` in the Dbt service.
+**Agent service (`src/services/agent/`):** Contains `utils.ts` with `generateAgentsMd()` for reading the `templates/_AGENTS.md` template. Skill files are read from `templates/skills/` and written to `.agents/skills/` at the workspace root by `writeSkillFiles()` in the Dbt service.
 
 ## Additional Resources
 

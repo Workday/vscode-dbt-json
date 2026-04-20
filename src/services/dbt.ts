@@ -1657,7 +1657,7 @@ ${macro.macro_sql}`;
     // Write the generic tests contributed by the extension
     await this.writeGenericTests(project);
 
-    // Write AGENTS.md and skill files to the workspace root's .dj/ directory.
+    // Write AGENTS.md and skill files to the workspace root's .agents/ directory.
     await this.writeAgentsMd();
     await this.writeSkillFiles();
   }
@@ -1829,7 +1829,7 @@ ${macro.macro_sql}`;
   }
 
   /**
-   * Write AGENTS.md to the workspace root's .dj/ directory for AI coding agents.
+   * Write AGENTS.md to the workspace root's .agents/dj/ directory for AI coding agents.
    */
   async writeAgentsMd(): Promise<void> {
     const { codingAgent } = getDjConfig();
@@ -1840,7 +1840,12 @@ ${macro.macro_sql}`;
     try {
       this.log.info('WRITING AGENTS.MD');
       const agentsMdContent = generateAgentsMd();
-      const agentsMdPath = path.join(WORKSPACE_ROOT, '.dj', 'AGENTS.md');
+      const agentsMdPath = path.join(
+        WORKSPACE_ROOT,
+        '.agents',
+        'dj',
+        'AGENTS.md',
+      );
       await vscode.workspace.fs.writeFile(
         vscode.Uri.file(agentsMdPath),
         Buffer.from(agentsMdContent),
@@ -1851,7 +1856,7 @@ ${macro.macro_sql}`;
   }
 
   /**
-   * Write skill files to the workspace root's .dj/skills/ directory.
+   * Write skill files to the workspace root's .agents/skills/ directory.
    * Each skill is a directory containing a SKILL.md file, following the
    * Agent Skills open standard (https://agentskills.io).
    */
@@ -1874,7 +1879,7 @@ ${macro.macro_sql}`;
             const sourceDir = path.join(BASE_SKILLS_PATH, skillDirName);
             const targetDir = path.join(
               WORKSPACE_ROOT,
-              '.dj',
+              '.agents',
               'skills',
               skillDirName,
             );

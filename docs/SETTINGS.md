@@ -138,7 +138,7 @@ Complete guide to configuring the DJ VS Code extension.
 ```
 
 - Set to `true` (recommended) to enable AI agent integration
-- Writes `AGENTS.md` and skill files to the workspace root's `.dj/` directory (typically in `.gitignore`)
+- Writes `AGENTS.md` to `.agents/dj/` and skill files to `.agents/skills/` at the workspace root
 - Legacy string values (`"github-copilot"`, `"claude-code"`, `"cline"`) still accepted but deprecated
 - Skills are agent-agnostic markdown files usable by any AI coding tool
 
