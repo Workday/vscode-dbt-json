@@ -61,6 +61,9 @@ const formattedJoinConditions = (
   baseModelName: unknown,
   joinModelName: unknown,
 ) => {
+  if (joinItem.on === 'dims') {
+    return joinItem;
+  }
   if (
     joinItem.type === 'cross' ||
     !joinItem.on?.and ||
@@ -240,6 +243,7 @@ export const buildJoinConfig = (
     })
     .filter((joinItem) => {
       if (joinItem.type === 'cross') return true;
+      if (joinItem.on === 'dims') return true;
 
       if ('on' in joinItem && joinItem.on) {
         if ('expr' in joinItem.on && Array.isArray(joinItem.on.expr)) {

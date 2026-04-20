@@ -1,4 +1,5 @@
 import type { DbtProject } from '@shared/dbt/types';
+import { GROUP_BY_DIMS, normalizeGroupBy } from '@shared/framework/constants';
 import type {
   FrameworkInterval,
   FrameworkModel,
@@ -187,6 +188,9 @@ export interface ModelStore {
 
   additionalFields: AdditionalFieldsSchema;
 
+  /** Default incremental strategy from extension settings, fetched via preferences API */
+  defaultIncrementalStrategy: string | undefined;
+
   // Data modeling specific state
   dataModeling: {
     currentProject: DbtProject | null;
@@ -293,6 +297,8 @@ export interface ModelStore {
     originalName?: string | null,
   ) => void;
 
+  setDefaultIncrementalStrategy: (strategy: string) => void;
+
   // CTE state and actions
   ctes: CteState[];
   addCte: (cte: CteState) => void;
@@ -388,6 +394,7 @@ export const useModelStore = create<ModelStore>()(
     where: null,
     dataModeling: initialDataModeling,
     additionalFields: initialAdditionalFields,
+    defaultIncrementalStrategy: undefined,
     navigationNodeType: null,
     showColumnConfiguration: false,
     showAddColumnModal: false,
@@ -627,6 +634,25 @@ export const useModelStore = create<ModelStore>()(
             setTimeout(() => {
               void get().saveField('sql_hooks', newAdditionalFields.sql_hooks);
             }, 0);
+
+            // Preselect default incremental strategy from store state (fetched via preferences API)
+            if (!state.additionalFields.incremental_strategy?.type) {
+              const defaultStrategy =
+                state.defaultIncrementalStrategy ?? 'delete+insert';
+              const defaultIncrementalStrategy = {
+                type: defaultStrategy,
+              } as ModelIncrementalStrategySchemaJson;
+              newAdditionalFields = {
+                ...newAdditionalFields,
+                incremental_strategy: defaultIncrementalStrategy,
+              };
+              setTimeout(() => {
+                void get().saveField(
+                  'incremental_strategy',
+                  defaultIncrementalStrategy,
+                );
+              }, 0);
+            }
           } else {
             // Remove default pre-hook when changing away from incremental
             const currentSqlHooks = state.additionalFields.sql_hooks;
@@ -906,7 +932,9 @@ export const useModelStore = create<ModelStore>()(
             // Both must be checked to avoid discarding partitioned_by.
             const isIncremental =
               data.materialized === 'incremental' ||
-              (data as any).materialization?.type === 'incremental';
+              (data as any).materialization === 'incremental' ||
+              (typeof (data as any).materialization === 'object' &&
+                (data as any).materialization?.type === 'incremental');
             if (!isIncremental && key === 'partitioned_by') {
               value = undefined;
             } else if (Array.isArray(value)) {
@@ -1286,6 +1314,10 @@ export const useModelStore = create<ModelStore>()(
       }));
     },
 
+    setDefaultIncrementalStrategy: (strategy: string) => {
+      set({ defaultIncrementalStrategy: strategy });
+    },
+
     // Utility Actions
     reset: () => {
       const state = get();
@@ -1418,8 +1450,17 @@ export const useModelStore = create<ModelStore>()(
  * @param groupBy ModelStore['groupBy']
  * @returns
  */
-function convertGroupByToSchemaModelGroupBy(groupBy: ModelStore['groupBy']) {
-  let groupByArray: SchemaModelGroupBy | null = null;
+function convertGroupByToSchemaModelGroupBy(
+  groupBy: ModelStore['groupBy'],
+): SchemaModelGroupBy | null {
+  if (
+    groupBy.dimensions &&
+    groupBy.columns.length === 0 &&
+    groupBy.expressions.length === 0
+  ) {
+    return GROUP_BY_DIMS;
+  }
+
   const groupByItems: Array<string | { expr: string } | { type: 'dims' }> = [];
 
   if (groupBy.dimensions) {
@@ -1431,16 +1472,15 @@ function convertGroupByToSchemaModelGroupBy(groupBy: ModelStore['groupBy']) {
   groupByItems.push(...groupBy.expressions.map((expr) => ({ expr })));
 
   if (groupByItems.length > 0) {
-    groupByArray = groupByItems as SchemaModelGroupBy;
+    return groupByItems as SchemaModelGroupBy;
   }
 
-  return groupByArray;
+  return null;
 }
 
 /**
- * Convert the SchemaModelGroupBy to the ModelStore['groupBy'] format
- * @param groupBy SchemaModelGroupBy
- * @returns
+ * Convert the SchemaModelGroupBy to the ModelStore['groupBy'] format.
+ * Handles both the `"dims"` shorthand and the array form.
  */
 export function convertSchemaModelGroupByToModelStoreGroupBy(
   groupBy: SchemaModelGroupBy | null,
@@ -1453,16 +1493,26 @@ export function convertSchemaModelGroupByToModelStoreGroupBy(
     return groupByItems;
   }
 
-  groupByItems.dimensions = groupBy.some(
+  const normalized = normalizeGroupBy(groupBy);
+  if (!normalized) {
+    return groupByItems;
+  }
+
+  groupByItems.dimensions = normalized.some(
     (item) =>
       typeof item === 'object' && 'type' in item && item.type === 'dims',
   );
 
-  groupByItems.columns = groupBy.filter((item) => typeof item === 'string');
+  groupByItems.columns = normalized.filter(
+    (item): item is string => typeof item === 'string',
+  );
 
-  groupByItems.expressions = groupBy
-    .filter((item) => typeof item === 'object' && 'expr' in item)
-    .map((item) => (item as { expr: string }).expr);
+  groupByItems.expressions = normalized
+    .filter(
+      (item): item is { expr: string } =>
+        typeof item === 'object' && 'expr' in item,
+    )
+    .map((item) => item.expr);
 
   return groupByItems;
 }

@@ -126,6 +126,14 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
   const overrideAliasRef = useRef(overrideAlias);
   overrideAliasRef.current = overrideAlias;
 
+  const [isJoinOnDims, setIsJoinOnDims] = useState<boolean>(() => {
+    return (
+      currentJoin !== null && 'on' in currentJoin && currentJoin.on === 'dims'
+    );
+  });
+  const isJoinOnDimsRef = useRef(isJoinOnDims);
+  isJoinOnDimsRef.current = isJoinOnDims;
+
   const [conditions, setConditions] = useState<JoinConditionRow[]>(() => {
     return [
       {
@@ -170,10 +178,29 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
           '',
       );
 
+      if ('on' in currentJoin && currentJoin.on === 'dims') {
+        setIsJoinOnDims(true);
+        setConditions([
+          {
+            id: '1',
+            type: 'column',
+            baseColumn: '',
+            condition: '=',
+            joinColumn: '',
+          },
+        ]);
+        initializedJoinUuidRef.current = joinUuid;
+        return;
+      }
+
+      setIsJoinOnDims(false);
+
+      const onValue = 'on' in currentJoin ? currentJoin.on : undefined;
       if (
-        'on' in currentJoin &&
-        currentJoin.on?.and &&
-        currentJoin.on.and.length > 0
+        onValue &&
+        typeof onValue === 'object' &&
+        onValue.and &&
+        onValue.and.length > 0
       ) {
         // Use override_alias when available so alias-qualified column
         // references (e.g. old_gen_1.col) are matched to the join side.
@@ -182,8 +209,8 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
             ?.override_alias as string) || '';
         const joinModelName = joinAlias || currentModel;
 
-        const updatedConditions = currentJoin.on.and.map(
-          (condition, index: number) => {
+        const updatedConditions = onValue.and.map(
+          (condition: (typeof onValue.and)[number], index: number) => {
             // Simple column name string - means same column exists in both tables
             if (typeof condition === 'string') {
               // Add model prefixes for proper matching with dropdown options
@@ -788,7 +815,9 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         base.override_alias = alias.trim();
       }
       if (type !== 'cross') {
-        base.on = { and: buildAndExpressions(conds, type) };
+        base.on = isJoinOnDimsRef.current
+          ? 'dims'
+          : { and: buildAndExpressions(conds, type) };
       }
       return base;
     },
@@ -1282,6 +1311,36 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
     [selectedModel, joinType, conditions, updateSpecificJoin, buildJoinUpdate],
   );
 
+  const handleToggleJoinOnDims = useCallback(
+    (checked: boolean) => {
+      setIsJoinOnDims(checked);
+      isJoinOnDimsRef.current = checked;
+      if (selectedModel?.value) {
+        const base: Record<string, unknown> = {
+          model: selectedModel.value,
+          type: joinType as 'inner' | 'left' | 'right' | 'full' | 'cross',
+        };
+        const alias = overrideAliasRef.current;
+        if (alias.trim()) {
+          base.override_alias = alias.trim();
+        }
+        if (joinType !== 'cross') {
+          base.on = checked
+            ? 'dims'
+            : { and: buildAndExpressions(conditions, joinType) };
+        }
+        updateSpecificJoin(base);
+      }
+    },
+    [
+      selectedModel,
+      joinType,
+      conditions,
+      updateSpecificJoin,
+      buildAndExpressions,
+    ],
+  );
+
   const handleDelete = useCallback(() => {
     const existingJoins = Array.isArray(modelingState.join)
       ? modelingState.join
@@ -1427,23 +1486,59 @@ export const JoinNode: React.FC<NodeProps> = ({ data, id }) => {
         onDelete={handleDelete}
       />
 
-      <JoinConditions
-        joinType={joinType}
-        conditions={conditions}
-        baseColumnOptions={baseColumnOptions}
-        conditionOptions={conditionOptions}
-        joinColumnOptions={joinColumnOptions}
-        isUnaryOperator={isUnaryOperator}
-        onUpdateCondition={updateCondition}
-        onRemoveCondition={removeCondition}
-        onAddCondition={addCondition}
-        subqueryModelOptions={subqueryModelOptions}
-        subquerySourceOptions={subquerySourceOptions}
-        subqueryCteOptions={subqueryCteOptions}
-        subqueryColumnOptions={subqueryColumnOptions}
-        manifest={(currentProject?.manifest as Record<string, unknown>) ?? null}
-        ctes={ctes}
-      />
+      {joinType !== 'cross' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 12px',
+            fontSize: '11px',
+            color: 'var(--vscode-descriptionForeground)',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isJoinOnDims}
+            onChange={(e) => handleToggleJoinOnDims(e.target.checked)}
+            style={{ margin: 0 }}
+          />
+          <span>Join on all matching dimensions</span>
+        </div>
+      )}
+
+      {isJoinOnDims ? (
+        <div
+          style={{
+            padding: '8px 12px',
+            fontSize: '11px',
+            color: 'var(--vscode-descriptionForeground)',
+            fontStyle: 'italic',
+          }}
+        >
+          Joins on all dimension columns shared between both models.
+        </div>
+      ) : (
+        <JoinConditions
+          joinType={joinType}
+          conditions={conditions}
+          baseColumnOptions={baseColumnOptions}
+          conditionOptions={conditionOptions}
+          joinColumnOptions={joinColumnOptions}
+          isUnaryOperator={isUnaryOperator}
+          onUpdateCondition={updateCondition}
+          onRemoveCondition={removeCondition}
+          onAddCondition={addCondition}
+          subqueryModelOptions={subqueryModelOptions}
+          subquerySourceOptions={subquerySourceOptions}
+          subqueryCteOptions={subqueryCteOptions}
+          subqueryColumnOptions={subqueryColumnOptions}
+          manifest={
+            (currentProject?.manifest as Record<string, unknown>) ?? null
+          }
+          ctes={ctes}
+        />
+      )}
 
       {selectedModel && (
         <ModelColumns

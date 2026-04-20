@@ -118,6 +118,8 @@ export type SchemaModelDataTests = (
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
+  | 'incremental'
+  | 'ephemeral'
   | {
       type: 'ephemeral';
     }

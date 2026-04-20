@@ -17,6 +17,7 @@ import {
   VIEW_ID,
 } from '@services/constants';
 import type { DJLogger } from '@services/djLogger';
+import { PARTITION_DAILY } from '@services/framework/constants';
 import type { FrameworkState } from '@services/framework/FrameworkState';
 import {
   frameworkExtractModelName,
@@ -581,7 +582,7 @@ export class Dbt implements ApiEnabledService<'dbt'> {
 
               if (Array.isArray(modelJson.select)) {
                 hasPortalPartitionDaily = modelJson.select.some(
-                  (s: { name?: string }) => s.name === 'portal_partition_daily',
+                  (s: { name?: string }) => s.name === PARTITION_DAILY,
                 );
               }
 
@@ -592,8 +593,7 @@ export class Dbt implements ApiEnabledService<'dbt'> {
                   const node = manifest.nodes?.[nodeId];
                   if (node?.columns) {
                     hasPortalPartitionDaily = Object.keys(node.columns).some(
-                      (colName) =>
-                        colName.toLowerCase() === 'portal_partition_daily',
+                      (colName) => colName.toLowerCase() === PARTITION_DAILY,
                     );
                   }
                 }

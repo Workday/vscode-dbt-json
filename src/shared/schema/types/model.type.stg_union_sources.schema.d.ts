@@ -35,6 +35,8 @@ export type SchemaModelTags = (
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
+  | 'incremental'
+  | 'ephemeral'
   | {
       type: 'ephemeral';
     }

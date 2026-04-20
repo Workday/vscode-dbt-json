@@ -1,5 +1,9 @@
+import { filterBulkSelectColumns } from '@services/framework/utils/column-utils';
+import { BULK_CTE_TYPES } from '@shared/framework/constants';
 import type { ValidateFunction } from 'ajv';
 import type { ErrorObject } from 'ajv';
+
+import type { ValidationErrorDetail } from './sync/types';
 
 /**
  * Maps model types to their specific schema file names
@@ -128,8 +132,8 @@ export function formatValidationErrors(
 /**
  * Validates CTE-specific constraints that cannot be expressed in JSON Schema alone:
  * - Unique CTE names within the model
- * - No forward references (a CTE can only reference CTEs defined earlier)
- * - No circular dependencies
+ * - Forward-reference enforcement (CTEs can only reference earlier entries,
+ *   which implicitly prevents cycles)
  * - CTE from.cte must reference a valid CTE name
  * - Main model from.cte must reference a valid CTE name
  */
@@ -140,7 +144,6 @@ export function validateCtes(modelJson: any): string[] {
   }
 
   const cteNames = new Set<string>();
-  const cteOrder: string[] = [];
 
   for (let i = 0; i < modelJson.ctes.length; i++) {
     const cte = modelJson.ctes[i];
@@ -204,8 +207,9 @@ export function validateCtes(modelJson: any): string[] {
       );
     }
 
+    errors.push(...validateCteGroupBy(cte, i));
+
     cteNames.add(cteName);
-    cteOrder.push(cteName);
   }
 
   // Validate main model from.cte reference
@@ -242,6 +246,172 @@ export function validateCtes(modelJson: any): string[] {
           );
         }
       }
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Validates that CTE group_by entries do not use bare string aliases for
+ * computed columns (those with an `expr` in the CTE's select). String aliases
+ * produce invalid SQL because Trino's GROUP BY references source columns, not
+ * SELECT aliases. Use "dims", [{ "type": "dims" }], or { "expr": "..." } instead.
+ */
+export function validateCteGroupBy(cte: any, cteIndex: number): string[] {
+  const errors: string[] = [];
+  if (
+    !Array.isArray(cte.select) ||
+    typeof cte.group_by === 'string' ||
+    !Array.isArray(cte.group_by)
+  ) {
+    return errors;
+  }
+
+  const computedExprs = new Map<string, string>();
+  for (const sel of cte.select) {
+    if (
+      typeof sel === 'object' &&
+      sel &&
+      'name' in sel &&
+      'expr' in sel &&
+      sel.expr
+    ) {
+      computedExprs.set(sel.name, sel.expr);
+    }
+  }
+
+  if (computedExprs.size === 0) {
+    return errors;
+  }
+
+  for (const gb of cte.group_by) {
+    if (typeof gb !== 'string') {
+      continue;
+    }
+    const expr = computedExprs.get(gb);
+    if (expr) {
+      errors.push(
+        `ctes[${cteIndex}] ("${cte.name}"): group_by contains string alias "${gb}" which references a computed expression (${expr}). String aliases are not valid SQL GROUP BY targets. Use [{ "type": "dims" }] to automatically group by all dimension expressions, or use { "expr": "${expr}" } to specify the expression directly.`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Validates that exclude/include column names in bulk CTE directives
+ * actually exist in the referenced CTE. Requires a pre-built CTE column
+ * registry and is therefore a separate pass from validateCtes (which only
+ * performs structural checks).
+ */
+export function validateCteColumnReferences(
+  modelJson: any,
+  cteColumnRegistry: ReadonlyMap<
+    string,
+    { name: string; meta?: { type?: string } }[]
+  >,
+): string[] {
+  const errors: string[] = [];
+  if (!cteColumnRegistry || cteColumnRegistry.size === 0) {
+    return errors;
+  }
+
+  function checkBulkDirective(
+    sel: any,
+    path: string,
+    availableColumns: string[],
+  ): void {
+    if (sel.exclude && Array.isArray(sel.exclude)) {
+      for (const colName of sel.exclude) {
+        if (!availableColumns.includes(colName)) {
+          errors.push(
+            `${path}: exclude references column "${colName}" which does not exist in CTE "${sel.cte}". Available columns: ${availableColumns.join(', ')}`,
+          );
+        }
+      }
+    }
+    if (sel.include && Array.isArray(sel.include)) {
+      for (const colName of sel.include) {
+        if (!availableColumns.includes(colName)) {
+          errors.push(
+            `${path}: include references column "${colName}" which does not exist in CTE "${sel.cte}". Available columns: ${availableColumns.join(', ')}`,
+          );
+        }
+      }
+    }
+    const effectiveExclude = Array.isArray(sel.exclude) ? sel.exclude : [];
+    const effectiveInclude = Array.isArray(sel.include) ? sel.include : [];
+    const remaining = availableColumns.filter((c) => {
+      if (effectiveExclude.length && effectiveExclude.includes(c)) {
+        return false;
+      }
+      if (effectiveInclude.length && !effectiveInclude.includes(c)) {
+        return false;
+      }
+      return true;
+    });
+    if (remaining.length === 0 && availableColumns.length > 0) {
+      errors.push(
+        `${path}: exclude/include combination results in zero columns from CTE "${sel.cte}".`,
+      );
+    }
+  }
+
+  // Check CTE select items
+  if (Array.isArray(modelJson?.ctes)) {
+    for (let i = 0; i < modelJson.ctes.length; i++) {
+      const cte = modelJson.ctes[i];
+      if (!Array.isArray(cte.select)) {
+        continue;
+      }
+      for (let j = 0; j < cte.select.length; j++) {
+        const sel = cte.select[j];
+        if (
+          typeof sel !== 'object' ||
+          !sel ||
+          !('cte' in sel) ||
+          !BULK_CTE_TYPES.has(sel.type)
+        ) {
+          continue;
+        }
+        const refCols = cteColumnRegistry.get(sel.cte);
+        if (!refCols) {
+          continue;
+        }
+        const availableColumns = filterBulkSelectColumns(refCols, sel.type).map(
+          (c) => c.name,
+        );
+        checkBulkDirective(
+          sel,
+          `ctes[${i}] ("${cte.name}").select[${j}]`,
+          availableColumns,
+        );
+      }
+    }
+  }
+
+  // Check main model select items
+  if (Array.isArray(modelJson?.select)) {
+    for (let j = 0; j < modelJson.select.length; j++) {
+      const sel = modelJson.select[j];
+      if (
+        typeof sel !== 'object' ||
+        !sel ||
+        !('cte' in sel) ||
+        !BULK_CTE_TYPES.has(sel.type)
+      ) {
+        continue;
+      }
+      const refCols = cteColumnRegistry.get(sel.cte);
+      if (!refCols) {
+        continue;
+      }
+      const availableColumns = filterBulkSelectColumns(refCols, sel.type).map(
+        (c) => c.name,
+      );
+      checkBulkDirective(sel, `select[${j}]`, availableColumns);
     }
   }
 
@@ -362,6 +532,165 @@ export function validateSubqueries(modelJson: any): string[] {
   }
 
   return errors;
+}
+
+/**
+ * Maps each AJV error to a `ValidationErrorDetail` with a human-readable
+ * message and a resolved JSON pointer path for diagnostic positioning.
+ *
+ * Applies "best match" filtering for `oneOf`/`anyOf` schemas so that only
+ * errors from the branch the user most likely intended are shown.
+ *
+ * Path resolution per error keyword:
+ * - `required`: parent path + missing property name (points to the object that should contain it)
+ * - `additionalProperties`: parent path + extra property name
+ * - All others: the error's own `instancePath`
+ */
+export function formatValidationErrorDetails(
+  errors: ErrorObject[] | null | undefined,
+): ValidationErrorDetail[] {
+  if (!errors || errors.length === 0) {
+    return [];
+  }
+
+  const filtered = filterOneOfNoise(errors);
+
+  return filtered.map((error) => {
+    let instancePath = error.instancePath ?? '';
+
+    if (error.keyword === 'required' && error.params?.missingProperty) {
+      const suffix = `/${error.params.missingProperty}`;
+      instancePath = instancePath ? `${instancePath}${suffix}` : suffix;
+    } else if (
+      error.keyword === 'additionalProperties' &&
+      error.params?.additionalProperty
+    ) {
+      const suffix = `/${error.params.additionalProperty}`;
+      instancePath = instancePath ? `${instancePath}${suffix}` : suffix;
+    }
+
+    return {
+      message: formatSingleError(error),
+      instancePath,
+    };
+  });
+}
+
+/**
+ * Deterministic "best match" filter for `oneOf`/`anyOf` validation noise.
+ *
+ * AJV validates all branches of `oneOf`/`anyOf` and reports errors from every
+ * branch that failed. This produces confusing diagnostics — e.g. "should be null"
+ * alongside "filter: should be string" when the user clearly intended the object
+ * branch. This function uses `schemaPath` to group errors by branch and keeps
+ * only errors from the branch that matched deepest (the "best match").
+ *
+ * Algorithm per wrapper (processed deepest-first for nested oneOf/anyOf):
+ * 1. Remove the wrapper error itself
+ * 2. Group related errors by branch using `schemaPath`
+ * 3. If any branch has errors deeper than the wrapper level, suppress
+ *    branches with only surface-level errors (non-matching branches)
+ * 4. If all branches have errors only at the wrapper level (total type
+ *    mismatch), keep all of them — they represent valid alternatives
+ */
+function filterOneOfNoise(errors: ErrorObject[]): ErrorObject[] {
+  const wrappers: ErrorObject[] = [];
+  let remaining = errors.filter((e) => {
+    if (e.keyword === 'oneOf' || e.keyword === 'anyOf') {
+      wrappers.push(e);
+      return false;
+    }
+    return true;
+  });
+
+  if (wrappers.length === 0) {
+    return errors;
+  }
+
+  // Process deepest wrappers first so nested oneOf/anyOf resolve before parents
+  wrappers.sort(
+    (a, b) => (b.instancePath ?? '').length - (a.instancePath ?? '').length,
+  );
+
+  for (const wrapper of wrappers) {
+    const wrapperPath = wrapper.instancePath ?? '';
+    const wrapperSchemaPath = wrapper.schemaPath;
+
+    const related: ErrorObject[] = [];
+    const unrelated: ErrorObject[] = [];
+    for (const err of remaining) {
+      if ((err.instancePath ?? '').startsWith(wrapperPath)) {
+        related.push(err);
+      } else {
+        unrelated.push(err);
+      }
+    }
+
+    if (related.length === 0) {
+      remaining = unrelated;
+      continue;
+    }
+
+    const hasDeepErrors = related.some(
+      (e) => (e.instancePath ?? '').length > wrapperPath.length,
+    );
+
+    if (!hasDeepErrors) {
+      // All branches failed at the same depth — keep everything (valid alternatives)
+      remaining = [...unrelated, ...related];
+      continue;
+    }
+
+    // Group errors by branch, then keep only branches with deep errors
+    const branches = new Map<string, ErrorObject[]>();
+    for (const err of related) {
+      const key = identifyBranch(err.schemaPath, wrapperSchemaPath);
+      if (!branches.has(key)) {
+        branches.set(key, []);
+      }
+      branches.get(key)!.push(err);
+    }
+
+    const kept: ErrorObject[] = [];
+    for (const branchErrors of branches.values()) {
+      const branchMaxDepth = Math.max(
+        ...branchErrors.map((e) => (e.instancePath ?? '').length),
+      );
+      if (branchMaxDepth > wrapperPath.length) {
+        kept.push(...branchErrors);
+      }
+    }
+
+    remaining = [...unrelated, ...kept];
+  }
+
+  return remaining;
+}
+
+/**
+ * Identify which `oneOf`/`anyOf` branch an error originates from.
+ *
+ * AJV's `schemaPath` deterministically encodes the source:
+ * - Inline schemas: path starts with the wrapper's schemaPath + "/N/..."
+ *   (e.g. `#/properties/freshness/oneOf/1/type` → branch `inline:1`)
+ * - `$ref` schemas: path starts with the referenced schema's `$id`
+ *   (e.g. `freshness.json/properties/filter/type` → branch `ref:freshness.json`)
+ */
+function identifyBranch(
+  errorSchemaPath: string,
+  wrapperSchemaPath: string,
+): string {
+  if (errorSchemaPath.startsWith(wrapperSchemaPath + '/')) {
+    const afterBase = errorSchemaPath.slice(wrapperSchemaPath.length + 1);
+    const branchIndex = afterBase.split('/')[0];
+    return `inline:${branchIndex}`;
+  }
+
+  // $ref branch — use the schema $id as the group key
+  const slashIdx = errorSchemaPath.indexOf('/');
+  const schemaId =
+    slashIdx >= 0 ? errorSchemaPath.slice(0, slashIdx) : errorSchemaPath;
+  return `ref:${schemaId}`;
 }
 
 /**

@@ -9,7 +9,15 @@
   "properties": {
     "database": { "$ref": "source.database.schema.json" },
     "description": { "$ref": "source.description.schema.json" },
-    "freshness": { "$ref": "source.freshness.schema.json" },
+    "freshness": {
+      "oneOf": [
+        { "$ref": "source.freshness.schema.json" },
+        {
+          "type": "null",
+          "description": "Set to null to disable freshness checks for this source"
+        }
+      ]
+    },
     "loaded_at_field": { "$ref": "source.loaded_at_field.schema.json" },
     "meta": { "$ref": "source.meta.schema.json" },
     "schema": { "$ref": "source.schema.schema.json" },

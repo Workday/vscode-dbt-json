@@ -118,6 +118,8 @@ export type SchemaModelDataTests = (
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
+  | 'incremental'
+  | 'ephemeral'
   | {
       type: 'ephemeral';
     }
@@ -203,29 +205,29 @@ export type SchemaModelExcludePortalPartitionColumns = boolean;
 export type SchemaModelExcludePortalSourceCount = boolean;
 /**
  * Validate model group by
- *
- * @minItems 1
  */
-export type SchemaModelGroupBy = [
-  (
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  ),
-  ...(
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  )[],
-];
+export type SchemaModelGroupBy =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
 /**
  * SQL HAVING
  */
@@ -341,26 +343,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -377,26 +378,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   ),
   ...(
@@ -409,26 +409,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -445,26 +444,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   )[],
 ];
@@ -749,6 +747,31 @@ export type SchemaModelSelectCTE =
        */
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
+/**
+ * Validate model group by
+ */
+export type SchemaModelGroupBy1 =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
 
 /**
  * Validates schema for int models selecting from a single model
@@ -1051,7 +1074,7 @@ export interface SchemaModelCTE {
     )[],
   ];
   where?: SchemaModelWhere;
-  group_by?: SchemaModelGroupBy;
+  group_by?: SchemaModelGroupBy1;
   having?: SchemaModelHaving;
 }
 export interface SchemaColumnLightdash {

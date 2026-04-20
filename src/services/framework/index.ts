@@ -23,6 +23,7 @@ import {
   SyncQueue,
   type SyncResult,
   type SyncRoot,
+  type ValidationErrorDetail,
 } from '@services/sync';
 import type { ApiEnabledService } from '@services/types';
 import { showOrOpenFile } from '@services/utils/fileNavigation';
@@ -38,7 +39,12 @@ import { DJ_SCHEMAS_PATH, WORKSPACE_ROOT } from 'admin';
 import type { ValidateFunction } from 'ajv';
 import { Ajv } from 'ajv';
 import * as fs from 'fs';
-import { applyEdits, modify } from 'jsonc-parser';
+import {
+  applyEdits,
+  findNodeAtLocation,
+  modify,
+  parseTree,
+} from 'jsonc-parser';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -144,7 +150,7 @@ export class Framework implements ApiEnabledService<'framework'> {
 
     // 2. Initialize local resources (pure)
     this.ajv = new Ajv({
-      allErrors: false,
+      allErrors: true,
       logger: this.log,
       strictSchema: 'log',
     });
@@ -1446,7 +1452,10 @@ export class Framework implements ApiEnabledService<'framework'> {
   async handleLoadEtlSources({ project }: { project: DbtProject }) {
     const etlSourcesResponse = await this.getApi().handleApi({
       type: 'trino-fetch-etl-sources',
-      request: { projectName: project.name },
+      request: {
+        projectName: project.name,
+        etlSchema: project.properties.vars?.etl_schema,
+      },
     });
 
     // Type guard: ensure we have an array of FrameworkEtlSource
@@ -1610,8 +1619,17 @@ export class Framework implements ApiEnabledService<'framework'> {
         }
       },
 
-      // Handle model validation errors with diagnostics
-      onModelValidationError: (uri, message) => {
+      // Handle model/source validation errors with per-error diagnostics
+      onModelValidationError: (uri, message, errors, jsonContent) => {
+        const diagnostics = resolveValidationDiagnostics(
+          message,
+          errors,
+          jsonContent,
+        );
+        this.diagnosticModelJson.set(uri, diagnostics);
+      },
+
+      onModelValidationWarning: (uri, message) => {
         this.diagnosticModelJson.set(uri, [
           new vscode.Diagnostic(
             new vscode.Range(0, 0, 0, 0),
@@ -1770,4 +1788,96 @@ export class Framework implements ApiEnabledService<'framework'> {
     this.statusBarItem.dispose();
     this.dbt.deactivate();
   }
+}
+
+/**
+ * Convert a JSON pointer (e.g. "/tables/0/freshness") to path segments
+ * compatible with jsonc-parser's `findNodeAtLocation`.
+ * Numeric segments become numbers so array indices resolve correctly.
+ */
+function instancePathToSegments(instancePath: string): (string | number)[] {
+  if (!instancePath || instancePath === '/') {
+    return [];
+  }
+  return instancePath
+    .replace(/^\//, '')
+    .split('/')
+    .map((seg) => (/^\d+$/.test(seg) ? Number(seg) : seg));
+}
+
+/**
+ * Convert a character offset in `text` to a zero-based { line, col } position.
+ */
+function offsetToPosition(
+  text: string,
+  offset: number,
+): { line: number; col: number } {
+  let line = 0;
+  let col = 0;
+  for (let i = 0; i < offset && i < text.length; i++) {
+    if (text[i] === '\n') {
+      line++;
+      col = 0;
+    } else {
+      col++;
+    }
+  }
+  return { line, col };
+}
+
+/**
+ * Build per-error `vscode.Diagnostic[]` with positions resolved from JSON source.
+ * Falls back to a single diagnostic at line 0 when structured errors are unavailable.
+ */
+function resolveValidationDiagnostics(
+  fallbackMessage: string,
+  errors?: ValidationErrorDetail[],
+  jsonContent?: string,
+): vscode.Diagnostic[] {
+  if (!errors?.length || !jsonContent) {
+    return [
+      new vscode.Diagnostic(
+        new vscode.Range(0, 0, 0, 0),
+        fallbackMessage,
+        vscode.DiagnosticSeverity.Error,
+      ),
+    ];
+  }
+
+  const tree = parseTree(jsonContent, undefined, {
+    allowTrailingComma: true,
+  });
+
+  return errors.map((err) => {
+    let range = new vscode.Range(0, 0, 0, 0);
+
+    if (tree) {
+      const segments = instancePathToSegments(err.instancePath);
+      const node = findNodeAtLocation(tree, segments);
+
+      if (node) {
+        const start = offsetToPosition(jsonContent, node.offset);
+        const end = offsetToPosition(jsonContent, node.offset + node.length);
+        range = new vscode.Range(start.line, start.col, end.line, end.col);
+      } else if (segments.length > 0) {
+        // Property doesn't exist (e.g. missing required field) — point to parent
+        const parentNode = findNodeAtLocation(tree, segments.slice(0, -1));
+        if (parentNode) {
+          const start = offsetToPosition(jsonContent, parentNode.offset);
+          range = new vscode.Range(
+            start.line,
+            start.col,
+            start.line,
+            start.col,
+          );
+        }
+      }
+    }
+
+    return new vscode.Diagnostic(
+      range,
+      err.message,
+      vscode.DiagnosticSeverity.Error,
+    );
+  });
 }

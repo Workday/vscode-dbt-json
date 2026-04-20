@@ -43,6 +43,10 @@ export function getDjConfig(): CoderConfig {
     lightdashProfilesPath: config.get('lightdashProfilesPath', undefined),
 
     // Settings with defaults from package.json
+    materializationDefaultIncrementalStrategy: config.get(
+      'materialization.defaultIncrementalStrategy',
+      'delete+insert',
+    ),
     airflowGenerateDags: config.get('airflowGenerateDags', false),
     columnLineageAutoRefresh: config.get('columnLineage.autoRefresh', true),
     dataExplorerAutoRefresh: config.get('dataExplorer.autoRefresh', false),
@@ -243,6 +247,12 @@ export function getSettingReloadRequirement(
     },
 
     // Requires compile settings
+    'materialization.defaultIncrementalStrategy': {
+      requiresAction: true,
+      action: 'compile',
+      actionCommand: 'dj.command.jsonSync',
+      description: "Requires 'DJ: Sync to SQL and YML' to take effect",
+    },
     aiHintTag: {
       requiresAction: true,
       action: 'compile',
@@ -724,6 +734,18 @@ export function registerConfigurationChangeHandler(
         if (!validation.valid) {
           showValidationMessage('dbtMacroPath', validation);
         }
+      }
+
+      // materialization.defaultIncrementalStrategy - notify about compile requirement
+      if (
+        event.affectsConfiguration(
+          'dj.materialization.defaultIncrementalStrategy',
+        )
+      ) {
+        void vscode.window.setStatusBarMessage(
+          "DJ: Default incremental strategy updated - run 'DJ: Sync to SQL and YML' to apply",
+          5000,
+        );
       }
 
       // aiHintTag - notify about compile requirement

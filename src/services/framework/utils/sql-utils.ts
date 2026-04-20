@@ -8,7 +8,12 @@
  * - Table function SQL
  */
 
-import { FRAMEWORK_PARTITIONS } from '@services/framework/constants';
+import {
+  FRAMEWORK_PARTITIONS,
+  PARTITION_DAILY,
+  PARTITION_HOURLY,
+  PARTITION_MONTHLY,
+} from '@services/framework/constants';
 import { lightdashConvertDimensionType } from '@services/lightdash/utils';
 import type { DJ } from '@shared';
 import {
@@ -29,9 +34,16 @@ import type {
   DbtProjectManifestSourceColumn,
   DbtProjectManifestSourceColumns,
   DbtSourceProperties,
+  DbtSourceTable,
   DbtSourceTableColumn,
 } from '@shared/dbt/types';
 import { getDbtModelId } from '@shared/dbt/utils';
+import {
+  BULK_CTE_TYPES,
+  BULK_MODEL_TYPES,
+  JOIN_ON_DIMS,
+  normalizeGroupBy,
+} from '@shared/framework/constants';
 import type {
   FrameworkColumn,
   FrameworkCTE,
@@ -63,13 +75,16 @@ import * as _ from 'lodash';
 
 import {
   type CteColumnRegistry,
+  filterBulkSelectColumns,
   frameworkBuildColumns,
   frameworkBuildCteColumnRegistry,
   frameworkColumnName,
   frameworkColumnSelect,
   frameworkGetModelPartitions,
+  frameworkGetNodeColumns,
   frameworkGetPartitionColumnNames,
   frameworkSuffixAgg,
+  sortColumnsWithPartitionsLast,
 } from './column-utils';
 import {
   frameworkBuildModelTags,
@@ -188,16 +203,105 @@ export function buildConditionsSql(
 }
 
 /**
+ * Resolves the dimension column names for a join side (model or CTE).
+ * For models, uses the manifest via frameworkGetNodeColumns.
+ * For CTEs, uses the CteColumnRegistry built during sync.
+ */
+function getJoinSideDimNames({
+  ref,
+  project,
+  cteRegistry,
+}: {
+  ref: { model?: string; cte?: string };
+  project: DbtProject;
+  cteRegistry?: CteColumnRegistry;
+}): string[] {
+  if (ref.model) {
+    return frameworkGetNodeColumns({
+      from: { model: ref.model },
+      project,
+    }).dimensions.map((c) => c.name);
+  }
+  if (ref.cte && cteRegistry) {
+    return (cteRegistry.get(ref.cte) ?? [])
+      .filter((c) => c.meta?.type !== 'fct')
+      .map((c) => c.name);
+  }
+  return [];
+}
+
+/**
+ * Resolves join ON conditions into SQL fragments.
+ *
+ * When `on` is `"dims"`, computes the intersection of dimension column names
+ * between the base and join sides and emits equi-join conditions.
+ * When `on` is the object form `{ and: [...] }`, processes each element
+ * (string, expr, subquery) as before.
+ */
+export function resolveJoinOnSql({
+  on,
+  baseAlias,
+  joinAlias,
+  project,
+  cteRegistry,
+  baseRef,
+  joinRef,
+}: {
+  on:
+    | 'dims'
+    | {
+        and?: Array<
+          string | { expr: string } | { subquery: SchemaModelSubquery }
+        >;
+      };
+  baseAlias: string;
+  joinAlias: string;
+  project: DbtProject;
+  cteRegistry?: CteColumnRegistry;
+  baseRef: { model?: string; cte?: string };
+  joinRef: { model?: string; cte?: string };
+}): string[] {
+  if (on === JOIN_ON_DIMS) {
+    const baseDims = getJoinSideDimNames({
+      ref: baseRef,
+      project,
+      cteRegistry,
+    });
+    const joinDims = new Set(
+      getJoinSideDimNames({ ref: joinRef, project, cteRegistry }),
+    );
+    const shared = baseDims.filter((d) => joinDims.has(d));
+    return shared.map((col) => `${baseAlias}.${col}=${joinAlias}.${col}`);
+  }
+
+  const parts: string[] = [];
+  if (on.and) {
+    for (const cond of on.and) {
+      if (typeof cond === 'string') {
+        parts.push(`${baseAlias}.${cond}=${joinAlias}.${cond}`);
+      } else if ('subquery' in cond && cond.subquery) {
+        parts.push(buildSubquerySql(cond.subquery));
+      } else if ('expr' in cond) {
+        parts.push(cond.expr);
+      }
+    }
+  }
+  return parts;
+}
+
+/**
  * Generate SQL FROM clause
  *
  * @see utils.ts:2839-2954
  */
 export function frameworkModelFrom({
+  cteRegistry,
   datetimeInterval,
   dj,
   modelJson,
   project,
 }: {
+  cteRegistry?: CteColumnRegistry;
   datetimeInterval: FrameworkInterval | null;
   dj: DJ;
   modelJson: FrameworkModel;
@@ -257,19 +361,20 @@ export function frameworkModelFrom({
       const alias = joinTo.override_alias || target;
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       appendSql(`${joinTo.type || 'inner'} join ${tableExpr} ${alias}`);
-      if ('on' in joinTo && joinTo.on?.and) {
-        appendSql('on');
-        const sqlJoinOnAnd = [];
-        for (const on of joinTo.on.and) {
-          if (typeof on === 'string') {
-            sqlJoinOnAnd.push(`${baseCte}.${on}=${alias}.${on}`);
-          } else if ('subquery' in on && on.subquery) {
-            sqlJoinOnAnd.push(buildSubquerySql(on.subquery));
-          } else if ('expr' in on) {
-            sqlJoinOnAnd.push(on.expr);
-          }
+      if ('on' in joinTo && joinTo.on) {
+        const onParts = resolveJoinOnSql({
+          on: joinTo.on,
+          baseAlias: baseCte,
+          joinAlias: alias,
+          project,
+          cteRegistry,
+          baseRef: { cte: baseCte },
+          joinRef: isCteJoin ? { cte: target } : { model: target },
+        });
+        if (onParts.length) {
+          appendSql('on');
+          appendSql(onParts.join(' and '));
         }
-        appendSql(sqlJoinOnAnd.join(' and '));
       }
     }
   } else if (
@@ -293,19 +398,20 @@ export function frameworkModelFrom({
       const alias = joinTo.override_alias || target;
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       appendSql(`${joinTo.type || 'inner'} join ${tableExpr} ${alias}`);
-      if ('on' in joinTo && joinTo.on?.and) {
-        appendSql('on');
-        const sqlJoinOnAnd = [];
-        for (const on of joinTo.on.and) {
-          if (typeof on === 'string') {
-            sqlJoinOnAnd.push(`${baseModel}.${on}=${alias}.${on}`);
-          } else if ('subquery' in on && on.subquery) {
-            sqlJoinOnAnd.push(buildSubquerySql(on.subquery));
-          } else if ('expr' in on) {
-            sqlJoinOnAnd.push(on.expr);
-          }
+      if ('on' in joinTo && joinTo.on) {
+        const onParts = resolveJoinOnSql({
+          on: joinTo.on,
+          baseAlias: baseModel,
+          joinAlias: alias,
+          project,
+          cteRegistry,
+          baseRef: { model: baseModel },
+          joinRef: isCteJoin ? { cte: target } : { model: target },
+        });
+        if (onParts.length) {
+          appendSql('on');
+          appendSql(onParts.join(' and '));
         }
-        appendSql(sqlJoinOnAnd.join(' and '));
       }
     }
   } else if ('lookback' in modelJson.from && modelJson.from.lookback) {
@@ -697,6 +803,9 @@ export function frameworkModelGroupBy({
   const facts = columns.filter((c) => c.meta.type === 'fct');
   const dimensions = columns.filter((c) => c.meta.type === 'dim');
 
+  const groupBy =
+    'group_by' in modelJson ? normalizeGroupBy(modelJson.group_by) : undefined;
+
   const hasAggFact =
     facts.some((f) => !!f.meta.agg || !!f.meta.aggs) ||
     !!('lookback' in modelJson.from && modelJson.from.lookback);
@@ -704,7 +813,7 @@ export function frameworkModelGroupBy({
     hasAggFact ||
     ('lookback' in modelJson.from && dimensions.length) ||
     ('rollup' in modelJson.from && dimensions.length) ||
-    ('group_by' in modelJson && modelJson.group_by?.length);
+    (groupBy && groupBy.length > 0);
   if (!shouldGroupBy) {
     return { comments, sql };
   }
@@ -736,8 +845,7 @@ export function frameworkModelGroupBy({
       }
     }
   }
-  if ('group_by' in modelJson && modelJson.group_by?.length) {
-    const groupBy = modelJson.group_by;
+  if (groupBy && groupBy.length > 0) {
     for (const g of groupBy) {
       if (typeof g === 'string') {
         if (sqlGroupBy.includes(g)) {
@@ -864,12 +972,12 @@ export function frameworkBuildFilters({
       const expr = `${prefix ? `${prefix}.` : ''}${p.name}`;
       const args: string[] = [`"${expr}"`, `data_type="date"`];
       switch (p.name) {
-        case 'portal_partition_monthly': {
+        case PARTITION_MONTHLY: {
           args.push(`interval="month"`);
           sqlLines.push(`{{ _ext_event_date_filter(${args.join(', ')}) }}`);
           break;
         }
-        case 'portal_partition_daily': {
+        case PARTITION_DAILY: {
           if (
             !(
               'exclude_daily_filter' in modelJson &&
@@ -1011,6 +1119,63 @@ export function frameworkBuildFilters({
 }
 
 /**
+ * Expands a bulk CTE/model select directive into explicit column names.
+ * Returns null when no exclude/include is specified, signaling that `*`
+ * should be used for backward compatibility.
+ */
+export function expandBulkSelectColumns({
+  sel,
+  cteRegistry,
+  project,
+  hasJoins,
+}: {
+  sel: Record<string, unknown>;
+  cteRegistry: CteColumnRegistry;
+  project: DbtProject;
+  hasJoins: boolean;
+}): string[] | null {
+  const selType = sel.type as string;
+  const include =
+    'include' in sel && Array.isArray(sel.include)
+      ? (sel.include as string[])
+      : undefined;
+  const exclude =
+    'exclude' in sel && Array.isArray(sel.exclude)
+      ? (sel.exclude as string[])
+      : undefined;
+
+  if (!include?.length && !exclude?.length) {
+    return null;
+  }
+
+  let sourceColumns: { name: string; meta?: { type?: string } }[] = [];
+  let sourceAlias: string | null = null;
+
+  if ('cte' in sel) {
+    const cteName = sel.cte as string;
+    sourceColumns = cteRegistry.get(cteName) || [];
+    sourceAlias = cteName;
+  } else if ('model' in sel) {
+    const modelRef = sel.model as string;
+    sourceColumns = frameworkGetNodeColumns({
+      from: { model: modelRef },
+      project,
+    }).columns;
+    sourceAlias = modelRef;
+  }
+
+  const filtered = filterBulkSelectColumns(sourceColumns, selType, {
+    include,
+    exclude,
+  });
+
+  const sorted = sortColumnsWithPartitionsLast(filtered);
+
+  const prefix = hasJoins && sourceAlias ? `${sourceAlias}.` : '';
+  return sorted.map((c) => `${prefix}${c.name}`);
+}
+
+/**
  * Generates the SQL body for an individual CTE definition.
  * Handles three FROM patterns: union (CTE-to-CTE or model-to-model),
  * CTE-to-CTE chaining, and standard model/source references.
@@ -1070,25 +1235,24 @@ export function frameworkGenerateCteSql({
       }
       const sel = item as Record<string, unknown>;
       const selType = sel.type as string | undefined;
-      if ('cte' in sel && selType) {
-        if (
-          selType === 'all_from_cte' ||
-          selType === 'dims_from_cte' ||
-          selType === 'fcts_from_cte'
-        ) {
+      const isBulkCte =
+        'cte' in sel && !!selType && BULK_CTE_TYPES.has(selType);
+      const isBulkModel =
+        'model' in sel && !!selType && BULK_MODEL_TYPES.has(selType);
+      if (isBulkCte || isBulkModel) {
+        const hasJoins = 'join' in from && Array.isArray(from.join);
+        const expanded = expandBulkSelectColumns({
+          sel,
+          cteRegistry,
+          project,
+          hasJoins,
+        });
+        if (expanded) {
+          selectParts.push(...expanded);
+        } else {
           selectParts.push('*');
-          continue;
         }
-      }
-      if ('model' in sel && selType) {
-        if (
-          selType === 'all_from_model' ||
-          selType === 'dims_from_model' ||
-          selType === 'fcts_from_model'
-        ) {
-          selectParts.push('*');
-          continue;
-        }
+        continue;
       }
       if ('name' in sel) {
         const name = sel.name as string;
@@ -1131,6 +1295,7 @@ export function frameworkGenerateCteSql({
   // Join targets may be external models (ref()) or sibling CTEs (bare name).
   const appendJoinSql = (
     baseAlias: string,
+    baseRef: { model?: string; cte?: string },
     joins: SchemaModelFromJoinModels,
   ) => {
     for (const j of joins) {
@@ -1142,18 +1307,19 @@ export function frameworkGenerateCteSql({
       const joinType = ('type' in j && j.type) || 'inner';
       const tableExpr = isCteJoin ? target : `{{ ref('${target}') }}`;
       parts.push(`${joinType} join ${tableExpr} ${alias}`);
-      if ('on' in j && j.on?.and) {
-        const onParts: string[] = [];
-        for (const on of j.on.and) {
-          if (typeof on === 'string') {
-            onParts.push(`${baseAlias}.${on} = ${alias}.${on}`);
-          } else if ('subquery' in on && on.subquery) {
-            onParts.push(buildSubquerySql(on.subquery));
-          } else if ('expr' in on) {
-            onParts.push(on.expr);
-          }
+      if ('on' in j && j.on) {
+        const onParts = resolveJoinOnSql({
+          on: j.on,
+          baseAlias,
+          joinAlias: alias,
+          project,
+          cteRegistry,
+          baseRef,
+          joinRef: isCteJoin ? { cte: target } : { model: target },
+        });
+        if (onParts.length) {
+          parts.push(`on ${onParts.join(' and ')}`);
         }
-        parts.push(`on ${onParts.join(' and ')}`);
       }
     }
   };
@@ -1161,13 +1327,13 @@ export function frameworkGenerateCteSql({
   if ('cte' in from && !('union' in from)) {
     parts.push(`from ${from.cte}`);
     if ('join' in from && from.join) {
-      appendJoinSql(from.cte, from.join);
+      appendJoinSql(from.cte, { cte: from.cte }, from.join);
     }
   } else if ('model' in from && !('union' in from)) {
     const modelRef = from.model;
     parts.push(`from {{ ref('${modelRef}') }}`);
     if ('join' in from && from.join) {
-      appendJoinSql(modelRef, from.join);
+      appendJoinSql(modelRef, { model: modelRef }, from.join);
     }
   }
 
@@ -1180,22 +1346,24 @@ export function frameworkGenerateCteSql({
   }
 
   // GROUP BY
-  if (cte.group_by) {
+  const normalizedCteGroupBy = normalizeGroupBy(cte.group_by);
+  if (normalizedCteGroupBy) {
+    const selectExprMap = new Map<string, string>();
+    if (cte.select) {
+      for (const s of cte.select) {
+        if (typeof s === 'object' && 'name' in s && 'expr' in s && s.expr) {
+          selectExprMap.set(s.name, s.expr);
+        }
+      }
+    }
+
     const gbParts: string[] = [];
-    for (const gb of cte.group_by) {
+    for (const gb of normalizedCteGroupBy) {
       if (typeof gb === 'string') {
         gbParts.push(gb);
       } else if ('expr' in gb) {
         gbParts.push(gb.expr);
       } else if ('type' in gb && gb.type === 'dims') {
-        const selectExprMap = new Map<string, string>();
-        if (cte.select) {
-          for (const s of cte.select) {
-            if (typeof s === 'object' && 'name' in s && 'expr' in s && s.expr) {
-              selectExprMap.set(s.name, s.expr);
-            }
-          }
-        }
         const cols = cteRegistry.get(cte.name) || [];
         const dimCols = cols
           .filter((c) => c.meta?.type !== 'fct')
@@ -1306,6 +1474,58 @@ ${innerSql}
 // ========================================================================
 
 /**
+ * Access a named field from the model's `materialization` object, handling
+ * the union-type narrowing required by the FrameworkModel discriminated union.
+ * Each model type schema may or may not include a `materialization` property,
+ * so direct access like `modelJson.materialization.field` doesn't type-check.
+ * Returns `null` when the model type has no materialization or the field is absent.
+ */
+function getMaterializationProp(
+  modelJson: FrameworkModel,
+  field: string,
+): unknown {
+  if ('materialization' in modelJson && modelJson.materialization) {
+    if (typeof modelJson.materialization === 'string') {
+      return field === 'type' ? modelJson.materialization : null;
+    }
+    if (field in modelJson.materialization) {
+      return (modelJson.materialization as Record<string, unknown>)[field];
+    }
+  }
+  return null;
+}
+
+/**
+ * Pick the appropriate partition column(s) to use as the incremental `unique_key`.
+ * The unique_key tells dbt which column(s) define "row identity" for the delete
+ * step in delete+insert strategy -- rows matching these values are deleted before
+ * new rows are inserted.
+ *
+ * Partition columns are the natural choice because incremental runs are scoped
+ * by date range, so we delete+insert all rows for the processed date partition(s).
+ *
+ * Priority: portal_partition_daily (daily/hourly models) > portal_partition_monthly
+ * (monthly models) > full partition list (custom partitions).
+ *
+ * Returns a plain string when there is a single key (e.g. unique_key="col")
+ * and an array when there are multiple (e.g. unique_key=["col1","col2"]).
+ */
+function getDefaultUniqueKey(
+  partitionColumnNames: string[],
+): string | string[] {
+  if (partitionColumnNames.includes(PARTITION_DAILY)) {
+    return PARTITION_DAILY;
+  }
+  if (partitionColumnNames.includes(PARTITION_MONTHLY)) {
+    return PARTITION_MONTHLY;
+  }
+  if (partitionColumnNames.length === 1) {
+    return partitionColumnNames[0];
+  }
+  return [...partitionColumnNames];
+}
+
+/**
  * Generate complete model output (SQL + YAML)
  *
  * @see utils.ts:1559-1827
@@ -1359,6 +1579,7 @@ export function frameworkGenerateModelOutput({
   });
 
   const modelFrom = frameworkModelFrom({
+    cteRegistry: cteColumnRegistry,
     datetimeInterval,
     dj,
     modelJson,
@@ -1405,26 +1626,25 @@ export function frameworkGenerateModelOutput({
   }
   //
 
-  // Append config block
+  // Append dbt config() block
   const modelConfig: DbtModelConfig = {};
   const modelLayer = frameworkGetModelLayer(modelJson);
   let materialized: DbtModelConfig['materialized'];
   switch (modelLayer) {
-    case 'int': {
-      // modelConfig.incremental_strategy = 'overwrite_existing_partitions';
-      materialized =
-        ('materialization' in modelJson && modelJson.materialization?.type) ||
-        ('materialized' in modelJson && modelJson.materialized) ||
-        'ephemeral';
-      break;
-    }
+    // Staging and intermediate models support user-configurable materialization
+    // (incremental, ephemeral, table, view). Defaults to ephemeral if not specified.
+    case 'int':
     case 'stg': {
       materialized =
-        ('materialization' in modelJson && modelJson.materialization?.type) ||
+        (getMaterializationProp(
+          modelJson,
+          'type',
+        ) as DbtModelConfig['materialized']) ||
         ('materialized' in modelJson && modelJson.materialized) ||
         'ephemeral';
       break;
     }
+    // Mart models are always views (analytics-ready, read-only layers)
     case 'mart': {
       materialized = 'view';
       break;
@@ -1434,46 +1654,43 @@ export function frameworkGenerateModelOutput({
     modelConfig.materialized = materialized;
     switch (materialized) {
       case 'incremental': {
-        const database =
-          ('materialization' in modelJson &&
-            modelJson.materialization &&
-            'database' in modelJson.materialization &&
-            modelJson.materialization.database) ||
-          null;
+        const database = getMaterializationProp(modelJson, 'database') as
+          | string
+          | null;
         if (database) {
           modelConfig.database = database;
         }
-        const strategy =
-          ('materialization' in modelJson &&
-            modelJson.materialization &&
-            'strategy' in modelJson.materialization &&
-            modelJson.materialization.strategy) ||
+
+        // Resolve the storage type from the project's dbt_project.yml vars.
+        // This drives storage-specific defaults for incremental strategy and partitioning.
+        const storageType = project.variables?.storage_type;
+
+        // Strategy resolution: check materialization.strategy (newer nested format),
+        // then top-level incremental_strategy (older flat format), then fall back to
+        // a storage-type-aware default.
+        const strategy = (getMaterializationProp(modelJson, 'strategy') ||
           ('incremental_strategy' in modelJson &&
             modelJson.incremental_strategy) ||
-          null;
+          null) as {
+          type?: string;
+          unique_key?: string | string[];
+          merge_update_columns?: string[];
+          merge_exclude_columns?: string[];
+        } | null;
         switch (strategy?.type) {
           case 'delete+insert': {
             modelConfig.incremental_strategy = 'delete+insert';
-            if (strategy.unique_key) {
-              // If unique key is set, we use it for the delete+insert strategy
-              modelConfig.unique_key = strategy.unique_key;
-            } else {
-              // Otherwise, default the appropriate partition column
-              if (partitionColumnNames.includes('portal_partition_daily')) {
-                modelConfig.unique_key = 'portal_partition_daily';
-              } else if (
-                partitionColumnNames.includes('portal_partition_monthly')
-              ) {
-                modelConfig.unique_key = 'portal_partition_monthly';
-              } else {
-                modelConfig.unique_key = partitionColumnNames;
-              }
-            }
+            // Use user-provided unique_key if set, otherwise default to
+            // the appropriate partition column based on the model's time grain
+            modelConfig.unique_key = strategy.unique_key
+              ? strategy.unique_key
+              : getDefaultUniqueKey(partitionColumnNames);
             break;
           }
           case 'merge': {
             modelConfig.incremental_strategy = 'merge';
             modelConfig.unique_key = strategy.unique_key;
+            // merge_update_columns and merge_exclude_columns are mutually exclusive
             if (strategy.merge_update_columns) {
               modelConfig.merge_update_columns = strategy.merge_update_columns;
             } else if (strategy.merge_exclude_columns) {
@@ -1482,11 +1699,23 @@ export function frameworkGenerateModelOutput({
             }
             break;
           }
-          default:
-            modelConfig.incremental_strategy = 'overwrite_existing_partitions';
+          default: {
+            const defaultStrategy =
+              dj.config.materializationDefaultIncrementalStrategy ??
+              'delete+insert';
+            modelConfig.incremental_strategy = defaultStrategy;
+            if (defaultStrategy === 'delete+insert') {
+              modelConfig.unique_key =
+                getDefaultUniqueKey(partitionColumnNames);
+            }
+          }
         }
+
+        // Trino session settings for long-running incremental queries
         modelConfig.pre_hook =
           "set session iterative_optimizer_timeout='60m'; set session query_max_planning_time='60m'";
+
+        // Build the partition column list from columns that actually exist on the model
         const partitions: string[] = [];
         for (const p of partitionColumnNames) {
           if (columns.find((c) => c.name === p)) {
@@ -1494,16 +1723,15 @@ export function frameworkGenerateModelOutput({
           }
         }
         if (partitions.length) {
+          // Resolve storage format: model-level format override > project-level storage_type > delta_lake default.
+          // Iceberg uses "partitioning" keyword; Delta Lake/Hive use "partitioned_by" in SQL properties.
           const format =
-            ('materialization' in modelJson &&
-              modelJson.materialization &&
-              'format' in modelJson.materialization &&
-              modelJson.materialization.format) ||
-            null;
+            getMaterializationProp(modelJson, 'format') ||
+            (storageType === 'iceberg' ? 'iceberg' : null);
           switch (format) {
             case 'iceberg':
               modelConfig.properties = {
-                partitions: `ARRAY['${partitions.join("', '")}']`,
+                partitioning: `ARRAY['${partitions.join("', '")}']`,
               };
               break;
             default:
@@ -1515,10 +1743,12 @@ export function frameworkGenerateModelOutput({
         break;
       }
       default:
-      // No additional config needed
+      // No additional config needed for non-incremental materializations
     }
   }
 
+  // Apply user-defined SQL hooks (pre/post statements from model JSON).
+  // User hooks replace any auto-injected defaults (e.g., Trino session settings).
   if ('sql_hooks' in modelJson && modelJson.sql_hooks) {
     if (modelJson.sql_hooks.post) {
       modelConfig.post_hook = modelJson.sql_hooks.post;
@@ -1782,15 +2012,19 @@ export function frameworkModelProperties({
       meta: c.meta,
     };
 
-    if (
-      'materialized' in modelJson &&
-      modelJson.materialized === 'incremental'
-    ) {
-      // Add standard tests for these columns on incremental models
+    const isIncrementalModel =
+      ('materialized' in modelJson &&
+        modelJson.materialized === 'incremental') ||
+      ('materialization' in modelJson &&
+        (modelJson.materialization === 'incremental' ||
+          (typeof modelJson.materialization === 'object' &&
+            modelJson.materialization?.type === 'incremental')));
+
+    if (isIncrementalModel) {
       switch (column.name) {
-        case 'portal_partition_monthly':
-        case 'portal_partition_daily':
-        case 'portal_partition_hourly': {
+        case PARTITION_MONTHLY:
+        case PARTITION_DAILY:
+        case PARTITION_HOURLY: {
           const dataTests = column.tests ?? [];
           if (!dataTests.includes('not_null')) {
             dataTests.push('not_null');
@@ -1827,9 +2061,9 @@ export function frameworkModelProperties({
       if (column.name === 'datetime') {
         // Find a partitioned column to use for time intervals
         const partitionedColumn =
-          columns.find((c) => c.name === 'portal_partition_hourly') ||
-          columns.find((c) => c.name === 'portal_partition_daily') ||
-          columns.find((c) => c.name === 'portal_partition_monthly');
+          columns.find((c) => c.name === PARTITION_HOURLY) ||
+          columns.find((c) => c.name === PARTITION_DAILY) ||
+          columns.find((c) => c.name === PARTITION_MONTHLY);
         if (partitionedColumn) {
           dimension.sql = partitionedColumn.name;
         }
@@ -1963,16 +2197,10 @@ export function frameworkModelProperties({
     case 'mart': {
       if (!modelProperties.meta?.required_filters) {
         if (
-          _.find(
-            modelProperties.columns,
-            (c) => c.name === 'portal_partition_monthly',
-          )
+          _.find(modelProperties.columns, (c) => c.name === PARTITION_MONTHLY)
         ) {
           if (
-            _.find(
-              modelProperties.columns,
-              (c) => c.name === 'portal_partition_daily',
-            )
+            _.find(modelProperties.columns, (c) => c.name === PARTITION_DAILY)
           ) {
             modelProperties.meta = {
               ...modelProperties.meta,
@@ -2082,7 +2310,7 @@ export function frameworkSourceProperties(
   sourceJson: FrameworkSource,
 ): DbtSourceProperties {
   const sourceName = frameworkMakeSourceName(sourceJson);
-  const tables = _.map(sourceJson.tables, (t) => {
+  const tables: DbtSourceTable[] = _.map(sourceJson.tables, (t) => {
     const columns = _.map(t.columns, ({ type, lightdash, ...c }) => {
       const columnMeta: DbtSourceTableColumn['meta'] = {};
       if (type) {
@@ -2099,10 +2327,17 @@ export function frameworkSourceProperties(
       }
       return column;
     });
-    return {
+    const table: DbtSourceTable = removeEmpty({
       ...t,
       columns,
-    };
+    });
+
+    // Preserve explicit null — dbt uses `freshness: null` to disable checks per-table
+    if (t.freshness === null) {
+      table.freshness = null;
+    }
+
+    return table;
   });
   const sourceProperties: DbtSourceProperties = removeEmpty({
     name: sourceName,
@@ -2114,6 +2349,12 @@ export function frameworkSourceProperties(
     meta: sourceJson.meta,
     tables,
   });
+
+  // Preserve explicit null — dbt uses `freshness: null` to disable checks for the source
+  if (sourceJson.freshness === null) {
+    sourceProperties.freshness = null;
+  }
+
   return sourceProperties;
 }
 

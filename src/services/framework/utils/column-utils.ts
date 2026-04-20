@@ -10,11 +10,24 @@
  * - frameworkGetRollupInputs ↔ frameworkProcessSelected
  */
 
-import { FRAMEWORK_AGGS } from '@services/framework/constants';
+import {
+  FRAMEWORK_AGGS,
+  FRAMEWORK_PARTITIONS,
+  PARTITION_DAILY,
+  PARTITION_HOURLY,
+  PARTITION_MONTHLY,
+} from '@services/framework/constants';
 import { lightdashBuildMetrics } from '@services/lightdash/utils';
 import type { DJ } from '@shared';
 import { mergeDeep } from '@shared';
 import type { DbtProject } from '@shared/dbt/types';
+import {
+  BULK_CTE_TYPES,
+  BULK_MODEL_TYPES,
+  BULK_SELECT_TYPES,
+  DIMS_BULK_TYPES,
+  FCTS_BULK_TYPES,
+} from '@shared/framework/constants';
 import type {
   FrameworkColumn,
   FrameworkColumnAgg,
@@ -53,6 +66,59 @@ import { frameworkGetSourceMeta } from './source-utils';
 export type CteColumnRegistry = Map<string, FrameworkColumn[]>;
 
 type CteSelectItem = NonNullable<SchemaModelCTE['select']>[number];
+
+type BulkFilterableColumn = { name: string; meta?: { type?: string } };
+
+/**
+ * Central filtering for bulk select directives (all_from_*, dims_from_*, fcts_from_*).
+ * Applies three-step filtering: type narrowing (dims/fcts), include whitelist, exclude blacklist.
+ * All call sites that expand bulk directives should use this instead of reimplementing the logic.
+ */
+export function filterBulkSelectColumns<T extends BulkFilterableColumn>(
+  columns: T[],
+  selType: string,
+  options?: { include?: string[]; exclude?: string[] },
+): T[] {
+  return columns.filter((c) => {
+    if (DIMS_BULK_TYPES.has(selType) && c.meta?.type === 'fct') {
+      return false;
+    }
+    if (FCTS_BULK_TYPES.has(selType) && c.meta?.type !== 'fct') {
+      return false;
+    }
+    if (options?.include?.length && !options.include.includes(c.name)) {
+      return false;
+    }
+    if (options?.exclude?.length && options.exclude.includes(c.name)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Sorts columns alphabetically and moves partition columns to the end.
+ * Partition columns are appended in the order given by partitionNames
+ * (default: monthly, daily, hourly) to match the established convention
+ * in frameworkBuildColumns.
+ */
+export function sortColumnsWithPartitionsLast<T extends { name: string }>(
+  columns: T[],
+  partitionNames?: string[],
+): T[] {
+  const partitionList = partitionNames ?? [...FRAMEWORK_PARTITIONS];
+  const partitionSet = new Set(partitionList);
+  const sorted = _.sortBy(columns, ['name']);
+  const nonPartition = sorted.filter((c) => !partitionSet.has(c.name));
+  const partitionCols: T[] = [];
+  for (const name of partitionList) {
+    const col = sorted.find((c) => c.name === name);
+    if (col) {
+      partitionCols.push(col);
+    }
+  }
+  return [...nonPartition, ...partitionCols];
+}
 
 // ========================================================================
 // Column Processing (From utils.ts)
@@ -447,8 +513,22 @@ export function frameworkBuildColumns({
                 >;
                 return { ...c, meta: restMeta as FrameworkColumn['meta'] };
               };
-              const cols = (cteColumnRegistry.get(fromCte) || []).map(
-                stripCteAgg,
+              const combinedExclude = [
+                ...columns.map((c) => c.name),
+                ...(exclude as (string | FrameworkColumn)[]).map((e) =>
+                  typeof e === 'string' ? e : e.name,
+                ),
+              ];
+              const includeNames = (
+                include as (string | FrameworkColumn)[]
+              ).map((i) => (typeof i === 'string' ? i : i.name));
+              const cols = filterBulkSelectColumns(
+                (cteColumnRegistry.get(fromCte) || []).map(stripCteAgg),
+                BULK_SELECT_TYPES.ALL_FROM_CTE,
+                {
+                  exclude: combinedExclude.length ? combinedExclude : undefined,
+                  include: includeNames.length ? includeNames : undefined,
+                },
               );
               return {
                 columns: cols,
@@ -534,9 +614,9 @@ export function frameworkBuildColumns({
       } else {
         const selectType = selected.type as string;
         switch (selectType) {
-          case 'all_from_model':
-          case 'all_from_source':
-          case 'all_from_cte': {
+          case BULK_SELECT_TYPES.ALL_FROM_MODEL:
+          case BULK_SELECT_TYPES.ALL_FROM_SOURCE:
+          case BULK_SELECT_TYPES.ALL_FROM_CTE: {
             if (!from) {
               continue;
             }
@@ -549,8 +629,8 @@ export function frameworkBuildColumns({
             columns.push(...allFromModelCols);
             break;
           }
-          case 'dims_from_model':
-          case 'dims_from_cte': {
+          case BULK_SELECT_TYPES.DIMS_FROM_MODEL:
+          case BULK_SELECT_TYPES.DIMS_FROM_CTE: {
             if (!from) {
               continue;
             }
@@ -563,8 +643,8 @@ export function frameworkBuildColumns({
             columns.push(...dimsFromModelCols);
             break;
           }
-          case 'fcts_from_model':
-          case 'fcts_from_cte': {
+          case BULK_SELECT_TYPES.FCTS_FROM_MODEL:
+          case BULK_SELECT_TYPES.FCTS_FROM_CTE: {
             if (!from) {
               continue;
             }
@@ -659,18 +739,18 @@ export function frameworkBuildColumns({
     }
     switch (datetimeInterval) {
       case 'day': {
-        exclude.push('portal_partition_hourly');
+        exclude.push(PARTITION_HOURLY);
         break;
       }
       case 'month': {
-        exclude.push('portal_partition_daily');
-        exclude.push('portal_partition_hourly');
+        exclude.push(PARTITION_DAILY);
+        exclude.push(PARTITION_HOURLY);
         break;
       }
       case 'year': {
-        exclude.push('portal_partition_monthly');
-        exclude.push('portal_partition_hourly');
-        exclude.push('portal_partition_daily');
+        exclude.push(PARTITION_MONTHLY);
+        exclude.push(PARTITION_HOURLY);
+        exclude.push(PARTITION_DAILY);
         break;
       }
     }
@@ -682,9 +762,9 @@ export function frameworkBuildColumns({
         from: { model: baseModel },
         include: [
           'datetime',
-          'portal_partition_monthly',
-          'portal_partition_daily',
-          'portal_partition_hourly',
+          PARTITION_MONTHLY,
+          PARTITION_DAILY,
+          PARTITION_HOURLY,
         ],
         project,
         useCsvFallback: false,
@@ -715,32 +795,21 @@ export function frameworkBuildColumns({
     columns.push(...frameworkCounts);
   }
 
-  // Sort columns alphabetically
-  columns = _.sortBy(columns, ['name']);
-
   // Remove portal_source_count if it's excluded
   if (modelJson.exclude_portal_source_count) {
     columns = columns.filter((c) => c.name !== 'portal_source_count');
   }
 
-  // Pull out partition columns, and re-add them in order at the end (if not excluded)
+  // Sort alphabetically with partition columns at the end
   const partitionColumnNames = frameworkGetPartitionColumnNames({
     modelJson,
     project,
   });
-  const partitionColumns: FrameworkColumn[] = columns.filter((c) =>
-    partitionColumnNames.includes(c.name),
-  );
-  columns = columns.filter((c) => !partitionColumnNames.includes(c.name));
+  columns = sortColumnsWithPartitionsLast(columns, partitionColumnNames);
 
-  // Unless we have explicity excluded them, we'll add back the partition columns
-  if (!modelJson.exclude_portal_partition_columns) {
-    for (const name of partitionColumnNames) {
-      const partitionColumn = partitionColumns.find((c) => c.name === name);
-      if (partitionColumn) {
-        columns.push(partitionColumn);
-      }
-    }
+  // Strip partition columns entirely when the model opts out
+  if (modelJson.exclude_portal_partition_columns) {
+    columns = columns.filter((c) => !partitionColumnNames.includes(c.name));
   }
 
   if ('lookback' in modelJson.from && modelJson.from.lookback) {
@@ -752,10 +821,10 @@ export function frameworkBuildColumns({
     );
     // If portal_partition_daily exists, replace in current spot, otherwise add to end
     const portalPartitionDailyIndex = columns.findIndex(
-      (c) => c.name === 'portal_partition_daily',
+      (c) => c.name === PARTITION_DAILY,
     );
     const portalPartitionDailyColumn: FrameworkColumn = {
-      name: 'portal_partition_daily',
+      name: PARTITION_DAILY,
       data_type: 'date',
       meta: { expr: '_ext_event_date', type: 'dim' },
     };
@@ -992,65 +1061,36 @@ export function frameworkInferCteColumns({
     const sel = item as CteSelectItem & Record<string, unknown>;
     const selType = sel.type as string | undefined;
 
-    if ('cte' in sel && selType) {
+    if ('cte' in sel && selType && BULK_CTE_TYPES.has(selType)) {
       const cteSelectItem = sel as SchemaModelSelectCTE;
-      if (
-        selType === 'all_from_cte' ||
-        selType === 'dims_from_cte' ||
-        selType === 'fcts_from_cte'
-      ) {
-        const srcCols = cteRegistry.get(cteSelectItem.cte) || [];
-        const include =
-          'include' in sel ? (sel.include as string[]) : undefined;
-        const exclude =
-          'exclude' in sel ? (sel.exclude as string[]) : undefined;
-        for (const c of srcCols) {
-          if (selType === 'dims_from_cte' && c.meta?.type === 'fct') {
-            continue;
-          }
-          if (selType === 'fcts_from_cte' && c.meta?.type !== 'fct') {
-            continue;
-          }
-          if (include?.length && !include.includes(c.name)) {
-            continue;
-          }
-          if (exclude?.length && exclude.includes(c.name)) {
-            continue;
-          }
-          columns.push({ ...c });
-        }
-        continue;
-      }
+      const srcCols = cteRegistry.get(cteSelectItem.cte) || [];
+      const include = 'include' in sel ? (sel.include as string[]) : undefined;
+      const exclude = 'exclude' in sel ? (sel.exclude as string[]) : undefined;
+      const filtered = filterBulkSelectColumns(srcCols, selType, {
+        include,
+        exclude,
+      });
+      const ordered =
+        include || exclude ? sortColumnsWithPartitionsLast(filtered) : filtered;
+      columns.push(...ordered.map((c) => ({ ...c })));
+      continue;
     }
 
-    if ('model' in sel && selType) {
-      if (
-        selType === 'all_from_model' ||
-        selType === 'dims_from_model' ||
-        selType === 'fcts_from_model'
-      ) {
-        const modelRef = sel.model as string;
-        const include =
-          'include' in sel ? (sel.include as string[]) : undefined;
-        const exclude =
-          'exclude' in sel ? (sel.exclude as string[]) : undefined;
-        const nodeColumns = frameworkGetNodeColumns({
-          from: { model: modelRef },
-          project,
-          include,
-          exclude,
-        });
-        for (const c of nodeColumns.columns) {
-          if (selType === 'dims_from_model' && c.meta?.type === 'fct') {
-            continue;
-          }
-          if (selType === 'fcts_from_model' && c.meta?.type !== 'fct') {
-            continue;
-          }
-          columns.push(c);
-        }
-        continue;
-      }
+    if ('model' in sel && selType && BULK_MODEL_TYPES.has(selType)) {
+      const modelRef = sel.model as string;
+      const include = 'include' in sel ? (sel.include as string[]) : undefined;
+      const exclude = 'exclude' in sel ? (sel.exclude as string[]) : undefined;
+      const nodeColumns = frameworkGetNodeColumns({
+        from: { model: modelRef },
+        project,
+        include,
+        exclude,
+      });
+      const filtered = filterBulkSelectColumns(nodeColumns.columns, selType);
+      const ordered =
+        include || exclude ? sortColumnsWithPartitionsLast(filtered) : filtered;
+      columns.push(...ordered);
+      continue;
     }
 
     if ('name' in sel) {
@@ -1175,9 +1215,9 @@ export function frameworkBuildSourceDateColumns({
         },
       });
     }
-    if (!columns.find((c) => c.name === 'portal_partition_daily')) {
+    if (!columns.find((c) => c.name === PARTITION_DAILY)) {
       sourceDateColumns.push({
-        name: 'portal_partition_daily',
+        name: PARTITION_DAILY,
         data_type: 'date',
         description: 'Daily Partition Column',
         meta: {
@@ -1187,9 +1227,9 @@ export function frameworkBuildSourceDateColumns({
         },
       });
     }
-    if (!columns.find((c) => c.name === 'portal_partition_hourly')) {
+    if (!columns.find((c) => c.name === PARTITION_HOURLY)) {
       sourceDateColumns.push({
-        name: 'portal_partition_hourly',
+        name: PARTITION_HOURLY,
         data_type: 'timestamp(6)',
         description: 'Hourly Partition Column',
         meta: {
@@ -1199,9 +1239,9 @@ export function frameworkBuildSourceDateColumns({
         },
       });
     }
-    if (!columns.find((c) => c.name === 'portal_partition_monthly')) {
+    if (!columns.find((c) => c.name === PARTITION_MONTHLY)) {
       sourceDateColumns.push({
-        name: 'portal_partition_monthly',
+        name: PARTITION_MONTHLY,
         data_type: 'date',
         description: 'Monthly Partition Column',
         meta: {
@@ -1434,9 +1474,9 @@ export function frameworkGetRollupInputs({
   const columns: FrameworkColumn[] = [];
   const exclude: ('datetime' | FrameworkPartitionName)[] = ['datetime'];
   const partitions: FrameworkPartitionName[] = [
-    'portal_partition_monthly',
-    'portal_partition_daily',
-    'portal_partition_hourly',
+    PARTITION_MONTHLY,
+    PARTITION_DAILY,
+    PARTITION_HOURLY,
   ];
 
   let newDatetimeExpr = '';
@@ -1446,18 +1486,18 @@ export function frameworkGetRollupInputs({
       newDatetimeExpr = "date_trunc('hour', datetime)";
       break;
     case 'day':
-      exclude.push('portal_partition_hourly');
+      exclude.push(PARTITION_HOURLY);
       newDatetimeExpr = "date_trunc('day', datetime)";
       break;
     case 'month':
-      exclude.push('portal_partition_daily');
-      exclude.push('portal_partition_hourly');
+      exclude.push(PARTITION_DAILY);
+      exclude.push(PARTITION_HOURLY);
       newDatetimeExpr = "date_trunc('month', datetime)";
       break;
     case 'year':
-      exclude.push('portal_partition_daily');
-      exclude.push('portal_partition_hourly');
-      exclude.push('portal_partition_monthly');
+      exclude.push(PARTITION_DAILY);
+      exclude.push(PARTITION_HOURLY);
+      exclude.push(PARTITION_MONTHLY);
       newDatetimeExpr = "date_trunc('year', datetime)";
       break;
   }
@@ -1516,11 +1556,7 @@ export function frameworkGetModelPartitions({
   const from = frameworkGetNodeColumns({
     exclude,
     from: { model },
-    include: [
-      'portal_partition_monthly',
-      'portal_partition_daily',
-      'portal_partition_hourly',
-    ],
+    include: [PARTITION_MONTHLY, PARTITION_DAILY, PARTITION_HOURLY],
     project,
   });
   return from.columns;
@@ -1765,14 +1801,15 @@ export function frameworkGetPartitionColumnNames({
   const partitionColumnsParent = parentMeta?.portal_partition_columns;
   const partitionColumnsModel =
     ('materialization' in modelJson &&
+      typeof modelJson.materialization === 'object' &&
       modelJson.materialization &&
       'partitions' in modelJson.materialization &&
       modelJson.materialization?.partitions) ||
     ('partitioned_by' in modelJson && modelJson.partitioned_by);
   const partitionColumnsDefault: FrameworkPartitionName[] = [
-    'portal_partition_monthly',
-    'portal_partition_daily',
-    'portal_partition_hourly',
+    PARTITION_MONTHLY,
+    PARTITION_DAILY,
+    PARTITION_HOURLY,
   ];
   // Set in order of priority
   const partitionColumnNames =
@@ -1803,7 +1840,8 @@ export function frameworkModelHasAgg({
   modelJson: FrameworkModel;
 }): boolean {
   return !!(
-    ('group_by' in modelJson && modelJson.group_by?.length) ||
+    ('group_by' in modelJson &&
+      (typeof modelJson.group_by === 'string' || modelJson.group_by?.length)) ||
     ('rollup' in modelJson.from && modelJson.from.rollup) ||
     ('lookback' in modelJson.from && modelJson.from.lookback) ||
     ('select' in modelJson &&

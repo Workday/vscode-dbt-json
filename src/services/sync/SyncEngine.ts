@@ -615,6 +615,8 @@ export class SyncEngine {
                   this.callbacks.onModelValidationError?.(
                     jsonUri,
                     validation.error ?? 'Validation failed',
+                    validation.errors,
+                    jsonContent,
                   );
                   errors.push({
                     resourceId: resource.id,
@@ -638,6 +640,8 @@ export class SyncEngine {
                   this.callbacks.onModelValidationError?.(
                     jsonUri,
                     validation.error ?? 'Validation failed',
+                    validation.errors,
+                    jsonContent,
                   );
                   errors.push({
                     resourceId: resource.id,

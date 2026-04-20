@@ -7,6 +7,7 @@ def var(name: str, default: str = "") -> str:
 
 dbt_project: str = var("dj_etl_dbt_project")
 dbt_threads: int = int(var("dj_etl_dbt_threads", "1"))
+etl_schema: str = var("dj_etl_etl_schema", "source_etl")
 custom_failure_notifications: bool = var("dj_etl_custom_failure_notifications", "false").lower() == "true"
 email_notifications: str = var("dj_etl_email_notifications")
 error_run_limit: int = int(var("dj_etl_error_run_limit", "0"))
@@ -69,6 +70,8 @@ override_sources: list[str] = (
     else []
 )
 schedule_cron: str = var("dj_etl_schedule_cron", "0 */6 * * *")
+storage_type: str = var("dj_etl_storage_type", "delta_lake")
+skip_sources: bool = var("dj_etl_skip_sources", "false").lower() == "true"
 source_date_limit: int = int(var("dj_etl_source_date_limit", "5"))
 source_date_tasks: int = int(var("dj_etl_source_date_tasks", "4"))
 source_run_limit: int = int(var("dj_etl_source_run_limit", "0"))

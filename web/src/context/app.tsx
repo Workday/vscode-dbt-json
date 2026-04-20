@@ -992,6 +992,14 @@ where a = 1
                   ).context;
 
                   if (action === 'get') {
+                    if (context === 'default-incremental-strategy') {
+                      return resolve(
+                        apiResponse<typeof payloadType>({
+                          success: true,
+                          value: 'delete+insert',
+                        }),
+                      );
+                    }
                     let value = true; // Default value for web development
                     if (context === 'data-explorer') {
                       value = false; // Data explorer defaults to disabled

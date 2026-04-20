@@ -209,7 +209,9 @@ export const SelectNode: React.FC<NodeProps> = ({ data: _data }) => {
       selection: { include?: string[]; exclude?: string[] },
       shouldClear?: boolean,
     ) => {
-      if (!selectedModel) return;
+      if (!selectedModel) {
+        return;
+      }
 
       const { basicFields, modelingState: ms } = useModelStore.getState();
       const hasJoins = Array.isArray(ms.join) ? ms.join.length > 0 : !!ms.join;

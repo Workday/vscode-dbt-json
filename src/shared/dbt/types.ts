@@ -216,8 +216,8 @@ export type DbtModelConfig = {
   post_hook?: string | string[];
   pre_hook?: string | string[];
   properties?: {
-    incremental_strategy?: 'append' | 'overwrite_existing_partitions';
     partitioned_by?: string;
+    partitioning?: string;
     partitions?: string;
   };
   schema?: string;
@@ -514,7 +514,10 @@ export type DbtProjectProperties = {
   //
   models: { [name: string]: { description?: string } };
   vars: {
+    project_catalog?: string;
+    etl_schema?: string;
     event_dates?: string;
+    storage_type?: 'delta_lake' | 'iceberg';
   };
 };
 
@@ -584,7 +587,7 @@ export type DbtSourceProperties = {
   database: string;
   schema: string;
   description?: string;
-  freshness?: DbtSourceFreshness;
+  freshness?: DbtSourceFreshness | null;
   loaded_at_field?: string;
   meta?: FrameworkSourceMeta;
   tables: DbtSourceTable[];
@@ -594,6 +597,8 @@ export type DbtSourceProperties = {
 export type DbtSourceTable = {
   name: string;
   description?: string;
+  freshness?: DbtSourceFreshness | null;
+  loaded_at_field?: string;
   columns: DbtSourceTableColumn[];
   meta?: FrameworkSourceTableMeta;
 };

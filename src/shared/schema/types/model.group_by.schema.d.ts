@@ -7,26 +7,26 @@
 
 /**
  * Validate model group by
- *
- * @minItems 1
  */
-export type SchemaModelGroupBy = [
-  (
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  ),
-  ...(
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  )[],
-];
+export type SchemaModelGroupBy =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];

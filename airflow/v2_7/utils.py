@@ -488,6 +488,7 @@ def sql_dbt_model_dates_merge(
     etl_timestamp: str,
     event_dates: list[str],
     model_id_dates_list: list[TestIdDates],
+    etl_schema: str,
 ) -> str | None:
     model_merge_args: list[str] = []
     # Building model runs for the successful models just so we can collect the merges
@@ -510,7 +511,7 @@ def sql_dbt_model_dates_merge(
     # Update the model dates table with the model run results
     if len(model_merge_args) > 0:
         return f"""
-                MERGE INTO {database_name}.source_etl.dbt_model_dates old USING (VALUES {','.join(model_merge_args)}) new (model_id, event_date, etl_timestamp, run_dates, run_message, run_rows, run_seconds, run_status)
+                MERGE INTO {database_name}.{etl_schema}.dbt_model_dates old USING (VALUES {','.join(model_merge_args)}) new (model_id, event_date, etl_timestamp, run_dates, run_message, run_rows, run_seconds, run_status)
                 ON (old.model_id = new.model_id AND old.event_date = new.event_date)
                 WHEN MATCHED
                     THEN UPDATE SET etl_timestamp = new.etl_timestamp, run_dates = new.run_dates, run_message = new.run_message, run_rows = new.run_rows, run_seconds = new.run_seconds, run_status = new.run_status
@@ -667,6 +668,7 @@ def sql_dbt_source_dates_old(
     source: Source,
     event_dates: list[date],
     database_name: str,
+    etl_schema: str,
 ) -> str:
     event_dates_iso: list[str] = [date_to_iso(event_date) for event_date in event_dates]
     event_dates_prefixed = "date '" + "',date '".join(event_dates_iso) + "'"
@@ -677,7 +679,7 @@ SELECT
     partition_dates,
     etl_timestamp
 FROM
-    {database_name}.source_etl.dbt_source_dates
+    {database_name}.{etl_schema}.dbt_source_dates
 WHERE
     source_id = '{source['id']}'
     AND event_date IN ({event_dates_prefixed})
@@ -693,6 +695,7 @@ def sql_dbt_test_dates_merge(
     etl_timestamp: str,
     event_dates: list[str],
     test_id_dates_list: list[TestIdDates],
+    etl_schema: str,
 ) -> str | None:
     test_runs = build_runs(
         id_dates_list=test_id_dates_list,
@@ -717,7 +720,7 @@ def sql_dbt_test_dates_merge(
 
     if len(test_merge_args) > 0:
         return f"""
-            MERGE INTO {database_name}.source_etl.dbt_test_dates old USING (VALUES {','.join(test_merge_args)}) new (test_id, model_id, event_date, etl_timestamp, test_dates, test_message, test_rows, test_seconds, test_status)
+            MERGE INTO {database_name}.{etl_schema}.dbt_test_dates old USING (VALUES {','.join(test_merge_args)}) new (test_id, model_id, event_date, etl_timestamp, test_dates, test_message, test_rows, test_seconds, test_status)
             ON (old.test_id = new.test_id AND old.event_date = new.event_date)
             WHEN MATCHED
                 THEN UPDATE SET model_id = new.model_id, etl_timestamp = new.etl_timestamp, test_dates = new.test_dates, test_message = new.test_message, test_rows = new.test_rows, test_seconds = new.test_seconds, test_status = new.test_status
@@ -1321,6 +1324,7 @@ class SourceEtlUtilsTest(unittest.TestCase):
                 source=source,
                 event_dates=event_dates,
                 database_name=database_name,
+                etl_schema="source_etl",
             ),
             """
 SELECT

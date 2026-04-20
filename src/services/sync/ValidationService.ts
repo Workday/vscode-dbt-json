@@ -22,11 +22,12 @@ import {
   generateAutoTests,
 } from '@services/framework/utils';
 import {
+  formatValidationErrorDetails,
   formatValidationErrors,
   getValidatorForType,
   validateCtes,
   validateSubqueries,
-} from '@services/validationErrors';
+} from '@services/modelValidation';
 import type { FrameworkModel, FrameworkSource } from '@shared/framework/types';
 import type { Ajv, ValidateFunction } from 'ajv';
 import { applyEdits, modify } from 'jsonc-parser';
@@ -168,6 +169,7 @@ export class ValidationService {
       return {
         valid: false,
         error: message,
+        errors: formatValidationErrorDetails(errors),
         pathJson,
       };
     }
@@ -280,6 +282,7 @@ export class ValidationService {
       return {
         valid: false,
         error: message,
+        errors: formatValidationErrorDetails(errors),
         pathJson,
       };
     }

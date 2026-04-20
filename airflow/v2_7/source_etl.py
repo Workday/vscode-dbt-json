@@ -28,6 +28,7 @@ from _ext_.variables import (
     email_notifications,
     error_run_limit,
     error_run_timeout_minutes,
+    etl_schema,
     event_date_delay,
     exclude_models,
     k8s_workers_end,
@@ -50,6 +51,7 @@ from _ext_.variables import (
     source_date_tasks,
     source_run_limit,
     source_run_timeout_minutes,
+    storage_type,
     suppress_notifications,
     trino_catalog,
     trino_schema,
@@ -105,17 +107,19 @@ def source_etl_dag():
         """
         Create the schema and tables for tracking ETL metadata if they don't exist.
         """
+        partition_kw = "partitioning" if storage_type == "iceberg" else "partitioned_by"
+
         # Create new schema for the source etl tables if it doesn't exist yet
         trino_run(
             f"""
-            CREATE SCHEMA IF NOT EXISTS {trino_catalog}.source_etl
+            CREATE SCHEMA IF NOT EXISTS {trino_catalog}.{etl_schema}
             """
         )
 
         # Create table for tracking model run dates if it doesn't exist yet
         trino_run(
             f"""
-            CREATE TABLE IF NOT EXISTS {trino_catalog}.source_etl.dbt_model_dates (
+            CREATE TABLE IF NOT EXISTS {trino_catalog}.{etl_schema}.dbt_model_dates (
                 model_id varchar,
                 event_date date,
                 etl_timestamp timestamp(6),
@@ -128,7 +132,7 @@ def source_etl_dag():
                 run_status varchar
             )
             WITH (
-                partitioned_by = ARRAY['model_id']
+                {partition_kw} = ARRAY['model_id']
             )
         """
         )
@@ -136,13 +140,13 @@ def source_etl_dag():
         # Create table for mapping source dates if it doesn't exist yet
         trino_run(
             f"""
-            CREATE TABLE IF NOT EXISTS {trino_catalog}.source_etl.dbt_sources (
+            CREATE TABLE IF NOT EXISTS {trino_catalog}.{etl_schema}.dbt_sources (
                 source_id varchar,
                 properties varchar,
                 etl_active boolean
             )
             WITH (
-                partitioned_by = ARRAY['etl_active']
+                {partition_kw} = ARRAY['etl_active']
             )
         """
         )
@@ -150,7 +154,7 @@ def source_etl_dag():
         # Create table for mapping source dates if it doesn't exist yet
         trino_run(
             f"""
-            CREATE TABLE IF NOT EXISTS {trino_catalog}.source_etl.dbt_source_dates (
+            CREATE TABLE IF NOT EXISTS {trino_catalog}.{etl_schema}.dbt_source_dates (
                 source_id varchar,
                 event_date date,
                 event_count bigint,
@@ -158,7 +162,7 @@ def source_etl_dag():
                 etl_timestamp timestamp(6)
             )
             WITH (
-                partitioned_by = ARRAY['source_id']
+                {partition_kw} = ARRAY['source_id']
             )
         """
         )
@@ -166,7 +170,7 @@ def source_etl_dag():
         # Create table for tracking test results if it doesn't exist yet
         trino_run(
             f"""
-            CREATE TABLE IF NOT EXISTS {trino_catalog}.source_etl.dbt_test_dates (
+            CREATE TABLE IF NOT EXISTS {trino_catalog}.{etl_schema}.dbt_test_dates (
                 test_id varchar,
                 model_id varchar,
                 event_date date,
@@ -178,7 +182,7 @@ def source_etl_dag():
                 test_status varchar
             )
             WITH (
-                partitioned_by = ARRAY['model_id']
+                {partition_kw} = ARRAY['model_id']
             )
         """
         )
@@ -264,7 +268,7 @@ def source_etl_dag():
         if len(sources_merge_args) > 0:
             # Update the dbt_sources table to indicate which sources are in master and being actively managed by the etl
             sources_merge_sql = f"""
-                MERGE INTO {trino_catalog}.source_etl.dbt_sources old USING (VALUES {','.join(sources_merge_args)}) new (source_id, properties, etl_active)
+                MERGE INTO {trino_catalog}.{etl_schema}.dbt_sources old USING (VALUES {','.join(sources_merge_args)}) new (source_id, properties, etl_active)
                 ON (old.source_id = new.source_id)
                 WHEN MATCHED
                     THEN UPDATE SET properties = new.properties, etl_active = new.etl_active
@@ -339,6 +343,7 @@ def source_etl_dag():
                     source=source,
                     event_dates=event_dates_backfill,
                     database_name=trino_catalog,
+                    etl_schema=etl_schema,
                 )
                 dbt_source_dates_old_rows = trino_run(dbt_source_dates_old_sql)
                 dbt_source_dates_old: list[date] = []
@@ -390,7 +395,8 @@ def source_etl_dag():
                 )
                 dbt_source_dates_new_rows = trino_run(dbt_source_dates_new_sql)
                 dbt_source_dates_old_sql = sql_dbt_source_dates_old(
-                    source=source, event_dates=event_dates, database_name=trino_catalog
+                    source=source, event_dates=event_dates, database_name=trino_catalog,
+                    etl_schema=etl_schema,
                 )
                 dbt_source_dates_old_rows = trino_run(dbt_source_dates_old_sql)
             except:
@@ -510,7 +516,7 @@ def source_etl_dag():
 
             if len(source_merge_args) > 0:
                 source_dates_merge_sql = f"""
-                    MERGE INTO {trino_catalog}.source_etl.dbt_source_dates old USING (VALUES {','.join(source_merge_args)}) new (source_id, event_date, event_count, partition_dates, etl_timestamp)
+                    MERGE INTO {trino_catalog}.{etl_schema}.dbt_source_dates old USING (VALUES {','.join(source_merge_args)}) new (source_id, event_date, event_count, partition_dates, etl_timestamp)
                     ON (old.source_id = new.source_id AND old.event_date = new.event_date)
                     WHEN MATCHED
                         THEN UPDATE SET event_count = new.event_count, partition_dates = new.partition_dates, etl_timestamp = new.etl_timestamp
@@ -636,9 +642,9 @@ def source_etl_dag():
                 m.etl_timestamp,
                 sum(case when t.test_status <> 'pass' then 1 else 0 end) as failed_tests
             FROM
-                {trino_catalog}.source_etl.dbt_model_dates m
+                {trino_catalog}.{etl_schema}.dbt_model_dates m
             LEFT OUTER JOIN
-                {trino_catalog}.source_etl.dbt_test_dates t ON m.model_id = t.model_id AND m.event_date = t.event_date AND m.etl_timestamp = t.etl_timestamp
+                {trino_catalog}.{etl_schema}.dbt_test_dates t ON m.model_id = t.model_id AND m.event_date = t.event_date AND m.etl_timestamp = t.etl_timestamp
             WHERE
                 m.model_id IN ('{"','".join(model_ids)}') AND m.run_status = 'success'
             GROUP BY
@@ -666,7 +672,7 @@ def source_etl_dag():
                 cast(event_date as varchar) as event_date,
                 etl_timestamp
             FROM
-                {trino_catalog}.source_etl.dbt_source_dates
+                {trino_catalog}.{etl_schema}.dbt_source_dates
             WHERE
                 source_id = '{source_id}'
             ORDER BY
@@ -766,7 +772,7 @@ def source_etl_dag():
                 model_id,
                 cast(event_date as varchar) as event_date
             FROM
-                {trino_catalog}.source_etl.dbt_model_dates
+                {trino_catalog}.{etl_schema}.dbt_model_dates
             WHERE
                 etl_timestamp = cast('{etl_timestamp}' as timestamp(6)) AND run_status = 'error'
         """
@@ -839,7 +845,7 @@ def source_etl_dag():
                 cast(event_date as varchar) as event_date,
                 optimize_timestamp
             FROM
-                {trino_catalog}.source_etl.dbt_model_dates
+                {trino_catalog}.{etl_schema}.dbt_model_dates
             WHERE
                 run_status = 'success'
                 AND (
@@ -945,7 +951,7 @@ def source_etl_dag():
                 )
                 trino_run(
                     f"""
-                    UPDATE {trino_catalog}.source_etl.dbt_model_dates
+                    UPDATE {trino_catalog}.{etl_schema}.dbt_model_dates
                     SET optimize_timestamp = cast('{etl_timestamp}' as timestamp(6))
                     WHERE model_id = '{model_id}' AND event_date IN ({in_dates})
                     """
@@ -957,7 +963,7 @@ def source_etl_dag():
             )
             trino_run(
                 f"""
-                UPDATE {trino_catalog}.source_etl.dbt_model_dates
+                UPDATE {trino_catalog}.{etl_schema}.dbt_model_dates
                 SET optimize_timestamp = cast('{etl_timestamp}' as timestamp(6))
                 """
             )
@@ -969,10 +975,11 @@ def source_etl_dag():
             # If we don't have a vacuum date delay variable, we don't need to run any mapped tasks
             return []
 
-        # https://docs.delta.io/0.4.0/delta-utility.html#vacuum
-        if vacuum_date_delay < 7:
+        # Delta Lake requires a minimum vacuum retention of 7 days.
+        # Iceberg's expire_snapshots/remove_orphan_files have no such minimum.
+        if storage_type != "iceberg" and vacuum_date_delay < 7:
             raise Exception(
-                f"Vacuum date delay is less than the recommended minimum of 7"
+                f"Vacuum date delay is less than the recommended minimum of 7 for Delta Lake"
             )
 
         etl_timestamp = ti.xcom_pull(key="etl_timestamp", task_ids="start_etl")
@@ -983,7 +990,7 @@ def source_etl_dag():
                 model_id,
                 max(vacuum_timestamp) as vacuum_timestamp
             FROM
-                {trino_catalog}.source_etl.dbt_model_dates
+                {trino_catalog}.{etl_schema}.dbt_model_dates
             WHERE
                 run_status = 'success'
             GROUP BY
@@ -1031,14 +1038,22 @@ def source_etl_dag():
             log.info("No model name found for vacuum run")
             return
 
+        if storage_type == "iceberg":
+            trino_run(
+                f"ALTER TABLE {model_name} EXECUTE expire_snapshots(retention_threshold => '{vacuum_date_delay}d')"
+            )
+            trino_run(
+                f"ALTER TABLE {model_name} EXECUTE remove_orphan_files(retention_threshold => '{vacuum_date_delay}d')"
+            )
+        else:
+            trino_run(
+                f"""
+                CALL {trino_catalog}.system.vacuum('{trino_schema}', '{model_name}', '{vacuum_date_delay}d')
+                """
+            )
         trino_run(
             f"""
-            CALL {trino_catalog}.system.vacuum('{trino_schema}', '{model_name}', '{vacuum_date_delay}d')
-            """
-        )
-        trino_run(
-            f"""
-            UPDATE {trino_catalog}.source_etl.dbt_model_dates
+            UPDATE {trino_catalog}.{etl_schema}.dbt_model_dates
             SET vacuum_timestamp = cast('{etl_timestamp}' as timestamp(6))
             WHERE model_id = '{model_id}' AND date_diff('day', event_date, timestamp '{etl_timestamp}') > {vacuum_date_delay}
             """

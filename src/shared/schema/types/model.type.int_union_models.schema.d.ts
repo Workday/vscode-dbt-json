@@ -118,6 +118,8 @@ export type SchemaModelDataTests = (
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
+  | 'incremental'
+  | 'ephemeral'
   | {
       type: 'ephemeral';
     }
@@ -227,26 +229,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -263,26 +264,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   ),
   ...(
@@ -295,26 +295,25 @@ export type SchemaModelFromJoinModels = [
         model: SchemaModelRef;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
     | {
         /**
@@ -331,26 +330,25 @@ export type SchemaModelFromJoinModels = [
         cte: string;
         override_alias?: SchemaColumnName;
         type?: 'full' | 'inner' | 'left' | 'right';
-        /**
-         * SQL for the join condition
-         */
-        on: {
-          /**
-           * Conditions to be combined by AND
-           */
-          and?: (
-            | SchemaColumnName
-            | {
-                /**
-                 * SQL for the condition
-                 */
-                expr: string;
-              }
-            | {
-                subquery: SchemaModelSubquery;
-              }
-          )[];
-        };
+        on:
+          | 'dims'
+          | {
+              /**
+               * Conditions to be combined by AND
+               */
+              and?: (
+                | SchemaColumnName
+                | {
+                    /**
+                     * SQL for the condition
+                     */
+                    expr: string;
+                  }
+                | {
+                    subquery: SchemaModelSubquery;
+                  }
+              )[];
+            };
       }
   )[],
 ];
@@ -667,30 +665,30 @@ export type SchemaModelSelectCTE =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
- * Validate model group by
- *
- * @minItems 1
+ * GROUP BY clause for the CTE. Use "dims" (shorthand) or [{ "type": "dims" }] to automatically group by all dimension column expressions. Avoid bare string aliases when the CTE select contains computed expressions (expr), as they reference the alias rather than the underlying expression and will fail at query runtime.
  */
-export type SchemaModelGroupBy = [
-  (
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  ),
-  ...(
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  )[],
-];
+export type SchemaModelGroupBy =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
 /**
  * SQL HAVING
  */

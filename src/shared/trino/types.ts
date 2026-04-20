@@ -22,7 +22,7 @@ export type TrinoApi =
   | {
       type: 'trino-fetch-etl-sources';
       service: 'trino';
-      request: { projectName: string };
+      request: { projectName: string; etlSchema?: string };
       response: FrameworkEtlSource[];
     }
   | {

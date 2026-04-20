@@ -118,6 +118,8 @@ export type SchemaModelDataTests = (
  * Materialization Configuration
  */
 export type SchemaModelMaterialization =
+  | 'incremental'
+  | 'ephemeral'
   | {
       type: 'ephemeral';
     }
@@ -449,29 +451,29 @@ export type SchemaModelSelectModelWithAgg = {
 };
 /**
  * Validate model group by
- *
- * @minItems 1
  */
-export type SchemaModelGroupBy = [
-  (
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  ),
-  ...(
-    | string
-    | {
-        expr: string;
-      }
-    | {
-        type: 'dims';
-      }
-  )[],
-];
+export type SchemaModelGroupBy =
+  | 'dims'
+  | [
+      (
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      ),
+      ...(
+        | string
+        | {
+            expr: string;
+          }
+        | {
+            type: 'dims';
+          }
+      )[],
+    ];
 
 /**
  * Used for creating aggregated over a trailing time period

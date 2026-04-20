@@ -23,6 +23,7 @@ from _ext_.variables import (
     custom_failure_notifications,
     dbt_project,
     dbt_threads,
+    etl_schema,
     exclude_models,
     is_local,
     k8s_config_path,
@@ -209,6 +210,7 @@ def dbt_build(
         etl_timestamp=etl_timestamp,
         event_dates=event_dates,
         model_id_dates_list=model_id_dates_list,
+        etl_schema=etl_schema,
     )
     if model_dates_merge_sql:
         trino_run(model_dates_merge_sql)
@@ -218,6 +220,7 @@ def dbt_build(
         etl_timestamp=etl_timestamp,
         event_dates=event_dates,
         test_id_dates_list=test_id_dates_list,
+        etl_schema=etl_schema,
     )
     if test_dates_merge_sql:
         trino_run(test_dates_merge_sql)
@@ -322,7 +325,7 @@ def send_dag_failure_notification(email_list: list[str], context: dict, task_ins
                 ', ' 
             ) AS event_date
         FROM
-            {trino_catalog}.source_etl.dbt_model_dates
+            {trino_catalog}.{etl_schema}.dbt_model_dates
         WHERE
             etl_timestamp = cast('{etl_timestamp}' as timestamp(6))
             AND run_status != 'success'
@@ -344,7 +347,7 @@ def send_dag_failure_notification(email_list: list[str], context: dict, task_ins
             test_status,
             substring(test_message,1,100) as test_message
         FROM
-            {trino_catalog}.source_etl.dbt_test_dates
+            {trino_catalog}.{etl_schema}.dbt_test_dates
         WHERE
             etl_timestamp = cast('{etl_timestamp}' as timestamp(6))
             AND test_status != 'pass'
