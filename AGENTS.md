@@ -440,7 +440,9 @@ type(scope): description
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 Scopes: `extension`, `web`, `macros`, `schemas`, `scripts`
 
-### Changelog
+### Changelog — MANDATORY
+
+> **Every PR that adds features, fixes bugs, or makes notable behavioral changes MUST include a `CHANGELOG.md` update. Do not consider a task complete until the changelog entry has been written.**
 
 When adding features or making notable changes, update `CHANGELOG.md`:
 

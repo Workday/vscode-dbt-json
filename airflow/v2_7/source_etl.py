@@ -395,7 +395,9 @@ def source_etl_dag():
                 )
                 dbt_source_dates_new_rows = trino_run(dbt_source_dates_new_sql)
                 dbt_source_dates_old_sql = sql_dbt_source_dates_old(
-                    source=source, event_dates=event_dates, database_name=trino_catalog,
+                    source=source,
+                    event_dates=event_dates,
+                    database_name=trino_catalog,
                     etl_schema=etl_schema,
                 )
                 dbt_source_dates_old_rows = trino_run(dbt_source_dates_old_sql)
