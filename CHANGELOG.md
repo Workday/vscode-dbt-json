@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.1
+
+### CTE Partition Filters
+
+- **Automatic partition filters for CTEs** — CTEs that reference upstream models via `from.model` now automatically receive `_ext_event_date_filter` partition predicates, and models that read from CTEs (`from.cte`) also get partition filters by resolving the CTE chain to its root model or source. This makes CTE-based models consistent with ephemeral model chains.
+- **CTE-level `exclude_date_filter`** — individual CTEs can opt out of automatic partition filters by setting `"exclude_date_filter": true`, independent of the parent model's setting
+
 ## 1.3.0
 
 ### Catalog-Agnostic Storage Support

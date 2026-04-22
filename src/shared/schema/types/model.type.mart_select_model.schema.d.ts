@@ -552,6 +552,10 @@ export type SchemaModelSelectCTE =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
+ * Will prevent the automatic date filters from getting added
+ */
+export type SchemaModelExcludeDateFilter = boolean;
+/**
  * Validate model group by
  */
 export type SchemaModelGroupBy1 =
@@ -827,6 +831,7 @@ export interface SchemaModelCTE {
       | SchemaModelSelectCTE
     )[],
   ];
+  exclude_date_filter?: SchemaModelExcludeDateFilter;
   where?: SchemaModelWhere;
   group_by?: SchemaModelGroupBy1;
   having?: SchemaModelHaving;

@@ -141,6 +141,9 @@
         ]
       }
     },
+    "exclude_date_filter": {
+      "$ref": "model.exclude_date_filter.schema.json"
+    },
     "where": {
       "$ref": "model.where.schema.json"
     },

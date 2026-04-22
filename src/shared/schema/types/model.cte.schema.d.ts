@@ -487,6 +487,10 @@ export type SchemaModelSelectCTE =
       include?: [SchemaColumnName, ...SchemaColumnName[]];
     };
 /**
+ * Will prevent the automatic date filters from getting added
+ */
+export type SchemaModelExcludeDateFilter = boolean;
+/**
  * GROUP BY clause for the CTE. Use "dims" (shorthand) or [{ "type": "dims" }] to automatically group by all dimension column expressions. Avoid bare string aliases when the CTE select contains computed expressions (expr), as they reference the alias rather than the underlying expression and will fail at query runtime.
  */
 export type SchemaModelGroupBy =
@@ -618,6 +622,7 @@ export interface SchemaModelCTE {
       | SchemaModelSelectCTE
     )[],
   ];
+  exclude_date_filter?: SchemaModelExcludeDateFilter;
   where?: SchemaModelWhere;
   group_by?: SchemaModelGroupBy;
   having?: SchemaModelHaving;

@@ -1071,6 +1071,7 @@ export interface SchemaModelCTE {
       | SchemaModelSelectCTE
     )[],
   ];
+  exclude_date_filter?: SchemaModelExcludeDateFilter;
   where?: SchemaModelWhere;
   group_by?: SchemaModelGroupBy1;
   having?: SchemaModelHaving;

@@ -744,6 +744,31 @@ export function frameworkModelWhere({
         project,
       }),
     );
+  } else if (
+    'from' in modelJson &&
+    'cte' in modelJson.from &&
+    'ctes' in modelJson &&
+    modelJson.ctes?.length
+  ) {
+    const rootFrom = resolveCteRootFrom(
+      (modelJson.from as { cte: string }).cte,
+      modelJson.ctes,
+    );
+    if (rootFrom) {
+      sqlAndFramework.push(
+        ...frameworkBuildFilters({
+          datetimeInterval,
+          dj,
+          from: rootFrom,
+          modelJson,
+          project,
+          prefix:
+            'join' in modelJson.from
+              ? (modelJson.from as { cte: string }).cte
+              : undefined,
+        }),
+      );
+    }
   }
 
   const userConditions =
@@ -1185,41 +1210,75 @@ export function expandBulkSelectColumns({
 export function frameworkGenerateCteSql({
   cte,
   cteRegistry,
+  datetimeInterval,
+  dj,
+  modelJson,
   project,
 }: {
   cte: FrameworkCTE;
   cteRegistry: CteColumnRegistry;
+  datetimeInterval?: FrameworkInterval | null;
+  dj?: DJ;
+  modelJson?: FrameworkModel;
   project: DbtProject;
 }): string {
   const from = cte.from;
 
+  const shouldExcludeDateFilter =
+    ('exclude_date_filter' in cte && cte.exclude_date_filter) ||
+    (modelJson &&
+      'exclude_date_filter' in modelJson &&
+      modelJson.exclude_date_filter);
+
   // UNION CTE
   if ('union' in from && from.union) {
     const unionSpec = from.union;
-    const allRefs: string[] = [];
     if ('cte' in from) {
-      allRefs.push(from.cte);
+      const allRefs: string[] = [from.cte];
       if ('ctes' in unionSpec) {
         allRefs.push(...unionSpec.ctes);
       }
+      if (cte.select?.length) {
+        const cols = cteRegistry.get(cte.name) || [];
+        const colNames = cols.map((c) => c.name).join(', ');
+        return allRefs
+          .map((ref) => `select ${colNames} from ${ref}`)
+          .join('\nunion all\n');
+      }
+      return allRefs.map((ref) => `select * from ${ref}`).join('\nunion all\n');
     } else if ('model' in from) {
-      allRefs.push(`{{ ref('${from.model}') }}`);
+      const baseModel = from.model;
+      const modelRefs: string[] = [baseModel];
       if ('models' in unionSpec) {
         for (const m of unionSpec.models) {
-          allRefs.push(`{{ ref('${m}') }}`);
+          modelRefs.push(m);
         }
       }
+      const selectCols = cte.select?.length
+        ? (cteRegistry.get(cte.name) || []).map((c) => c.name).join(', ')
+        : '*';
+
+      const sqlLines: string[] = [];
+      for (const modelRef of modelRefs) {
+        let sqlLine = `select ${selectCols} from {{ ref('${modelRef}') }}`;
+        if (!shouldExcludeDateFilter && dj && modelJson) {
+          const filters = frameworkBuildFilters({
+            datetimeInterval: datetimeInterval ?? null,
+            dj,
+            from: { model: modelRef },
+            modelJson,
+            project,
+          });
+          if (filters.length) {
+            sqlLine += ` where ${filters.join(' and ')}`;
+          }
+        }
+        sqlLines.push(sqlLine);
+      }
+      return sqlLines.join('\nunion all\n');
     }
 
-    if (cte.select?.length) {
-      const cols = cteRegistry.get(cte.name) || [];
-      const colNames = cols.map((c) => c.name).join(', ');
-      return allRefs
-        .map((ref) => `select ${colNames} from ${ref}`)
-        .join('\nunion all\n');
-    }
-
-    return allRefs.map((ref) => `select * from ${ref}`).join('\nunion all\n');
+    return '';
   }
 
   // Standard CTE: build select, from, where, group_by, having
@@ -1337,12 +1396,39 @@ export function frameworkGenerateCteSql({
     }
   }
 
-  // WHERE
-  if (cte.where) {
-    const whereConditions = buildConditionsSql(cte.where);
-    if (whereConditions) {
-      parts.push(`where ${whereConditions}`);
+  // WHERE -- merge user conditions with framework partition filters
+  const userWhere = cte.where ? buildConditionsSql(cte.where) : '';
+  const frameworkFilters: string[] = [];
+  if (
+    !shouldExcludeDateFilter &&
+    dj &&
+    modelJson &&
+    'model' in from &&
+    !('union' in from)
+  ) {
+    const modelLayer = frameworkGetModelLayer(modelJson);
+    if (modelLayer !== 'mart') {
+      frameworkFilters.push(
+        ...frameworkBuildFilters({
+          datetimeInterval: datetimeInterval ?? null,
+          dj,
+          from: { model: from.model },
+          modelJson,
+          project,
+          prefix: 'join' in from && from.join ? from.model : undefined,
+        }),
+      );
     }
+  }
+  const frameworkWhere = frameworkFilters.length
+    ? frameworkFilters.join(' and ')
+    : '';
+  if (frameworkWhere && userWhere) {
+    parts.push(`where (${frameworkWhere}) and (${userWhere})`);
+  } else if (frameworkWhere) {
+    parts.push(`where ${frameworkWhere}`);
+  } else if (userWhere) {
+    parts.push(`where ${userWhere}`);
   }
 
   // GROUP BY
@@ -1791,6 +1877,9 @@ export function frameworkGenerateModelOutput({
       const cteSqlBody = frameworkGenerateCteSql({
         cte,
         cteRegistry: cteColumnRegistry,
+        datetimeInterval,
+        dj,
+        modelJson,
         project,
       });
       cteParts.push(`${cte.name} as (\n${cteSqlBody}\n)`);
