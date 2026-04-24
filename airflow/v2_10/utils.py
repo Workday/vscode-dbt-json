@@ -5,6 +5,7 @@ from datetime import (
 )
 import json
 from itertools import islice
+import re
 import unittest
 from typing import Sequence, TypedDict, Union
 
@@ -274,6 +275,25 @@ def build_runs(
     return runs
 
 
+def build_test_merges(
+    test_id_dates_list: list[TestIdDates],
+    etl_timestamp: str,
+) -> list[dict]:
+    """Build merge dicts for test dates, keyed by (test_id, model_id, event_date)
+    so tests referencing multiple models produce separate merge entries."""
+    merges: list[dict] = []
+    for id_dates in test_id_dates_list:
+        test_id: str = id_dates["id"]
+        for fields in id_dates["dates"]:
+            merge = {
+                "id": test_id,
+                "etl_timestamp": etl_timestamp,
+            }
+            merge.update(fields)
+            merges.append(merge)
+    return merges
+
+
 def date_add_days(date: date, days: int) -> date:
     return date + timedelta(days=days)
 
@@ -331,24 +351,48 @@ def parse_dbt_results(
 
             elif result.node.resource_type == "test":
                 test_id = result.node.unique_id
-                model_id = result.node.attached_node
-                test_id_dates_list.append(
-                    {
-                        "id": test_id,
-                        "dates": [
-                            {
-                                "event_date": event_date,
-                                "model_id": model_id,
-                                "test_id": test_id,
-                                "test_message": message,
-                                "test_rows": rows,
-                                "test_seconds": seconds,
-                                "test_status": status,
-                            }
-                            for event_date in event_dates
-                        ],
-                    }
-                )
+                model_id = getattr(result.node, "attached_node", None)
+
+                # Collect all dependent model IDs
+                model_ids: list[str] = [model_id] if model_id else []
+
+                if not model_ids:
+                    depends_on = getattr(result.node, "depends_on", None)
+                    dep_nodes = None
+
+                    if isinstance(depends_on, dict):
+                        dep_nodes = depends_on.get("nodes")
+                    elif depends_on:
+                        dep_nodes = getattr(depends_on, "nodes", None)
+
+                    if dep_nodes:
+                        for dep in dep_nodes:
+                            if isinstance(dep, str) and dep.startswith("model."):
+                                model_ids.append(dep)
+
+                # Skip test if no model_ids found
+                if not model_ids:
+                    continue
+
+                # Emit one entry per dependent model
+                for dep_model_id in model_ids:
+                    test_id_dates_list.append(
+                        {
+                            "id": test_id,
+                            "dates": [
+                                {
+                                    "event_date": event_date,
+                                    "model_id": dep_model_id,
+                                    "test_id": test_id,
+                                    "test_message": message,
+                                    "test_rows": rows,
+                                    "test_seconds": seconds,
+                                    "test_status": status,
+                                }
+                                for event_date in event_dates
+                            ],
+                        }
+                    )
 
     return {
         "model_id_dates_list": model_id_dates_list,
@@ -359,6 +403,65 @@ def parse_dbt_results(
 
 def get_model_name_from_id(model_id: str) -> str:
     return model_id.split(".")[-1]
+
+
+# Patterns that indicate permanent (non-retryable) errors — these require a model
+# or configuration change and will never self-resolve on retry.
+PERMANENT_ERROR_PATTERNS: list[str] = [
+    r"Compilation\s+Error",
+    r"Parsing\s+Error",
+    r"syntax\s+error",
+    r"COLUMN_NOT_FOUND",
+    r"TABLE_NOT_FOUND",
+    r"SCHEMA_NOT_FOUND",
+    r"CATALOG_NOT_FOUND",
+    r"TYPE_MISMATCH",
+    r"PERMISSION_DENIED",
+    r"ACCESS_DENIED",
+    r"AMBIGUOUS_NAME",
+    r"DUPLICATE_COLUMN_NAME",
+    r"MISSING_COLUMN_NAME",
+    r"EXPRESSION_NOT_AGGREGATE",
+    r"NOT_SUPPORTED",
+    r"INVALID_ARGUMENTS",
+    r"INVALID_CAST_ARGUMENT",
+    r"INVALID_FUNCTION_ARGUMENT",
+    r"DIVISION_BY_ZERO",
+    r"INVALID_VIEW",
+    r"relation\s+.*does\s+not\s+exist",
+    r"column\s+.*does\s+not\s+exist",
+]
+_PERMANENT_RE = re.compile("|".join(PERMANENT_ERROR_PATTERNS), re.IGNORECASE)
+
+
+def should_retry(run_response) -> bool:
+    """
+    Determine whether a failed dbt run deserves an immediate retry.
+
+    Returns True (retry) by default. Only returns False when **every** failed model
+    matches a known permanent error pattern that would never resolve without a
+    model or configuration change.
+    """
+    if not run_response.result or not run_response.result.results:
+        return False
+
+    failed_messages: list[str] = []
+    for result in run_response.result.results:
+        if getattr(result.node, "resource_type", None) != "model":
+            continue
+        if result.status not in ("success", "pass"):
+            failed_messages.append(result.message or "")
+
+    if not failed_messages:
+        return False
+
+    # If any failed model does NOT match a permanent pattern, retry is worthwhile
+    for message in failed_messages:
+        if not _PERMANENT_RE.search(message):
+            return True
+
+    # Every failure is permanent — retry would not help
+    return False
 
 
 # Parse properties from the source
@@ -697,15 +800,14 @@ def sql_dbt_test_dates_merge(
     test_id_dates_list: list[TestIdDates],
     etl_schema: str,
 ) -> str | None:
-    test_runs = build_runs(
-        id_dates_list=test_id_dates_list,
+    test_merges = build_test_merges(
+        test_id_dates_list=test_id_dates_list,
         etl_timestamp=etl_timestamp,
     )
     test_merge_args: list[str] = []
-    for test_run in test_runs:
-        for test_merge in test_run["merges"]:
-            test_merge_args.append(
-                f"""(
+    for test_merge in test_merges:
+        test_merge_args.append(
+            f"""(
                 '{test_merge['id']}',
                 '{test_merge['model_id']}',
                 cast('{test_merge['event_date']}' as date),
@@ -716,12 +818,12 @@ def sql_dbt_test_dates_merge(
                 {test_merge['test_seconds']},
                 '{test_merge['test_status']}'
             )"""
-            )
+        )
 
     if len(test_merge_args) > 0:
         return f"""
             MERGE INTO {database_name}.{etl_schema}.dbt_test_dates old USING (VALUES {','.join(test_merge_args)}) new (test_id, model_id, event_date, etl_timestamp, test_dates, test_message, test_rows, test_seconds, test_status)
-            ON (old.test_id = new.test_id AND old.event_date = new.event_date)
+            ON (old.test_id = new.test_id AND old.model_id = new.model_id AND old.event_date = new.event_date)
             WHEN MATCHED
                 THEN UPDATE SET model_id = new.model_id, etl_timestamp = new.etl_timestamp, test_dates = new.test_dates, test_message = new.test_message, test_rows = new.test_rows, test_seconds = new.test_seconds, test_status = new.test_status
             WHEN NOT MATCHED

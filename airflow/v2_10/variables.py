@@ -8,7 +8,9 @@ def var(name: str, default: str = "") -> str:
 dbt_project: str = var("dj_etl_dbt_project")
 dbt_threads: int = int(var("dj_etl_dbt_threads", "1"))
 etl_schema: str = var("dj_etl_etl_schema", "source_etl")
-custom_failure_notifications: bool = var("dj_etl_custom_failure_notifications", "false").lower() == "true"
+custom_failure_notifications: bool = (
+    var("dj_etl_custom_failure_notifications", "false").lower() == "true"
+)
 email_notifications: str = var("dj_etl_email_notifications")
 error_run_limit: int = int(var("dj_etl_error_run_limit", "0"))
 error_run_timeout_minutes: int = int(var("dj_etl_error_run_timeout_minutes", "0"))

@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.3.2
+
+### Airflow ETL Improvements
+
+- **Automatic dbt retry for transient failures** — `dbt_build` now performs an immediate `dbt retry` when model failures are not known to be permanent (compilation errors, missing columns, permission denied, etc.), reducing flaky DAG failures from transient Trino errors
+- **Multi-model test tracking** — tests that reference multiple models (e.g. relationships tests) now record separate entries per dependent model in `dbt_test_dates`, with the MERGE key expanded to `(test_id, model_id, event_date)` for accurate per-model test tracking
+- **Robust test result parsing** — `parse_dbt_results` now gracefully falls back to `depends_on.nodes` when `attached_node` is unavailable, and skips tests with no model association instead of writing null model IDs
+
 ## 1.3.1
 
 ### CTE Partition Filters
